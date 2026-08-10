@@ -1,0 +1,174 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>组织架构调整 Demo</title>
+<link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+
+
+<div class="login-overlay" id="loginOverlay">
+  <div class="login-card" id="loginCard">
+    <div class="mark">组</div>
+    <h1>组织架构调整工具</h1>
+    <p>需要登录后才能查看组织架构与员工数据</p>
+    <button class="login-btn" id="loginBtn"><span class="dot"></span><span id="loginBtnText">使用飞书账号登录</span></button>
+    <div class="login-note">此 Demo 运行在 Claude Artifact 沙盒中，无法完成真实的飞书 OAuth 跳转与回调，这里用一次模拟登录代表该流程；正式版本会替换为真实的飞书第三方登录。</div>
+  </div>
+</div>
+
+<div class="wrap" id="app">
+
+  <div class="topbar">
+    <div>
+      <h1>组织架构调整 Demo</h1>
+      <p>数据取自 Base 里「Lark Structures」+「Employee list」+「Lark User」的真实子集（Central / Investor Relations Corporate Communications and Sustainability，10 个节点、15 名员工）。所有操作只在浏览器本地进行，不会写回 Base。</p>
+      <span class="scope-tag">范围：Central → Investor Relations Corp Comms &amp; Sustainability</span>
+    </div>
+    <div style="display:flex; flex-direction:column; align-items:flex-end; gap:10px;">
+      <div class="user-chip">已登录：<b id="userName">—</b><span class="logout" id="logoutBtn">退出</span></div>
+      <button class="btn ghost" id="resetBtn">重置演示</button>
+    </div>
+  </div>
+
+  <div class="controls-row">
+    <div class="search-box">
+      <input type="text" id="searchInput" placeholder="搜索组织架构名称…" autocomplete="off">
+      <div class="search-results" id="searchResults"></div>
+    </div>
+    <span class="focus-pill" id="focusPill">聚焦于「<span id="focusName"></span>」<button id="clearFocus">×</button></span>
+    <button class="btn" id="globalTransferBtn">转移员工</button>
+    <span style="flex:1;"></span>
+    <span style="font-size:11.5px; color:var(--ink-muted); font-weight:600;">查看方向</span>
+    <div class="seg" id="orientSeg">
+      <button data-orient="vertical" class="active">纵向</button>
+      <button data-orient="horizontal">横向</button>
+    </div>
+    <button class="btn ghost" id="downloadPngBtn">下载组织架构图（PNG）</button>
+  </div>
+
+  <div class="layout">
+
+    <div class="panel">
+      <div class="legend">
+        <div class="legend-item"><span class="swatch" style="background:var(--new-bg); border-color:var(--new-border);"></span>新增</div>
+        <div class="legend-item"><span class="swatch" style="background:var(--del-bg); border-color:var(--del-border);"></span>删除</div>
+        <div class="legend-item"><span class="swatch" style="background:var(--mov-bg); border-color:var(--mov-border);"></span>移动 / 影子</div>
+        <div class="legend-item"><span class="swatch" style="background:var(--accent-soft); border-color:var(--accent);"></span>已改名</div>
+        <div class="legend-item" style="color:var(--warn-text);">⚠ 角色不一致</div>
+      </div>
+      <div class="tree-scroll">
+        <div class="tree-wrap" id="treeWrap">
+          <svg class="tree-connectors" id="treeConnectors"></svg>
+          <div class="tree" id="treeRoot" data-orient="vertical"></div>
+        </div>
+      </div>
+    </div>
+
+    <div style="display:flex; flex-direction:column; gap:18px;">
+      <div class="panel">
+        <div class="panel-head">
+          <h2>变更记录</h2>
+          <span class="count mono" id="logCount">0 条</span>
+        </div>
+        <div class="panel-body">
+          <div class="scroll-table">
+            <table class="logtbl">
+              <thead><tr><th style="width:34px;">#</th><th style="width:64px;">类型</th><th>详情</th></tr></thead>
+              <tbody id="logBody"><tr><td colspan="3" class="empty-note">暂无变更，点一个部门框试试</td></tr></tbody>
+            </table>
+          </div>
+          <div class="btn-row" style="margin-top:10px;">
+            <button class="btn" id="copyLogBtn">复制变更（可直接粘贴到 Base）</button>
+            <button class="btn ghost" id="downloadLogBtn">下载 CSV</button>
+          </div>
+        </div>
+      </div>
+
+      <div class="panel">
+        <div class="panel-head">
+          <h2>受影响员工</h2>
+          <span class="count mono" id="empCount">0 人</span>
+        </div>
+        <div class="panel-body">
+          <div class="scroll-table">
+            <table class="emptbl">
+              <thead><tr><th style="width:56px;">EID</th><th>姓名</th><th>原部门 → 新部门</th></tr></thead>
+              <tbody id="empBody"><tr><td colspan="3" class="empty-note">还没有员工受影响</td></tr></tbody>
+            </table>
+          </div>
+          <div class="btn-row" style="margin-top:10px;">
+            <button class="btn" id="copyEmpBtn">复制员工变更（可直接粘贴到 Base）</button>
+            <button class="btn ghost" id="downloadEmpBtn">下载 CSV</button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<div class="panel-backdrop" id="panelBackdrop"></div>
+<div class="edit-drawer" id="editDrawer">
+  <div class="edit-head">
+    <h3 id="editNodeName">—</h3>
+    <div class="head-actions">
+      <button class="add-btn" id="addChildBtn" title="新增子部门">+</button>
+      <button class="close-btn" id="editCloseBtn">&times;</button>
+    </div>
+  </div>
+  <div class="edit-tabs" id="editTabs">
+    <button data-tab="structure" class="active" id="tabStructureBtn">编辑类型</button>
+    <button data-tab="role" id="tabRoleBtn">变更角色</button>
+    <button data-tab="roster" id="tabRosterBtn">下辖员工名单</button>
+  </div>
+  <div class="edit-body" id="editBody"></div>
+  <div class="edit-foot" id="editFoot"></div>
+</div>
+
+<div class="gmodal-overlay" id="gmodalOverlay">
+  <div class="gmodal-box">
+    <h3>转移员工</h3>
+    <div class="gmodal-field">
+      <label>员工</label>
+      <div id="gmodalEmpPicked" style="display:none;"></div>
+      <div id="gmodalEmpSearchWrap">
+        <input type="text" id="gmodalEmpSearch" placeholder="搜索姓名或 EID…" autocomplete="off">
+        <div class="gmodal-options" id="gmodalEmpOptions"></div>
+      </div>
+    </div>
+    <div class="gmodal-field">
+      <label>目标组织架构</label>
+      <div id="gmodalOrgPicked" style="display:none;"></div>
+      <div id="gmodalOrgSearchWrap">
+        <input type="text" id="gmodalOrgSearch" placeholder="搜索目标部门…" autocomplete="off">
+        <div class="gmodal-options" id="gmodalOrgOptions"></div>
+      </div>
+    </div>
+    <div class="gmodal-actions">
+      <button class="btn ghost" id="gmodalCancelBtn">取消</button>
+      <button class="btn primary" id="gmodalConfirmBtn" disabled>确认转移</button>
+    </div>
+  </div>
+</div>
+
+<div class="gmodal-overlay" id="reportPromptOverlay">
+  <div class="gmodal-box">
+    <h3>是否同步更新汇报关系？</h3>
+    <p id="reportPromptText" style="font-size:12.5px; color:var(--ink-muted); line-height:1.7; margin:0 0 16px;"></p>
+    <div class="gmodal-actions">
+      <button class="btn ghost" id="reportPromptSkipBtn">保持不变</button>
+      <button class="btn primary" id="reportPromptApplyBtn">更新汇报对象</button>
+    </div>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+
+<script src="js/app.js"></script>
+
+</body>
+</html>
