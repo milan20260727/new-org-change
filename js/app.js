@@ -1,5 +1,189 @@
 (function(){
 
+  // ---------- i18n ----------
+  var LANG = 'zh';
+  var STR = {
+    zh: {
+      loginTitle:'组织架构调整工具', loginSubtitle:'需要登录后才能查看组织架构与员工数据',
+      loginBtnText:'使用飞书账号登录', loginBtnTextLoading:'登录中…',
+      loginNote:'此 Demo 运行在 Claude Artifact 沙盒中，无法完成真实的飞书 OAuth 跳转与回调，这里用一次模拟登录代表该流程；正式版本会替换为真实的飞书第三方登录。',
+      pageTitle:'组织架构调整 Demo',
+      pageDesc:'数据取自 Base 里「Lark Structures」+「Employee list」+「Lark User」的真实子集（Central / Investor Relations Corporate Communications and Sustainability，10 个节点、15 名员工）。所有操作只在浏览器本地进行，不会写回 Base。',
+      scopeTag:'范围：Central → Investor Relations Corp Comms & Sustainability',
+      loggedInAs:'已登录：', logoutBtn:'退出', resetBtn:'重置演示',
+      snapshotLabel:'数据快照时间：', refreshBtn:'刷新数据', refreshBtnLoading:'刷新中…',
+      refreshToast:'已刷新（模拟）：这个 Demo 还没接入真实 Lark Base，内容跟刷新前一样，只更新了快照时间',
+      searchPlaceholder:'搜索组织架构名称…', focusPrefix:'聚焦于「', focusSuffix:'」',
+      globalTransferBtn:'转移员工', orientLabel:'查看方向', orientVertical:'纵向', orientHorizontal:'横向',
+      langLabel:'语言', downloadPngBtn:'下载组织架构图（PNG）',
+      legendNew:'新增', legendDelete:'删除', legendMoved:'移动 / 影子', legendRenamed:'已改名', legendRoleWarn:'⚠ 角色不一致',
+      changeLogTitle:'变更记录', unitRecords:'条', colType:'类型', colDetail:'详情',
+      logEmptyNote:'暂无变更，点一个部门框试试', copyLogBtn:'复制变更（可直接粘贴到 Base）', downloadCsvBtn:'下载 CSV',
+      affectedEmpTitle:'受影响员工', unitPeople:'人', colName:'姓名', colPathChange:'原部门 → 新部门',
+      empEmptyNote:'还没有员工受影响', copyEmpBtn:'复制员工变更（可直接粘贴到 Base）',
+      addChildTitle:'新增子部门', tabStructure:'编辑类型', tabRole:'变更角色', tabRoster:'下辖员工名单',
+      transferModalTitle:'转移员工', fieldEmployee:'员工', searchEmpPlaceholder:'搜索姓名或 EID…',
+      fieldTargetOrg:'目标组织架构', searchOrgPlaceholder:'搜索目标部门…', cancelBtn:'取消', confirmTransferBtn:'确认转移',
+      reportPromptTitle:'是否同步更新汇报关系？', skipBtn:'保持不变', applyReportBtn:'更新汇报对象',
+
+      empty:'（空）', notSet:'未设置', changeBtn:'更改', reselectBtn:'重选', closeBtn:'关闭',
+      newTag:'新增', renamedTag:'已改名', movedTag:'已移动', inactiveTag:'既有停用',
+      renamedTooltipPrefix:'原名：', roleWarnTooltip:'下级部门角色不一致或未设置',
+      picPrefix:'PIC：', headcountLabel:function(n){ return '在职 ' + n + ' 人'; },
+      movedToLabel:function(name){ return '→ 已移至「' + name + '」'; },
+      focusLabel:function(name){ return '聚焦于「' + name + '」'; },
+      selectAllLabel:function(n){ return '全选（' + n + ' 人）'; },
+      transferSelectedBtn:function(n){ return '转移已选员工（' + n + '）'; },
+      reportsToPrefix:' · 汇报对象：',
+      nowAtPrefix:' — 现在：',
+      matchLabel:function(eid){ return eid; },
+
+      dragHint:function(name){ return '提示：也可以直接在图上把「' + name + '」拖到目标部门上完成移动。'; },
+      renameLbl:'重命名', renameInputPh:'新名称',
+      moveLbl:'移动', movePlaceholder:'选择目标上级部门…', moveHint:'下拉列表已排除自身及其所有子部门，避免循环嵌套。',
+      deleteLbl:'删除该部门', deleteBlocked:function(n){ return '下面还有 ' + n + ' 个子部门，需先移动或删除它们才能删除本部门。'; },
+      deleteHint:'删除后仍会以灰色显示在图中，并保留在变更记录里。与重命名/移动互斥。',
+      reassignTitle:function(n){ return '删除前需要为以下 ' + n + ' 名员工安置新部门'; },
+      bulkTargetPlaceholder:'批量选择目标部门…', bulkApplyBtn:'全部转移到此', assignTargetPlaceholder:'选择新部门…',
+      saveBtn:'保存', createBtn:'创建', createTitle:'新增子部门', createUnder:function(name){ return '新增于「' + name + '」下'; },
+      createNamePh:'新部门名称',
+
+      roleWarnHeader:'⚠ 下级部门角色需要核查：', roleOkBox:'✓ 该分支下的 HRBP / Department Assistant 设置一致。',
+      roleDiffers:'下级部门取值不一致', roleBlank:'存在未设置（空值）',
+      cascadeBtn:'应用到所有下级部门（HRBP1/HRBP2/Dept. Assistant）',
+      rosterEmptyNote:'该部门目前没有直属员工。', rosterTargetPlaceholder:'转移目标部门…',
+      pickerSearchPh:'从 Lark User 中搜索姓名…', clearRoleOption:'清空该角色', noMatchResult:'无匹配结果', noMatchDept:'无匹配部门', noMatchEmp:'无匹配员工',
+
+      toastDeleteBlockedChildren:'无法删除：请先处理子部门',
+      toastDeleteBlockedEmp:function(n){ return '还有 ' + n + ' 名员工尚未安置新部门'; },
+      toastDeleted:'已标记删除', toastNothingToSave:'没有可保存的变更', toastSaved:'已保存变更',
+      toastNeedName:'请填写新部门名称', toastAdded:'已新增部门',
+      toastPickBulkTarget:'请先选择批量目标部门', toastCascaded:'已应用到所有下级部门',
+      toastPickTransferTarget:'请先选择转移目标部门', toastTransferredN:function(n){ return '已转移 ' + n + ' 名员工'; },
+      toastUndoDeleted:'已撤销删除', toastMovePending:'已选定目标，点击"保存"确认这次移动',
+      toastCopied:'已复制，可直接粘贴到 Base', toastCopyFailed:'复制失败，请改用下载', toastReset:'已重置演示',
+      toastReportUpdated:'已更新汇报对象', toastTransferredName:function(name){ return '已转移 ' + name; },
+      toastPngFailed:'导出失败，请改用浏览器自带的截图功能', toastPngDone:'已下载 PNG',
+      toastPngError:function(msg){ return '导出失败：' + msg; },
+      deletedPanelNote:'该部门已标记删除。删除时涉及的员工已安置到其他部门；撤销删除会把他们迁回来。',
+      undoDeleteBtn:'撤销删除',
+
+      reportPromptText:function(p){ return '「' + p.dept + '」已移动到「' + p.parent + '」下。是否把负责人「' + p.pic + '」的直属汇报对象，从「' + (p.from||STR.zh.empty) + '」改为「' + p.to + '」？'; },
+
+      role_pic:'PIC', role_hrbp1:'HRBP1', role_hrbp2:'HRBP2', role_da:'Department Assistant',
+
+      logType:{ rename:'重命名', move:'移动', add:'新增', emp_transfer:'员工调动', delete:'删除', undo_delete:'撤销删除', role_change:'角色变更', role_cascade:'角色批量应用', report_change:'汇报关系变更' },
+      logDetail:{
+        rename: function(p){ return '「' + p.from + '」→「' + p.to + '」'; },
+        move: function(p){ return p.name + '：「' + p.from + '」→「' + p.to + '」'; },
+        add: function(p){ return '「' + p.name + '」新增于「' + p.parent + '」下' + (p.roleBits.length ? '（' + p.roleBits.join('，') + '）' : ''); },
+        emp_transfer: function(p){ return p.name + '（' + p.eid + '）：「' + p.from + '」→「' + p.to + '」'; },
+        delete: function(p){ return '「' + p.name + '」（原上级：' + p.parent + (p.empCount ? '，' + p.empCount + ' 名员工已安置新部门' : '') + '）'; },
+        undo_delete: function(p){ return '「' + p.name + '」已恢复' + (p.restored ? '，' + p.restored + ' 名员工已迁回原部门' : ''); },
+        role_change: function(p){ return '「' + p.name + '」' + p.roleLabel + '：' + (p.from || STR.zh.empty) + ' → ' + (p.to || STR.zh.empty); },
+        role_cascade: function(p){ return '将「' + p.name + '」的 HRBP1/HRBP2/Department Assistant 应用到 ' + p.count + ' 个下级部门'; },
+        report_change: function(p){ return p.name + '：直属主管 ' + (p.from || STR.zh.empty) + ' → ' + p.to; }
+      },
+      csvLogHeaders:['操作类型','详情'], csvEmpHeaders:['EID','姓名','原部门','新部门'],
+      csvLogFilename:'组织架构变更记录.csv', csvEmpFilename:'员工变更清单.csv'
+    },
+    en: {
+      loginTitle:'Org Structure Change Tool', loginSubtitle:'Sign in to view the org structure and employee data',
+      loginBtnText:'Sign in with Lark', loginBtnTextLoading:'Signing in…',
+      loginNote:'This demo runs inside the Claude Artifact sandbox, which cannot complete a real Lark OAuth redirect/callback — this is a one-time simulated sign-in standing in for that flow. The production version would use real Lark third-party login.',
+      pageTitle:'Org Structure Change Demo',
+      pageDesc:'Data is a real subset from the Base tables "Lark Structures" + "Employee list" + "Lark User" (Central / Investor Relations Corporate Communications and Sustainability — 10 nodes, 15 employees). All actions run locally in the browser only and are never written back to Base.',
+      scopeTag:'Scope: Central → Investor Relations Corp Comms & Sustainability',
+      loggedInAs:'Signed in as: ', logoutBtn:'Sign out', resetBtn:'Reset demo',
+      snapshotLabel:'Data snapshot: ', refreshBtn:'Refresh data', refreshBtnLoading:'Refreshing…',
+      refreshToast:'Refreshed (simulated): this demo isn’t wired to a live Lark Base yet, so content is unchanged — only the snapshot time updated',
+      searchPlaceholder:'Search org unit name…', focusPrefix:'Focused on "', focusSuffix:'"',
+      globalTransferBtn:'Transfer employee', orientLabel:'Layout', orientVertical:'Vertical', orientHorizontal:'Horizontal',
+      langLabel:'Language', downloadPngBtn:'Download chart (PNG)',
+      legendNew:'New', legendDelete:'Deleted', legendMoved:'Moved / ghost', legendRenamed:'Renamed', legendRoleWarn:'⚠ Role inconsistent',
+      changeLogTitle:'Change log', unitRecords:'', colType:'Type', colDetail:'Detail',
+      logEmptyNote:'No changes yet — try clicking a department box', copyLogBtn:'Copy changes (paste directly into Base)', downloadCsvBtn:'Download CSV',
+      affectedEmpTitle:'Affected employees', unitPeople:'', colName:'Name', colPathChange:'Old dept → New dept',
+      empEmptyNote:'No employees affected yet', copyEmpBtn:'Copy employee changes (paste directly into Base)',
+      addChildTitle:'Add sub-department', tabStructure:'Edit type', tabRole:'Roles', tabRoster:'Team roster',
+      transferModalTitle:'Transfer employee', fieldEmployee:'Employee', searchEmpPlaceholder:'Search by name or EID…',
+      fieldTargetOrg:'Target org unit', searchOrgPlaceholder:'Search target department…', cancelBtn:'Cancel', confirmTransferBtn:'Confirm transfer',
+      reportPromptTitle:'Sync the reporting line too?', skipBtn:'Leave as is', applyReportBtn:'Update reporting line',
+
+      empty:'(empty)', notSet:'Not set', changeBtn:'Change', reselectBtn:'Change', closeBtn:'Close',
+      newTag:'New', renamedTag:'Renamed', movedTag:'Moved', inactiveTag:'Inactive (Lark)',
+      renamedTooltipPrefix:'Was: ', roleWarnTooltip:'Role inconsistent or unset among sub-departments',
+      picPrefix:'PIC: ', headcountLabel:function(n){ return n + (n===1?' employee':' employees'); },
+      movedToLabel:function(name){ return '→ moved to "' + name + '"'; },
+      focusLabel:function(name){ return 'Focused on "' + name + '"'; },
+      selectAllLabel:function(n){ return 'Select all (' + n + ')'; },
+      transferSelectedBtn:function(n){ return 'Transfer selected (' + n + ')'; },
+      reportsToPrefix:' · Reports to: ',
+      nowAtPrefix:' — currently: ',
+      matchLabel:function(eid){ return eid; },
+
+      dragHint:function(name){ return 'Tip: you can also drag "' + name + '" onto a target department on the chart to move it.'; },
+      renameLbl:'Rename', renameInputPh:'New name',
+      moveLbl:'Move', movePlaceholder:'Choose a target parent department…', moveHint:'The list excludes this department and all of its sub-departments to avoid circular nesting.',
+      deleteLbl:'Delete this department', deleteBlocked:function(n){ return 'There ' + (n===1?'is':'are') + ' still ' + n + ' sub-department(s) below — move or delete them first.'; },
+      deleteHint:'Deleted items stay visible in gray on the chart and remain in the change log. Mutually exclusive with rename/move.',
+      reassignTitle:function(n){ return 'Reassign the following ' + n + ' employee(s) before deleting'; },
+      bulkTargetPlaceholder:'Bulk-select a target department…', bulkApplyBtn:'Move all here', assignTargetPlaceholder:'Choose a new department…',
+      saveBtn:'Save', createBtn:'Create', createTitle:'Add sub-department', createUnder:function(name){ return 'Adding under "' + name + '"'; },
+      createNamePh:'New department name',
+
+      roleWarnHeader:'⚠ Roles need review in sub-departments:', roleOkBox:'✓ HRBP / Department Assistant are consistent across this branch.',
+      roleDiffers:'values differ among sub-departments', roleBlank:'not set somewhere (blank)',
+      cascadeBtn:'Apply to all sub-departments (HRBP1/HRBP2/Dept. Assistant)',
+      rosterEmptyNote:'No employees report directly to this department.', rosterTargetPlaceholder:'Transfer target department…',
+      pickerSearchPh:'Search names from Lark User…', clearRoleOption:'Clear this role', noMatchResult:'No matches', noMatchDept:'No matching department', noMatchEmp:'No matching employee',
+
+      toastDeleteBlockedChildren:'Cannot delete: please move or delete the sub-departments first',
+      toastDeleteBlockedEmp:function(n){ return n + ' employee(s) still need a new department'; },
+      toastDeleted:'Marked as deleted', toastNothingToSave:'No changes to save', toastSaved:'Changes saved',
+      toastNeedName:'Please enter a department name', toastAdded:'Department added',
+      toastPickBulkTarget:'Choose a bulk target department first', toastCascaded:'Applied to all sub-departments',
+      toastPickTransferTarget:'Choose a transfer target department first', toastTransferredN:function(n){ return 'Transferred ' + n + ' employee(s)'; },
+      toastUndoDeleted:'Deletion undone', toastMovePending:'Target selected — click "Save" to confirm the move',
+      toastCopied:'Copied — paste directly into Base', toastCopyFailed:'Copy failed, please download instead', toastReset:'Demo reset',
+      toastReportUpdated:'Reporting line updated', toastTransferredName:function(name){ return 'Transferred ' + name; },
+      toastPngFailed:'Export failed — please use your browser’s screenshot tool instead', toastPngDone:'PNG downloaded',
+      toastPngError:function(msg){ return 'Export failed: ' + msg; },
+      deletedPanelNote:'This department is marked as deleted. Employees affected by this deletion were reassigned; undoing the deletion moves them back.',
+      undoDeleteBtn:'Undo delete',
+
+      reportPromptText:function(p){ return '"' + p.dept + '" moved under "' + p.parent + '". Update the reporting line for its PIC "' + p.pic + '" from "' + (p.from||STR.en.empty) + '" to "' + p.to + '"?'; },
+
+      role_pic:'PIC', role_hrbp1:'HRBP1', role_hrbp2:'HRBP2', role_da:'Department Assistant',
+
+      logType:{ rename:'Rename', move:'Move', add:'Add', emp_transfer:'Transfer', delete:'Delete', undo_delete:'Undo delete', role_change:'Role change', role_cascade:'Role cascade', report_change:'Reporting line' },
+      logDetail:{
+        rename: function(p){ return '"' + p.from + '" → "' + p.to + '"'; },
+        move: function(p){ return p.name + ': "' + p.from + '" → "' + p.to + '"'; },
+        add: function(p){ return '"' + p.name + '" added under "' + p.parent + '"' + (p.roleBits.length ? ' (' + p.roleBits.join(', ') + ')' : ''); },
+        emp_transfer: function(p){ return p.name + ' (' + p.eid + '): "' + p.from + '" → "' + p.to + '"'; },
+        delete: function(p){ return '"' + p.name + '" (previous parent: ' + p.parent + (p.empCount ? ', ' + p.empCount + ' employee(s) reassigned' : '') + ')'; },
+        undo_delete: function(p){ return '"' + p.name + '" restored' + (p.restored ? ', ' + p.restored + ' employee(s) moved back' : ''); },
+        role_change: function(p){ return '"' + p.name + '" ' + p.roleLabel + ': ' + (p.from || STR.en.empty) + ' → ' + (p.to || STR.en.empty); },
+        role_cascade: function(p){ return 'Applied "' + p.name + '"’s HRBP1/HRBP2/Department Assistant to ' + p.count + ' sub-department(s)'; },
+        report_change: function(p){ return p.name + ': direct manager ' + (p.from || STR.en.empty) + ' → ' + p.to; }
+      },
+      csvLogHeaders:['Type','Detail'], csvEmpHeaders:['EID','Name','Old department','New department'],
+      csvLogFilename:'org-change-log.csv', csvEmpFilename:'employee-changes.csv'
+    }
+  };
+  function t(key){ var v = STR[LANG][key]; return v===undefined ? key : v; }
+  function roleLabelFor(field){ return t('role_' + field); }
+  function applyStaticI18n(){
+    document.documentElement.lang = LANG==='zh' ? 'zh-CN' : 'en';
+    document.title = t('pageTitle');
+    document.querySelectorAll('[data-i18n]').forEach(function(el){ el.textContent = t(el.getAttribute('data-i18n')); });
+    document.querySelectorAll('[data-i18n-placeholder]').forEach(function(el){ el.placeholder = t(el.getAttribute('data-i18n-placeholder')); });
+    document.querySelectorAll('[data-i18n-title]').forEach(function(el){ el.title = t(el.getAttribute('data-i18n-title')); });
+    var loginBtnText = document.getElementById('loginBtnText');
+    if(loginBtnText && !document.getElementById('loginCard').classList.contains('loading')) loginBtnText.textContent = t('loginBtnText');
+  }
+
   // ---------- seed data (real snapshot: Central / Investor Relations Corp Comms & Sustainability) ----------
   var seedNodes = [
     {id:'bu-root', name:'Investor Relations Corporate Communications and Sustainability', parentId:null, pic:'Celeste JOVENIR'},
@@ -44,7 +228,7 @@
     'Ermar RAMIREZ','Ralph PITALUNA','Hilton PATUNGAN','Ryan DEL ROSARIO','Irish DOMAWAL','Honiely DIGNADICE','Michael FERNANDEZ',
     'Darwin LINGAD','Abraham SOLIS','Arnel BAQUE'];
 
-  var nodes, employees, log, selectedId, viewRootId, orientation, logSeq, tempCounter, dragSrcId, pendingEdit, activeTab, createDraft, rosterSelected, gmodalEmp, gmodalOrg, pendingReportPrompt;
+  var nodes, employees, log, selectedId, viewRootId, orientation, logSeq, tempCounter, dragSrcId, pendingEdit, activeTab, createDraft, rosterSelected, gmodalEmp, gmodalOrg, pendingReportPrompt, snapshotAt;
 
   function cloneSeed(){
     return seedNodes.map(function(n){
@@ -55,7 +239,12 @@
     });
   }
 
-  function init(){
+  function formatSnapshotTime(d){
+    function pad(n){ return n<10 ? '0'+n : ''+n; }
+    return d.getFullYear()+'-'+pad(d.getMonth()+1)+'-'+pad(d.getDate())+' '+pad(d.getHours())+':'+pad(d.getMinutes());
+  }
+
+  function init(keepSnapshot){
     nodes = cloneSeed();
     employees = seedEmployees.map(function(e){ return {eid:e.eid, name:e.name, nodeId:e.nodeId, origPath: pathLabel(e.nodeId), reportsTo:e.reportsTo||'', origReportsTo:e.reportsTo||''}; });
     log = [];
@@ -70,6 +259,8 @@
     rosterSelected = {};
     pendingReportPrompt = null;
     activeTab = 'structure';
+    if(!keepSnapshot) snapshotAt = new Date();
+    document.getElementById('snapshotTime').textContent = formatSnapshotTime(snapshotAt);
     document.getElementById('searchInput').value = '';
     document.getElementById('reportPromptOverlay').classList.remove('show');
     document.getElementById('orientSeg').querySelectorAll('button').forEach(function(b){ b.classList.toggle('active', b.getAttribute('data-orient')==='vertical'); });
@@ -130,25 +321,30 @@
     return r.hrbp1.bad || r.hrbp2.bad || r.da.bad;
   }
 
-  function addLog(type, detail, key){ log.push({seq:logSeq++, type:type, detail:detail, key:key||null}); }
+  // Log entries store a typeKey + structured params, formatted into display text at render
+  // time via STR[LANG] — this is what lets the language toggle re-render existing history
+  // correctly, instead of freezing whatever language was active when each entry was created.
+  function addLog(typeKey, params, key){ log.push({seq:logSeq++, typeKey:typeKey, params:params||{}, key:key||null}); }
   // Rename / move / role-change are reversible within a session — upsertLog keeps exactly ONE
-  // entry per (type, key), always describing session-original → current, so undoing an edit
+  // entry per (typeKey, key), always describing session-original → current, so undoing an edit
   // (or moving a department out and back) removes the noise instead of leaving a "process" trail.
-  function upsertLog(type, key, detail){
-    var existing = log.filter(function(l){ return l.type===type && l.key===key; })[0];
-    if(existing) existing.detail = detail;
-    else log.push({seq:logSeq++, type:type, detail:detail, key:key});
+  function upsertLog(typeKey, key, params){
+    var existing = log.filter(function(l){ return l.typeKey===typeKey && l.key===key; })[0];
+    if(existing) existing.params = params;
+    else log.push({seq:logSeq++, typeKey:typeKey, params:params, key:key});
   }
-  function removeLog(type, key){ log = log.filter(function(l){ return !(l.type===type && l.key===key); }); }
+  function removeLog(typeKey, key){ log = log.filter(function(l){ return !(l.typeKey===typeKey && l.key===key); }); }
   function removeAllLogsForNode(nodeId){
     log = log.filter(function(l){ return l.key!==nodeId && (typeof l.key!=='string' || l.key.indexOf(nodeId+'#')!==0); });
   }
+  function formatLogType(entry){ return t('logType')[entry.typeKey] || entry.typeKey; }
+  function formatLogDetail(entry){ var fn = t('logDetail')[entry.typeKey]; return fn ? fn(entry.params) : ''; }
 
   function toast(msg){
-    var t = document.getElementById('toast');
-    t.textContent = msg; t.classList.add('show');
-    clearTimeout(t._h);
-    t._h = setTimeout(function(){ t.classList.remove('show'); }, 2600);
+    var el = document.getElementById('toast');
+    el.textContent = msg; el.classList.add('show');
+    clearTimeout(el._h);
+    el._h = setTimeout(function(){ el.classList.remove('show'); }, 2600);
   }
 
   // ---------- commit helpers ----------
@@ -161,9 +357,9 @@
     n.name = val;
     if(n.name === n.origName){
       n.flags.isRenamed = false;
-      removeLog('重命名', n.id);
+      removeLog('rename', n.id);
     } else {
-      upsertLog('重命名', n.id, '「' + n.origName + '」→「' + n.name + '」');
+      upsertLog('rename', n.id, {from:n.origName, to:n.name});
     }
     return true;
   }
@@ -173,9 +369,9 @@
     n.parentId = targetId;
     if(n.parentId === n.movedFrom){
       n.movedFrom = null;
-      removeLog('移动', n.id);
+      removeLog('move', n.id);
     } else {
-      upsertLog('移动', n.id, n.name + '：「' + getNode(n.movedFrom).name + '」→「' + getNode(n.parentId).name + '」');
+      upsertLog('move', n.id, {name:n.name, from:getNode(n.movedFrom).name, to:getNode(n.parentId).name});
     }
     return true;
   }
@@ -188,11 +384,11 @@
       flags:{isNew:true, isDeleted:false, isRenamed:false}};
     nodes.push(newNode);
     var roleBits = [];
-    if(newNode.pic) roleBits.push('PIC：'+newNode.pic);
-    if(newNode.hrbp1) roleBits.push('HRBP1：'+newNode.hrbp1);
-    if(newNode.hrbp2) roleBits.push('HRBP2：'+newNode.hrbp2);
-    if(newNode.da) roleBits.push('Department Assistant：'+newNode.da);
-    addLog('新增', '「' + val + '」新增于「' + parentNode.name + '」下' + (roleBits.length ? '（' + roleBits.join('，') + '）' : ''), id);
+    if(newNode.pic) roleBits.push(roleLabelFor('pic')+'：'+newNode.pic);
+    if(newNode.hrbp1) roleBits.push(roleLabelFor('hrbp1')+'：'+newNode.hrbp1);
+    if(newNode.hrbp2) roleBits.push(roleLabelFor('hrbp2')+'：'+newNode.hrbp2);
+    if(newNode.da) roleBits.push(roleLabelFor('da')+'：'+newNode.da);
+    addLog('add', {name:val, parent:parentNode.name, roleBits:roleBits}, id);
     return newNode;
   }
   function commitEmployeeTransfer(emp, targetId, silent){
@@ -200,7 +396,7 @@
     var toNode = getNode(targetId);
     if(!toNode || targetId===emp.nodeId) return false;
     emp.nodeId = targetId;
-    if(!silent) addLog('员工调动', emp.name + '（'+emp.eid+'）：「' + fromNode.name + '」→「' + toNode.name + '」');
+    if(!silent) addLog('emp_transfer', {name:emp.name, eid:emp.eid, from:fromNode.name, to:toNode.name});
     return true;
   }
   function commitDelete(n, assignments){
@@ -224,7 +420,7 @@
     });
     n.restoreLog = restoreLog.length ? restoreLog : null;
     n.flags.isDeleted = true;
-    addLog('删除', '「' + n.name + '」（原上级：' + getNode(n.parentId).name + (restoreLog.length ? '，'+restoreLog.length+' 名员工已安置新部门' : '') + '）');
+    addLog('delete', {name:n.name, parent:getNode(n.parentId).name, empCount:restoreLog.length});
     return {ok:true};
   }
   function commitRestoreDelete(n){
@@ -237,18 +433,17 @@
       });
       n.restoreLog = null;
     }
-    addLog('撤销删除', '「' + n.name + '」已恢复' + (restored ? '，' + restored + ' 名员工已迁回原部门' : ''));
+    addLog('undo_delete', {name:n.name, restored:restored});
   }
-  function commitRoleChange(n, field, label, val){
+  function commitRoleChange(n, field, val){
     if(val===n[field]) return;
     if(!n.origRoles) n.origRoles = {pic:n.pic, hrbp1:n.hrbp1, hrbp2:n.hrbp2, da:n.da};
     n[field] = val;
     var key = n.id + '#' + field;
     if(n[field] === n.origRoles[field]){
-      removeLog('角色变更', key);
+      removeLog('role_change', key);
     } else {
-      var origVal = n.origRoles[field] || '（空）';
-      upsertLog('角色变更', key, '「' + n.name + '」' + label + '：' + origVal + ' → ' + (n[field]||'（空）'));
+      upsertLog('role_change', key, {name:n.name, roleLabel:roleLabelFor(field), from:n.origRoles[field], to:n[field]});
     }
   }
   function commitCascade(n){
@@ -257,10 +452,10 @@
     desc.forEach(function(d){
       if(!d.origRoles) d.origRoles = {pic:d.pic, hrbp1:d.hrbp1, hrbp2:d.hrbp2, da:d.da};
       d.hrbp1 = n.hrbp1; d.hrbp2 = n.hrbp2; d.da = n.da;
-      // the batch summary line below supersedes any individual 角色变更 entries for these fields
-      ['hrbp1','hrbp2','da'].forEach(function(field){ removeLog('角色变更', d.id+'#'+field); });
+      // the batch summary line below supersedes any individual role_change entries for these fields
+      ['hrbp1','hrbp2','da'].forEach(function(field){ removeLog('role_change', d.id+'#'+field); });
     });
-    addLog('角色批量应用', '将「' + n.name + '」的 HRBP1/HRBP2/Department Assistant 应用到 ' + desc.length + ' 个下级部门');
+    addLog('role_cascade', {name:n.name, count:desc.length});
   }
 
   // BIPO ("LAST, First Middle") and Lark/PIC ("First Last") name formats differ — the same
@@ -271,10 +466,10 @@
     return picParts.length>0 && picParts.every(function(p){ return empLower.indexOf(p)>=0; });
   }
   function commitReportChange(emp, newSupervisor){
-    var old = emp.reportsTo || '（空）';
+    var old = emp.reportsTo || '';
     emp.reportsTo = newSupervisor;
-    if(emp.reportsTo === emp.origReportsTo) removeLog('汇报关系变更', emp.eid);
-    else upsertLog('汇报关系变更', emp.eid, emp.name + '：直属主管 ' + old + ' → ' + newSupervisor);
+    if(emp.reportsTo === emp.origReportsTo) removeLog('report_change', emp.eid);
+    else upsertLog('report_change', emp.eid, {name:emp.name, from:old, to:newSupervisor});
   }
   function maybePromptReportChange(n){
     if(!n.pic) return;
@@ -284,9 +479,7 @@
     var newSupervisor = parent ? parent.pic : '';
     if(!newSupervisor || newSupervisor===picEmp.reportsTo || newSupervisor===n.pic) return;
     pendingReportPrompt = {emp:picEmp, newSupervisor:newSupervisor};
-    document.getElementById('reportPromptText').textContent =
-      '「' + n.name + '」已移动到「' + parent.name + '」下。是否把负责人「' + picEmp.name + '」的直属汇报对象，从「' +
-      (picEmp.reportsTo || '（空）') + '」改为「' + newSupervisor + '」？';
+    document.getElementById('reportPromptText').textContent = t('reportPromptText')({dept:n.name, parent:parent.name, pic:picEmp.name, from:picEmp.reportsTo, to:newSupervisor});
     document.getElementById('reportPromptOverlay').classList.add('show');
   }
 
@@ -332,27 +525,27 @@
     if(pendingEdit.del.on){
       var res = commitDelete(n, pendingEdit.del.assignments);
       if(!res.ok){
-        if(res.reason==='children') toast('无法删除：请先处理子部门');
-        else toast('还有 ' + res.missing.length + ' 名员工尚未安置新部门');
+        if(res.reason==='children') toast(t('toastDeleteBlockedChildren'));
+        else toast(t('toastDeleteBlockedEmp')(res.missing.length));
         return;
       }
-      toast('已标记删除'); closePanel(); render(); return;
+      toast(t('toastDeleted')); closePanel(); render(); return;
     }
     var did = false, moved = false;
     if(pendingEdit.rename.on) did = commitRename(n, (pendingEdit.rename.value||'').trim()) || did;
     if(pendingEdit.move.on){ moved = commitMove(n, pendingEdit.move.target); did = moved || did; }
-    if(!did){ toast('没有可保存的变更'); return; }
+    if(!did){ toast(t('toastNothingToSave')); return; }
     closePanel(); render();
-    toast('已保存变更');
+    toast(t('toastSaved'));
     if(moved) maybePromptReportChange(n);
   }
 
   function saveCreateChild(){
     var parent = getNode(selectedId); if(!parent) return;
-    if(!(createDraft.name||'').trim()){ toast('请填写新部门名称'); return; }
+    if(!(createDraft.name||'').trim()){ toast(t('toastNeedName')); return; }
     var newNode = commitAddChild(parent, createDraft);
-    if(!newNode){ toast('请填写新部门名称'); return; }
-    toast('已新增部门'); closePanel(); render();
+    if(!newNode){ toast(t('toastNeedName')); return; }
+    toast(t('toastAdded')); closePanel(); render();
   }
 
   function renderPanel(){
@@ -367,7 +560,7 @@
     var addBtn = document.getElementById('addChildBtn');
 
     if(activeTab==='create'){
-      document.getElementById('editNodeName').textContent = '新增子部门';
+      document.getElementById('editNodeName').textContent = t('createTitle');
       tabs.style.display = 'none';
       addBtn.style.display = 'none';
       renderCreatePanel(n, body, foot);
@@ -381,12 +574,12 @@
     document.getElementById('tabRosterBtn').classList.toggle('active', activeTab==='roster');
 
     if(n.flags.isDeleted){
-      body.innerHTML = '<div class="warn-box">该部门已标记删除。删除时涉及的员工已安置到其他部门；撤销删除会把他们迁回来。</div>';
-      foot.innerHTML = '<button class="btn ghost" id="cancelEditBtn">关闭</button><button class="btn primary" id="undoDeleteBtn">撤销删除</button>';
+      body.innerHTML = '<div class="warn-box">' + escapeHtml(t('deletedPanelNote')) + '</div>';
+      foot.innerHTML = '<button class="btn ghost" id="cancelEditBtn">' + escapeHtml(t('closeBtn')) + '</button><button class="btn primary" id="undoDeleteBtn">' + escapeHtml(t('undoDeleteBtn')) + '</button>';
       document.getElementById('cancelEditBtn').addEventListener('click', closePanel);
       document.getElementById('undoDeleteBtn').addEventListener('click', function(){
         commitRestoreDelete(n);
-        toast('已撤销删除'); closePanel(); render();
+        toast(t('toastUndoDeleted')); closePanel(); render();
       });
       return;
     }
@@ -397,17 +590,17 @@
   }
 
   function renderCreatePanel(parent, body, foot){
-    var html = '<div class="hint" style="margin-bottom:12px;">新增于「'+escapeHtml(parent.name)+'」下</div>';
+    var html = '<div class="hint" style="margin-bottom:12px;">'+escapeHtml(t('createUnder')(parent.name))+'</div>';
     html += '<div class="edit-row open" style="margin-bottom:16px;"><div class="edit-row-body" style="border-top:none; margin-top:0; padding-top:0;">'+
-      '<input type="text" id="createNameInput" value="'+escapeHtml(createDraft.name)+'" placeholder="新部门名称"></div></div>';
-    html += roleRowHtml(createDraft, 'pic', 'PIC');
-    html += roleRowHtml(createDraft, 'hrbp1', 'HRBP1');
-    html += roleRowHtml(createDraft, 'hrbp2', 'HRBP2');
-    html += roleRowHtml(createDraft, 'da', 'Department Assistant');
+      '<input type="text" id="createNameInput" value="'+escapeHtml(createDraft.name)+'" placeholder="'+escapeHtml(t('createNamePh'))+'"></div></div>';
+    html += roleRowHtml(createDraft, 'pic');
+    html += roleRowHtml(createDraft, 'hrbp1');
+    html += roleRowHtml(createDraft, 'hrbp2');
+    html += roleRowHtml(createDraft, 'da');
     body.innerHTML = html;
     document.getElementById('createNameInput').addEventListener('input', function(ev){ createDraft.name = ev.target.value; });
     bindRolePickers(createDraft);
-    foot.innerHTML = '<button class="btn ghost" id="cancelEditBtn">取消</button><button class="btn primary" id="saveCreateBtn">创建</button>';
+    foot.innerHTML = '<button class="btn ghost" id="cancelEditBtn">'+escapeHtml(t('cancelBtn'))+'</button><button class="btn primary" id="saveCreateBtn">'+escapeHtml(t('createBtn'))+'</button>';
     document.getElementById('cancelEditBtn').addEventListener('click', closePanel);
     document.getElementById('saveCreateBtn').addEventListener('click', saveCreateChild);
   }
@@ -419,48 +612,48 @@
     var delBlockedByChildren = childCount>0;
     var otherNodes = nodes.filter(function(x){ return x.id!==n.id && !x.flags.isDeleted && !isDescendant(n.id, x.id); });
 
-    var html = '<div class="drag-hint">提示：也可以直接在图上把「' + escapeHtml(n.name) + '」拖到目标部门上完成移动。</div>';
+    var html = '<div class="drag-hint">' + escapeHtml(t('dragHint')(n.name)) + '</div>';
 
     html += '<div class="edit-row ' + (pendingEdit.del.on?'disabled':'') + (pendingEdit.rename.on?' open':'') + '">'+
-      '<div class="edit-row-head" data-toggle="rename"><input type="checkbox" '+(pendingEdit.rename.on?'checked':'')+' '+(pendingEdit.del.on?'disabled':'')+'><span class="lbl">重命名</span></div>'+
-      '<div class="edit-row-body"><input type="text" id="renameInput" value="'+escapeHtml(pendingEdit.rename.value)+'" placeholder="新名称"></div>'+
+      '<div class="edit-row-head" data-toggle="rename"><input type="checkbox" '+(pendingEdit.rename.on?'checked':'')+' '+(pendingEdit.del.on?'disabled':'')+'><span class="lbl">'+escapeHtml(t('renameLbl'))+'</span></div>'+
+      '<div class="edit-row-body"><input type="text" id="renameInput" value="'+escapeHtml(pendingEdit.rename.value)+'" placeholder="'+escapeHtml(t('renameInputPh'))+'"></div>'+
       '</div>';
 
     html += '<div class="edit-row ' + (pendingEdit.del.on?'disabled':'') + (pendingEdit.move.on?' open':'') + '">'+
-      '<div class="edit-row-head" data-toggle="move"><input type="checkbox" '+(pendingEdit.move.on?'checked':'')+' '+(pendingEdit.del.on?'disabled':'')+'><span class="lbl">移动</span></div>'+
-      '<div class="edit-row-body"><select id="moveSelect"><option value="">选择目标上级部门…</option>'+
+      '<div class="edit-row-head" data-toggle="move"><input type="checkbox" '+(pendingEdit.move.on?'checked':'')+' '+(pendingEdit.del.on?'disabled':'')+'><span class="lbl">'+escapeHtml(t('moveLbl'))+'</span></div>'+
+      '<div class="edit-row-body"><select id="moveSelect"><option value="">'+escapeHtml(t('movePlaceholder'))+'</option>'+
       otherNodes.map(function(x){ return '<option value="'+x.id+'" '+(pendingEdit.move.target===x.id?'selected':'')+'>'+escapeHtml(pathLabel(x.id))+'</option>'; }).join('')+
-      '</select><div class="hint">下拉列表已排除自身及其所有子部门，避免循环嵌套。</div></div>'+
+      '</select><div class="hint">'+escapeHtml(t('moveHint'))+'</div></div>'+
       '</div>';
 
     var anyOtherOn = pendingEdit.rename.on || pendingEdit.move.on;
     html += '<div class="edit-row ' + (anyOtherOn?'disabled':'') + (pendingEdit.del.on?' open':'') + '" style="border-color:var(--warn-border);">'+
-      '<div class="edit-row-head" data-toggle="del"><input type="checkbox" '+(pendingEdit.del.on?'checked':'')+' '+((anyOtherOn||delBlockedByChildren)?'disabled':'')+'><span class="lbl" style="color:var(--warn-text);">删除该部门</span></div>';
+      '<div class="edit-row-head" data-toggle="del"><input type="checkbox" '+(pendingEdit.del.on?'checked':'')+' '+((anyOtherOn||delBlockedByChildren)?'disabled':'')+'><span class="lbl" style="color:var(--warn-text);">'+escapeHtml(t('deleteLbl'))+'</span></div>';
     if(delBlockedByChildren){
-      html += '<div class="blocked">下面还有 '+childCount+' 个子部门，需先移动或删除它们才能删除本部门。</div>';
+      html += '<div class="blocked">'+escapeHtml(t('deleteBlocked')(childCount))+'</div>';
     } else if(pendingEdit.del.on){
       html += '<div class="edit-row-body">';
       if(empCount>0){
-        html += '<div class="reassign-box"><div class="rb-title">删除前需要为以下 '+empCount+' 名员工安置新部门</div>';
-        html += '<div class="bulk-row"><select id="bulkDelTarget"><option value="">批量选择目标部门…</option>'+
+        html += '<div class="reassign-box"><div class="rb-title">'+escapeHtml(t('reassignTitle')(empCount))+'</div>';
+        html += '<div class="bulk-row"><select id="bulkDelTarget"><option value="">'+escapeHtml(t('bulkTargetPlaceholder'))+'</option>'+
           otherNodes.map(function(x){ return '<option value="'+x.id+'">'+escapeHtml(pathLabel(x.id))+'</option>'; }).join('')+
-          '</select><button class="btn" id="bulkDelApply" type="button">全部转移到此</button></div>';
+          '</select><button class="btn" id="bulkDelApply" type="button">'+escapeHtml(t('bulkApplyBtn'))+'</button></div>';
         direct.forEach(function(e){
           html += '<div class="reassign-row"><span class="rn-name">'+escapeHtml(e.name)+' <span class="mono" style="color:var(--ink-muted);">'+e.eid+'</span></span>'+
-            '<select data-eid="'+e.eid+'" class="del-assign-select"><option value="">选择新部门…</option>'+
+            '<select data-eid="'+e.eid+'" class="del-assign-select"><option value="">'+escapeHtml(t('assignTargetPlaceholder'))+'</option>'+
             otherNodes.map(function(x){ return '<option value="'+x.id+'" '+(pendingEdit.del.assignments[e.eid]===x.id?'selected':'')+'>'+escapeHtml(pathLabel(x.id))+'</option>'; }).join('')+
             '</select></div>';
         });
         html += '</div>';
       } else {
-        html += '<div class="hint">删除后仍会以灰色显示在图中，并保留在变更记录里。与重命名/移动互斥。</div>';
+        html += '<div class="hint">'+escapeHtml(t('deleteHint'))+'</div>';
       }
       html += '</div>';
     }
     html += '</div>';
 
     body.innerHTML = html;
-    foot.innerHTML = '<button class="btn ghost" id="cancelEditBtn">取消</button><button class="btn primary" id="saveEditBtn">保存</button>';
+    foot.innerHTML = '<button class="btn ghost" id="cancelEditBtn">'+escapeHtml(t('cancelBtn'))+'</button><button class="btn primary" id="saveEditBtn">'+escapeHtml(t('saveBtn'))+'</button>';
 
     body.querySelectorAll('[data-toggle]').forEach(function(el){
       el.addEventListener('click', function(ev){
@@ -478,7 +671,7 @@
     var bulkSel = document.getElementById('bulkDelTarget');
     var bulkBtn = document.getElementById('bulkDelApply');
     if(bulkBtn) bulkBtn.addEventListener('click', function(){
-      if(!bulkSel.value){ toast('请先选择批量目标部门'); return; }
+      if(!bulkSel.value){ toast(t('toastPickBulkTarget')); return; }
       direct.forEach(function(e){ pendingEdit.del.assignments[e.eid] = bulkSel.value; });
       renderPanel();
     });
@@ -494,10 +687,9 @@
     var inc = roleInconsistency(n.id);
     var warnParts = [];
     ['hrbp1','hrbp2','da'].forEach(function(f){
-      var label = f==='hrbp1'?'HRBP1':f==='hrbp2'?'HRBP2':'Department Assistant';
       if(inc[f].bad){
-        var reason = inc[f].differs ? '下级部门取值不一致' : '存在未设置（空值）';
-        warnParts.push('<b>'+label+'</b>：'+reason);
+        var reason = inc[f].differs ? t('roleDiffers') : t('roleBlank');
+        warnParts.push('<b>'+escapeHtml(roleLabelFor(f))+'</b>：'+escapeHtml(reason));
       }
     });
     var hasChildren = getChildren(n.id).length>0;
@@ -505,26 +697,26 @@
     var html = '';
     if(hasChildren){
       html += warnParts.length
-        ? '<div class="warn-box">⚠ 下级部门角色需要核查：<br>'+warnParts.join('<br>')+'</div>'
-        : '<div class="ok-box">✓ 该分支下的 HRBP / Department Assistant 设置一致。</div>';
+        ? '<div class="warn-box">'+escapeHtml(t('roleWarnHeader'))+'<br>'+warnParts.join('<br>')+'</div>'
+        : '<div class="ok-box">'+escapeHtml(t('roleOkBox'))+'</div>';
     }
 
-    html += roleRowHtml(n, 'pic', 'PIC');
-    html += roleRowHtml(n, 'hrbp1', 'HRBP1');
-    html += roleRowHtml(n, 'hrbp2', 'HRBP2');
-    html += roleRowHtml(n, 'da', 'Department Assistant');
+    html += roleRowHtml(n, 'pic');
+    html += roleRowHtml(n, 'hrbp1');
+    html += roleRowHtml(n, 'hrbp2');
+    html += roleRowHtml(n, 'da');
 
     body.innerHTML = html;
     bindRolePickers(n);
 
     foot.innerHTML = hasChildren
-      ? '<button class="btn ghost" id="cancelEditBtn">关闭</button><button class="btn primary" id="cascadeBtn">应用到所有下级部门（HRBP1/HRBP2/Dept. Assistant）</button>'
-      : '<button class="btn ghost" id="cancelEditBtn">关闭</button>';
+      ? '<button class="btn ghost" id="cancelEditBtn">'+escapeHtml(t('closeBtn'))+'</button><button class="btn primary" id="cascadeBtn">'+escapeHtml(t('cascadeBtn'))+'</button>'
+      : '<button class="btn ghost" id="cancelEditBtn">'+escapeHtml(t('closeBtn'))+'</button>';
     document.getElementById('cancelEditBtn').addEventListener('click', closePanel);
     var cascadeBtn = document.getElementById('cascadeBtn');
     if(cascadeBtn) cascadeBtn.addEventListener('click', function(){
       commitCascade(n);
-      toast('已应用到所有下级部门');
+      toast(t('toastCascaded'));
       renderTree(); renderLog(); renderEmployees(); renderPanel();
     });
   }
@@ -535,28 +727,28 @@
     var selCount = Object.keys(rosterSelected).filter(function(k){ return rosterSelected[k]; }).length;
 
     if(!direct.length){
-      body.innerHTML = '<div class="empty-note">该部门目前没有直属员工。</div>';
-      foot.innerHTML = '<button class="btn ghost" id="cancelEditBtn">关闭</button>';
+      body.innerHTML = '<div class="empty-note">'+escapeHtml(t('rosterEmptyNote'))+'</div>';
+      foot.innerHTML = '<button class="btn ghost" id="cancelEditBtn">'+escapeHtml(t('closeBtn'))+'</button>';
       document.getElementById('cancelEditBtn').addEventListener('click', closePanel);
       return;
     }
 
     var html = '<div class="roster-toolbar">'+
-      '<label style="display:flex; align-items:center; gap:6px; font-size:11.5px; color:var(--ink-muted);"><input type="checkbox" id="rosterSelectAll"> 全选（'+direct.length+' 人）</label>'+
+      '<label style="display:flex; align-items:center; gap:6px; font-size:11.5px; color:var(--ink-muted);"><input type="checkbox" id="rosterSelectAll"> '+escapeHtml(t('selectAllLabel')(direct.length))+'</label>'+
       '</div>';
     direct.forEach(function(e){
       html += '<div class="roster-row" data-eid="'+e.eid+'">'+
         '<input type="checkbox" class="roster-cb" data-eid="'+e.eid+'" '+(rosterSelected[e.eid]?'checked':'')+'>'+
-        '<div class="rr-info"><div class="rr-name">'+escapeHtml(e.name)+'</div><div class="rr-eid">EID '+e.eid+' · 汇报对象：'+(e.reportsTo?escapeHtml(e.reportsTo):'未设置')+'</div></div>'+
+        '<div class="rr-info"><div class="rr-name">'+escapeHtml(e.name)+'</div><div class="rr-eid">EID '+e.eid+escapeHtml(t('reportsToPrefix'))+(e.reportsTo?escapeHtml(e.reportsTo):escapeHtml(t('notSet')))+'</div></div>'+
         '</div>';
     });
     html += '<div class="roster-toolbar" style="margin-top:12px; padding-top:12px; border-top:1px solid var(--line);">'+
-      '<select id="rosterBulkTarget"><option value="">转移目标部门…</option>'+
+      '<select id="rosterBulkTarget"><option value="">'+escapeHtml(t('rosterTargetPlaceholder'))+'</option>'+
       otherNodes.map(function(x){ return '<option value="'+x.id+'">'+escapeHtml(pathLabel(x.id))+'</option>'; }).join('')+
-      '</select><button class="btn primary" id="rosterBulkApply" type="button" '+(selCount?'':'disabled')+'>转移已选员工（'+selCount+'）</button></div>';
+      '</select><button class="btn primary" id="rosterBulkApply" type="button" '+(selCount?'':'disabled')+'>'+escapeHtml(t('transferSelectedBtn')(selCount))+'</button></div>';
 
     body.innerHTML = html;
-    foot.innerHTML = '<button class="btn ghost" id="cancelEditBtn">关闭</button>';
+    foot.innerHTML = '<button class="btn ghost" id="cancelEditBtn">'+escapeHtml(t('closeBtn'))+'</button>';
     document.getElementById('cancelEditBtn').addEventListener('click', closePanel);
 
     document.getElementById('rosterSelectAll').addEventListener('change', function(ev){
@@ -568,20 +760,20 @@
     });
     document.getElementById('rosterBulkApply').addEventListener('click', function(){
       var target = document.getElementById('rosterBulkTarget').value;
-      if(!target){ toast('请先选择转移目标部门'); return; }
+      if(!target){ toast(t('toastPickTransferTarget')); return; }
       var moved = 0;
       direct.forEach(function(e){ if(rosterSelected[e.eid]){ commitEmployeeTransfer(e, target); moved++; } });
       rosterSelected = {};
-      toast('已转移 ' + moved + ' 名员工');
+      toast(t('toastTransferredN')(moved));
       renderTree(); renderLog(); renderEmployees(); renderPanel();
     });
   }
 
-  function roleRowHtml(obj, field, label){
+  function roleRowHtml(obj, field){
     var val = obj[field] || '';
     return '<div class="role-row" data-field="'+field+'">'+
-      '<div class="rlbl">'+label+'</div>'+
-      '<div class="role-value" data-open="'+field+'"><span class="rv-name '+(val?'':'empty')+'">'+escapeHtml(val||'未设置')+'</span><span class="rv-edit">更改</span></div>'+
+      '<div class="rlbl">'+escapeHtml(roleLabelFor(field))+'</div>'+
+      '<div class="role-value" data-open="'+field+'"><span class="rv-name '+(val?'':'empty')+'">'+escapeHtml(val||t('notSet'))+'</span><span class="rv-edit">'+escapeHtml(t('changeBtn'))+'</span></div>'+
       '</div>';
   }
 
@@ -594,23 +786,22 @@
         if(row.querySelector('.role-picker')) return;
         var picker = document.createElement('div');
         picker.className = 'role-picker';
-        picker.innerHTML = '<input type="text" placeholder="从 Lark User 中搜索姓名…" autocomplete="off"><div class="options"></div>';
+        picker.innerHTML = '<input type="text" placeholder="'+escapeHtml(t('pickerSearchPh'))+'" autocomplete="off"><div class="options"></div>';
         row.appendChild(picker);
         var input = picker.querySelector('input');
         var opts = picker.querySelector('.options');
         function renderOpts(q){
           var list = personPool.filter(function(p){ return p.toLowerCase().indexOf((q||'').toLowerCase())>=0; }).slice(0,8);
-          opts.innerHTML = list.length ? list.map(function(p){ return '<button type="button" data-name="'+escapeHtml(p)+'">'+escapeHtml(p)+'</button>'; }).join('') + '<button type="button" data-name="" style="color:var(--warn-text);">清空该角色</button>'
-            : '<button type="button" disabled style="color:var(--ink-muted);">无匹配结果</button>';
+          opts.innerHTML = list.length ? list.map(function(p){ return '<button type="button" data-name="'+escapeHtml(p)+'">'+escapeHtml(p)+'</button>'; }).join('') + '<button type="button" data-name="" style="color:var(--warn-text);">'+escapeHtml(t('clearRoleOption'))+'</button>'
+            : '<button type="button" disabled style="color:var(--ink-muted);">'+escapeHtml(t('noMatchResult'))+'</button>';
         }
         renderOpts('');
         input.focus();
         input.addEventListener('input', function(){ renderOpts(input.value); });
         opts.addEventListener('click', function(ev){
           var btn = ev.target.closest('button[data-name]'); if(!btn) return;
-          var label = field==='pic'?'PIC':field==='hrbp1'?'HRBP1':field==='hrbp2'?'HRBP2':'Department Assistant';
           var val = btn.getAttribute('data-name');
-          if(isRealNode){ commitRoleChange(target, field, label, val); renderTree(); renderLog(); }
+          if(isRealNode){ commitRoleChange(target, field, val); renderTree(); renderLog(); }
           else target[field] = val;
           renderPanel();
         });
@@ -645,7 +836,7 @@
     pendingEdit.move.on = true;
     pendingEdit.move.target = id;
     render();
-    toast('已选定目标，点击"保存"确认这次移动');
+    toast(t('toastMovePending'));
   }
 
   // ---------- rendering ----------
@@ -659,23 +850,24 @@
 
   function renderNodeBox(n){
     var tags = '';
-    if(n.flags.isNew) tags += '<span class="tag new">新增</span>';
-    if(n.flags.isRenamed) tags += '<span class="tag ren" title="原名：'+escapeHtml(n.origName)+'">已改名</span>';
-    if(n.movedFrom!==null) tags += '<span class="tag mov">已移动</span>';
-    if(n.inactive) tags += '<span class="tag off">既有停用</span>';
-    var warnIco = hasAnyRoleWarning(n.id) ? '<span class="warn-ico" title="下级部门角色不一致或未设置">⚠</span>' : '';
+    if(n.flags.isNew) tags += '<span class="tag new">'+escapeHtml(t('newTag'))+'</span>';
+    if(n.flags.isRenamed) tags += '<span class="tag ren" title="'+escapeHtml(t('renamedTooltipPrefix')+n.origName)+'">'+escapeHtml(t('renamedTag'))+'</span>';
+    if(n.movedFrom!==null) tags += '<span class="tag mov">'+escapeHtml(t('movedTag'))+'</span>';
+    if(n.inactive) tags += '<span class="tag off">'+escapeHtml(t('inactiveTag'))+'</span>';
+    var warnIco = hasAnyRoleWarning(n.id) ? '<span class="warn-ico" title="'+escapeHtml(t('roleWarnTooltip'))+'">⚠</span>' : '';
     var draggable = n.flags.isDeleted ? 'false' : 'true';
-    return '<div class="'+nodeClasses(n)+'" draggable="'+draggable+'" data-id="'+n.id+'" title="'+escapeHtml(n.name)+(n.flags.isRenamed?' ｜ 原名: '+escapeHtml(n.origName):'')+'">'+
+    var titleAttr = n.name + (n.flags.isRenamed ? ' ｜ ' + t('renamedTooltipPrefix') + n.origName : '');
+    return '<div class="'+nodeClasses(n)+'" draggable="'+draggable+'" data-id="'+n.id+'" title="'+escapeHtml(titleAttr)+'">'+
       '<div class="name-row"><span class="name">'+escapeHtml(n.name)+'</span>'+warnIco+'</div>'+
-      '<div class="meta-line">PIC：'+(n.pic?escapeHtml(n.pic):'未设置')+'</div>'+
-      '<div class="meta-line">在职 '+rollupHeadcount(n.id)+' 人</div>'+
+      '<div class="meta-line">'+escapeHtml(t('picPrefix'))+(n.pic?escapeHtml(n.pic):escapeHtml(t('notSet')))+'</div>'+
+      '<div class="meta-line">'+escapeHtml(t('headcountLabel')(rollupHeadcount(n.id)))+'</div>'+
       (tags? '<div class="tags">'+tags+'</div>' : '')+
       '</div>';
   }
 
   function renderGhost(n){
     var newParentName = getNode(n.parentId).name;
-    return '<li><div class="node-ghost"><div class="name">'+escapeHtml(n.origName)+'</div><div class="arrow">→ 已移至「'+escapeHtml(newParentName)+'」</div></div></li>';
+    return '<li><div class="node-ghost"><div class="name">'+escapeHtml(n.origName)+'</div><div class="arrow">'+escapeHtml(t('movedToLabel')(newParentName))+'</div></div></li>';
   }
 
   function renderSubtree(id, isRoot){
@@ -808,9 +1000,9 @@
 
   function renderLog(){
     var body = document.getElementById('logBody');
-    document.getElementById('logCount').textContent = log.length + ' 条';
-    if(!log.length){ body.innerHTML = '<tr><td colspan="3" class="empty-note">暂无变更，点一个部门框试试</td></tr>'; return; }
-    body.innerHTML = log.map(function(l){ return '<tr><td class="mono">'+l.seq+'</td><td>'+l.type+'</td><td>'+escapeHtml(l.detail)+'</td></tr>'; }).join('');
+    document.getElementById('logCount').textContent = log.length + (t('unitRecords') ? ' ' + t('unitRecords') : '');
+    if(!log.length){ body.innerHTML = '<tr><td colspan="3" class="empty-note">'+escapeHtml(t('logEmptyNote'))+'</td></tr>'; return; }
+    body.innerHTML = log.map(function(l){ return '<tr><td class="mono">'+l.seq+'</td><td>'+escapeHtml(formatLogType(l))+'</td><td>'+escapeHtml(formatLogDetail(l))+'</td></tr>'; }).join('');
   }
 
   function computeImpacted(){
@@ -821,9 +1013,9 @@
 
   function renderEmployees(){
     var impacted = computeImpacted();
-    document.getElementById('empCount').textContent = impacted.length + ' 人';
+    document.getElementById('empCount').textContent = impacted.length + (t('unitPeople') ? ' ' + t('unitPeople') : '');
     var body = document.getElementById('empBody');
-    if(!impacted.length){ body.innerHTML = '<tr><td colspan="3" class="empty-note">还没有员工受影响</td></tr>'; return; }
+    if(!impacted.length){ body.innerHTML = '<tr><td colspan="3" class="empty-note">'+escapeHtml(t('empEmptyNote'))+'</td></tr>'; return; }
     body.innerHTML = impacted.map(function(e){
       var right = '<div class="path-old">'+escapeHtml(e.oldPath)+'</div><div class="path-new">'+escapeHtml(e.newPath)+'</div>';
       return '<tr><td class="mono">'+e.eid+'</td><td>'+escapeHtml(e.name)+'</td><td>'+right+'</td></tr>';
@@ -836,7 +1028,7 @@
     renderEmployees();
     renderPanel();
     var pill = document.getElementById('focusPill');
-    if(viewRootId!=='bu-root'){ pill.classList.add('show'); document.getElementById('focusName').textContent = getNode(viewRootId).name; }
+    if(viewRootId!=='bu-root'){ pill.classList.add('show'); document.getElementById('focusPillText').textContent = t('focusLabel')(getNode(viewRootId).name); }
     else pill.classList.remove('show');
   }
 
@@ -846,7 +1038,7 @@
     q = q.trim();
     if(!q){ box.classList.remove('show'); box.innerHTML=''; return; }
     var matches = nodes.filter(function(n){ return !n.flags.isDeleted && n.name.toLowerCase().indexOf(q.toLowerCase())>=0; }).slice(0,8);
-    if(!matches.length){ box.innerHTML = '<button disabled style="color:var(--ink-muted);">无匹配部门</button>'; box.classList.add('show'); return; }
+    if(!matches.length){ box.innerHTML = '<button disabled style="color:var(--ink-muted);">'+escapeHtml(t('noMatchDept'))+'</button>'; box.classList.add('show'); return; }
     box.innerHTML = matches.map(function(n){ return '<button type="button" data-id="'+n.id+'">'+escapeHtml(n.name)+'</button>'; }).join('');
     box.classList.add('show');
     box.querySelectorAll('button[data-id]').forEach(function(b){
@@ -862,13 +1054,13 @@
   // ---------- copy / download ----------
   function copyText(text){
     if(navigator.clipboard && navigator.clipboard.writeText){
-      navigator.clipboard.writeText(text).then(function(){ toast('已复制，可直接粘贴到 Base'); }, function(){ fallbackCopy(text); });
+      navigator.clipboard.writeText(text).then(function(){ toast(t('toastCopied')); }, function(){ fallbackCopy(text); });
     } else { fallbackCopy(text); }
   }
   function fallbackCopy(text){
     var ta = document.createElement('textarea');
     ta.value = text; document.body.appendChild(ta); ta.select();
-    try{ document.execCommand('copy'); toast('已复制，可直接粘贴到 Base'); }catch(e){ toast('复制失败，请改用下载'); }
+    try{ document.execCommand('copy'); toast(t('toastCopied')); }catch(e){ toast(t('toastCopyFailed')); }
     document.body.removeChild(ta);
   }
   function downloadCsv(filename, rows){
@@ -877,19 +1069,19 @@
     var a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = filename;
     document.body.appendChild(a); a.click(); document.body.removeChild(a); URL.revokeObjectURL(a.href);
   }
-  function logRows(){ return [['操作类型','详情']].concat(log.map(function(l){ return [l.type, l.detail]; })); }
+  function logRows(){ return [t('csvLogHeaders')].concat(log.map(function(l){ return [formatLogType(l), formatLogDetail(l)]; })); }
   function empRows(){
-    return [['EID','姓名','原部门','新部门']].concat(computeImpacted().map(function(e){
+    return [t('csvEmpHeaders')].concat(computeImpacted().map(function(e){
       return [e.eid, e.name, e.oldPath, e.newPath];
     }));
   }
 
   // ---------- wiring ----------
   document.getElementById('copyLogBtn').addEventListener('click', function(){ copyText(logRows().map(function(r){ return r.join('\t'); }).join('\n')); });
-  document.getElementById('downloadLogBtn').addEventListener('click', function(){ downloadCsv('组织架构变更记录.csv', logRows()); });
+  document.getElementById('downloadLogBtn').addEventListener('click', function(){ downloadCsv(t('csvLogFilename'), logRows()); });
   document.getElementById('copyEmpBtn').addEventListener('click', function(){ copyText(empRows().map(function(r){ return r.join('\t'); }).join('\n')); });
-  document.getElementById('downloadEmpBtn').addEventListener('click', function(){ downloadCsv('员工变更清单.csv', empRows()); });
-  document.getElementById('resetBtn').addEventListener('click', function(){ init(); toast('已重置演示'); });
+  document.getElementById('downloadEmpBtn').addEventListener('click', function(){ downloadCsv(t('csvEmpFilename'), empRows()); });
+  document.getElementById('resetBtn').addEventListener('click', function(){ init(); toast(t('toastReset')); });
   document.getElementById('editCloseBtn').addEventListener('click', closePanel);
   document.getElementById('panelBackdrop').addEventListener('click', closePanel);
   document.addEventListener('keydown', function(ev){ if(ev.key==='Escape' && selectedId) closePanel(); });
@@ -904,6 +1096,29 @@
     orientation = btn.getAttribute('data-orient');
     document.querySelectorAll('#orientSeg button').forEach(function(b){ b.classList.toggle('active', b===btn); });
     renderTree();
+  });
+
+  document.getElementById('langSeg').addEventListener('click', function(ev){
+    var btn = ev.target.closest('button[data-lang]'); if(!btn) return;
+    LANG = btn.getAttribute('data-lang');
+    document.querySelectorAll('#langSeg button').forEach(function(b){ b.classList.toggle('active', b===btn); });
+    applyStaticI18n();
+    if(nodes) render();
+  });
+
+  // Refresh is simulated — this demo has no live connection to Lark Base. See README.
+  document.getElementById('refreshBtn').addEventListener('click', function(){
+    var btn = document.getElementById('refreshBtn');
+    var original = btn.textContent;
+    btn.disabled = true;
+    btn.textContent = t('refreshBtnLoading');
+    setTimeout(function(){
+      snapshotAt = new Date();
+      document.getElementById('snapshotTime').textContent = formatSnapshotTime(snapshotAt);
+      btn.disabled = false;
+      btn.textContent = t('refreshBtn');
+      toast(t('refreshToast'));
+    }, 550);
   });
 
   var searchInput = document.getElementById('searchInput');
@@ -933,7 +1148,7 @@
     var empSearchWrap = document.getElementById('gmodalEmpSearchWrap');
     if(gmodalEmp){
       empPicked.style.display = 'flex'; empSearchWrap.style.display = 'none';
-      empPicked.innerHTML = '<span>'+escapeHtml(gmodalEmp.name)+' <span class="mono" style="color:var(--ink-muted);">'+gmodalEmp.eid+'</span> — 现在：'+escapeHtml(pathLabel(gmodalEmp.nodeId))+'</span><button type="button" id="gmodalEmpClear">重选</button>';
+      empPicked.innerHTML = '<span>'+escapeHtml(gmodalEmp.name)+' <span class="mono" style="color:var(--ink-muted);">'+gmodalEmp.eid+'</span>'+escapeHtml(t('nowAtPrefix'))+escapeHtml(pathLabel(gmodalEmp.nodeId))+'</span><button type="button" id="gmodalEmpClear">'+escapeHtml(t('reselectBtn'))+'</button>';
       document.getElementById('gmodalEmpClear').addEventListener('click', function(){ gmodalEmp=null; renderGModal(); renderGModalOptions('emp',''); });
     } else {
       empPicked.style.display = 'none'; empSearchWrap.style.display = 'block';
@@ -942,7 +1157,7 @@
     var orgSearchWrap = document.getElementById('gmodalOrgSearchWrap');
     if(gmodalOrg){
       orgPicked.style.display = 'flex'; orgSearchWrap.style.display = 'none';
-      orgPicked.innerHTML = '<span>'+escapeHtml(pathLabel(gmodalOrg.id))+'</span><button type="button" id="gmodalOrgClear">重选</button>';
+      orgPicked.innerHTML = '<span>'+escapeHtml(pathLabel(gmodalOrg.id))+'</span><button type="button" id="gmodalOrgClear">'+escapeHtml(t('reselectBtn'))+'</button>';
       document.getElementById('gmodalOrgClear').addEventListener('click', function(){ gmodalOrg=null; renderGModal(); renderGModalOptions('org',''); });
     } else {
       orgPicked.style.display = 'none'; orgSearchWrap.style.display = 'block';
@@ -955,7 +1170,7 @@
       var list = employees.filter(function(e){ return e.name.toLowerCase().indexOf(q)>=0 || e.eid.indexOf(q)>=0; }).slice(0,8);
       var box = document.getElementById('gmodalEmpOptions');
       box.innerHTML = list.length ? list.map(function(e){ return '<button type="button" data-eid="'+e.eid+'">'+escapeHtml(e.name)+' · <span class="mono">'+e.eid+'</span></button>'; }).join('')
-        : '<button type="button" disabled style="color:var(--ink-muted);">无匹配员工</button>';
+        : '<button type="button" disabled style="color:var(--ink-muted);">'+escapeHtml(t('noMatchEmp'))+'</button>';
       box.querySelectorAll('button[data-eid]').forEach(function(b){
         b.addEventListener('click', function(){
           gmodalEmp = employees.filter(function(e){ return e.eid===b.getAttribute('data-eid'); })[0];
@@ -966,7 +1181,7 @@
       var olist = nodes.filter(function(n){ return !n.flags.isDeleted && n.name.toLowerCase().indexOf(q)>=0; }).slice(0,8);
       var obox = document.getElementById('gmodalOrgOptions');
       obox.innerHTML = olist.length ? olist.map(function(n){ return '<button type="button" data-id="'+n.id+'">'+escapeHtml(pathLabel(n.id))+'</button>'; }).join('')
-        : '<button type="button" disabled style="color:var(--ink-muted);">无匹配部门</button>';
+        : '<button type="button" disabled style="color:var(--ink-muted);">'+escapeHtml(t('noMatchDept'))+'</button>';
       obox.querySelectorAll('button[data-id]').forEach(function(b){
         b.addEventListener('click', function(){
           gmodalOrg = getNode(b.getAttribute('data-id'));
@@ -978,7 +1193,7 @@
   document.getElementById('reportPromptApplyBtn').addEventListener('click', function(){
     if(pendingReportPrompt){
       commitReportChange(pendingReportPrompt.emp, pendingReportPrompt.newSupervisor);
-      toast('已更新汇报对象');
+      toast(t('toastReportUpdated'));
       renderLog();
     }
     document.getElementById('reportPromptOverlay').classList.remove('show');
@@ -996,8 +1211,9 @@
   document.getElementById('gmodalOrgSearch').addEventListener('input', function(){ renderGModalOptions('org', this.value); });
   document.getElementById('gmodalConfirmBtn').addEventListener('click', function(){
     if(!gmodalEmp || !gmodalOrg) return;
+    var name = gmodalEmp.name;
     commitEmployeeTransfer(gmodalEmp, gmodalOrg.id);
-    toast('已转移 ' + gmodalEmp.name);
+    toast(t('toastTransferredName')(name));
     closeGlobalTransfer();
     render();
   });
@@ -1114,15 +1330,15 @@
     try{
       var canvas = drawChartToCanvas(2);
       canvas.toBlob(function(blob){
-        if(!blob){ toast('导出失败，请改用浏览器自带的截图功能'); return; }
+        if(!blob){ toast(t('toastPngFailed')); return; }
         var a = document.createElement('a');
         a.href = URL.createObjectURL(blob);
-        a.download = '组织架构图.png';
+        a.download = LANG==='zh' ? '组织架构图.png' : 'org-chart.png';
         document.body.appendChild(a); a.click(); document.body.removeChild(a);
-        toast('已下载 PNG');
+        toast(t('toastPngDone'));
       }, 'image/png');
     }catch(e){
-      toast('导出失败：' + e.message);
+      toast(t('toastPngError')(e.message));
     }
   });
 
@@ -1130,11 +1346,12 @@
   document.getElementById('loginBtn').addEventListener('click', function(){
     var card = document.getElementById('loginCard');
     card.classList.add('loading');
-    document.getElementById('loginBtnText').textContent = '登录中…';
+    document.getElementById('loginBtnText').textContent = t('loginBtnTextLoading');
     setTimeout(function(){
       document.getElementById('loginOverlay').style.display = 'none';
       document.getElementById('userName').textContent = 'Celeste JOVENIR';
       document.getElementById('app').classList.add('ready');
+      card.classList.remove('loading');
       init();
     }, 650);
   });
@@ -1142,9 +1359,9 @@
     document.getElementById('app').classList.remove('ready');
     document.getElementById('loginOverlay').style.display = 'flex';
     document.getElementById('loginCard').classList.remove('loading');
-    document.getElementById('loginBtnText').textContent = '使用飞书账号登录';
+    document.getElementById('loginBtnText').textContent = t('loginBtnText');
     closePanel();
   });
 
-  init();
+  applyStaticI18n();
 })();
