@@ -29,7 +29,7 @@
       legendNew:'新增', legendDelete:'删除', legendMoved:'移动', legendGhost:'影子（原位置）', legendRenamed:'已改名', legendRoleWarn:'⚠ 角色不一致',
       changeLogTitle:'变更记录', unitRecords:'条', colType:'类型', colDetail:'详情', colAction:'操作', undoBtn:'撤销',
       logEmptyNote:'暂无变更，点一个部门框试试', copyLogBtn:'复制变更（可直接粘贴到 Base）', downloadCsvBtn:'下载 CSV',
-      affectedEmpTitle:'受影响员工', unitPeople:'人', colName:'姓名', colPathChange:'原部门 → 新部门', colReportsTo:'汇报对象',
+      affectedEmpTitle:'受影响员工', unitPeople:'人', colName:'姓名', colPathChange:'原组织架构 → 新组织架构', colReportsTo:'汇报对象',
       colDivision:'Division', colBusinessUnit:'Business Unit', colDepartment:'Department', colTeam:'Team', colSubTeam:'Sub Team', colSection:'Section', colStatus:'Status', colHrbpLead:'HRBP Lead',
       empEmptyNote:'还没有员工受影响', copyEmpBtn:'复制员工变更（可直接粘贴到 Base）',
       unassignedTitle:'待安置员工', unassignedEmptyNote:'暂无待安置员工', unassignedTransferBtn:'转移',
@@ -53,7 +53,11 @@
       dragHint:function(name){ return '提示：也可以直接在图上把「' + name + '」拖到目标部门上完成移动。'; },
       renameLbl:'重命名', renameInputPh:'新名称',
       moveLbl:'移动', movePlaceholder:'选择目标上级部门…', moveHint:'下拉列表已排除自身及其所有子部门，避免循环嵌套。',
-      deleteLbl:'删除该部门', deleteBlocked:function(n){ return '下面还有 ' + n + ' 个子部门，需先移动或删除它们才能删除本部门。'; },
+      deleteLbl:'删除该部门',
+      deleteCascadeNote:function(n){ return '下面还有 ' + n + ' 个子部门，删除本部门时会一并删除它们。'; },
+      deleteCascadeConfirmTitle:'确认删除子部门',
+      deleteCascadeConfirmText:function(n){ return '此操作将同时删除下面的 ' + n + ' 个子部门，确定要继续吗？'; },
+      deleteCascadeOkBtn:'确认删除',
       deleteHint:'删除后仍会以红色显示在图中，并保留在变更记录里。与重命名/移动互斥。',
       reassignTitle:function(n){ return '删除前需要为以下 ' + n + ' 名员工安置新部门'; },
       bulkTargetPlaceholder:'批量选择目标部门…', bulkApplyBtn:'全部转移到此', assignTargetPlaceholder:'选择新部门…',
@@ -66,7 +70,6 @@
       rosterEmptyNote:'该部门目前没有直属员工。', rosterTargetPlaceholder:'转移目标部门…',
       pickerSearchPh:'从 Lark User 中搜索姓名…', clearRoleOption:'清空该角色', noMatchResult:'无匹配结果', noMatchDept:'无匹配部门', noMatchEmp:'无匹配员工',
 
-      toastDeleteBlockedChildren:'无法删除：请先处理子部门',
       toastDeleteBlockedEmp:function(n){ return '还有 ' + n + ' 名员工尚未安置新部门'; },
       toastDeleted:'已标记删除', toastNothingToSave:'没有可保存的变更', toastSaved:'已保存变更',
       toastNeedName:'请填写新部门名称', toastAdded:'已新增部门',
@@ -100,7 +103,7 @@
       csvOrgChangeHeaders:['变更类型','角色变动','变更前的组织架构名','变更前PIC','变更前HRBP1','变更前HRBP2','变更前HRBP Lead','变更前Assistant','变更后的组织架构名','变更后PIC','变更后HRBP1','变更后HRBP2','变更后HRBP Lead','变更后Assistant'],
       csvPersonnelHeaders:['EID','员工名','组织变更','角色变更','变更前的组织架构','变更前汇报对象','变更前PIC','变更前HRBP1','变更前HRBP2','变更前HRBP Lead','变更前Assistant','变更后组织架构','变更后汇报对象','变更后PIC','变更后HRBP1','变更后HRBP2','变更后HRBP Lead','变更后Assistant','备注'],
       csvOrgChangeFilename:'组织变更记录.csv', csvPersonnelFilename:'人员变更记录.csv',
-      orgChangeLabel:'组织架构调整'
+      orgChangeLabel:'是'
     },
     en: {
       loginTitle:'Org Structure Change Tool', loginSubtitle:'Sign in to view the org structure and employee data',
@@ -128,7 +131,7 @@
       legendNew:'New', legendDelete:'Deleted', legendMoved:'Moved', legendGhost:'Ghost (old spot)', legendRenamed:'Renamed', legendRoleWarn:'⚠ Role inconsistent',
       changeLogTitle:'Change log', unitRecords:'', colType:'Type', colDetail:'Detail', colAction:'Action', undoBtn:'Undo',
       logEmptyNote:'No changes yet — try clicking a department box', copyLogBtn:'Copy changes (paste directly into Base)', downloadCsvBtn:'Download CSV',
-      affectedEmpTitle:'Affected employees', unitPeople:'', colName:'Name', colPathChange:'Old dept → New dept', colReportsTo:'Reports to',
+      affectedEmpTitle:'Affected employees', unitPeople:'', colName:'Name', colPathChange:'Old org → New org', colReportsTo:'Reports to',
       colDivision:'Division', colBusinessUnit:'Business Unit', colDepartment:'Department', colTeam:'Team', colSubTeam:'Sub Team', colSection:'Section', colStatus:'Status', colHrbpLead:'HRBP Lead',
       empEmptyNote:'No employees affected yet', copyEmpBtn:'Copy employee changes (paste directly into Base)',
       unassignedTitle:'Unassigned employees', unassignedEmptyNote:'No unassigned employees', unassignedTransferBtn:'Transfer',
@@ -152,7 +155,11 @@
       dragHint:function(name){ return 'Tip: you can also drag "' + name + '" onto a target department on the chart to move it.'; },
       renameLbl:'Rename', renameInputPh:'New name',
       moveLbl:'Move', movePlaceholder:'Choose a target parent department…', moveHint:'The list excludes this department and all of its sub-departments to avoid circular nesting.',
-      deleteLbl:'Delete this department', deleteBlocked:function(n){ return 'There ' + (n===1?'is':'are') + ' still ' + n + ' sub-department(s) below — move or delete them first.'; },
+      deleteLbl:'Delete this department',
+      deleteCascadeNote:function(n){ return 'There ' + (n===1?'is':'are') + ' still ' + n + ' sub-department(s) below — deleting this department will delete them too.'; },
+      deleteCascadeConfirmTitle:'Confirm deleting sub-departments',
+      deleteCascadeConfirmText:function(n){ return 'This will also delete the ' + n + ' sub-department(s) below it. Continue?'; },
+      deleteCascadeOkBtn:'Delete',
       deleteHint:'Deleted items stay visible in red on the chart and remain in the change log. Mutually exclusive with rename/move.',
       reassignTitle:function(n){ return 'Reassign the following ' + n + ' employee(s) before deleting'; },
       bulkTargetPlaceholder:'Bulk-select a target department…', bulkApplyBtn:'Move all here', assignTargetPlaceholder:'Choose a new department…',
@@ -165,7 +172,6 @@
       rosterEmptyNote:'No employees report directly to this department.', rosterTargetPlaceholder:'Transfer target department…',
       pickerSearchPh:'Search names from Lark User…', clearRoleOption:'Clear this role', noMatchResult:'No matches', noMatchDept:'No matching department', noMatchEmp:'No matching employee',
 
-      toastDeleteBlockedChildren:'Cannot delete: please move or delete the sub-departments first',
       toastDeleteBlockedEmp:function(n){ return n + ' employee(s) still need a new department'; },
       toastDeleted:'Marked as deleted', toastNothingToSave:'No changes to save', toastSaved:'Changes saved',
       toastNeedName:'Please enter a department name', toastAdded:'Department added',
@@ -197,9 +203,9 @@
         report_change: function(p){ return p.name + ': direct manager ' + (p.from || STR.en.empty) + ' → ' + p.to; }
       },
       csvOrgChangeHeaders:['Change Type','Role Change','Org Unit Before','PIC Before','HRBP1 Before','HRBP2 Before','HRBP Lead Before','Assistant Before','Org Unit After','PIC After','HRBP1 After','HRBP2 After','HRBP Lead After','Assistant After'],
-      csvPersonnelHeaders:['EID','Name','Org Change','Role Change','Dept Before','Reports-to Before','PIC Before','HRBP1 Before','HRBP2 Before','HRBP Lead Before','Assistant Before','Dept After','Reports-to After','PIC After','HRBP1 After','HRBP2 After','HRBP Lead After','Assistant After','Notes'],
+      csvPersonnelHeaders:['EID','Name','Org Change','Role Change','Org Before','Reports-to Before','PIC Before','HRBP1 Before','HRBP2 Before','HRBP Lead Before','Assistant Before','Org After','Reports-to After','PIC After','HRBP1 After','HRBP2 After','HRBP Lead After','Assistant After','Notes'],
       csvOrgChangeFilename:'org-change-record.csv', csvPersonnelFilename:'personnel-change-record.csv',
-      orgChangeLabel:'Org structure adjusted'
+      orgChangeLabel:'Yes'
     }
   };
   function t(key){ var v = STR[LANG][key]; return v===undefined ? key : v; }
@@ -528,28 +534,38 @@
     if(!silent) addLog('emp_transfer', {name:emp.name, eid:emp.eid, from:fromNode.name, to:toNode.name, fromId:fromNode.id, toId:toNode.id});
     return true;
   }
+  // Deleting a department with sub-departments now cascades: the whole subtree (n + all live
+  // descendants) goes together in one commit. The only remaining gate is headcount — every
+  // employee anywhere in the subtree must have a reassignment target outside it (the org pickers
+  // used for those targets already exclude n and its descendants). Each node in the subtree gets
+  // its own 'delete' log entry (so it shows as its own row in the change log/CSV and can be undone
+  // independently), except brand-new nodes from this session, which are just discarded.
   function commitDelete(n, assignments){
-    var childCount = getChildren(n.id).filter(function(c){ return !c.flags.isDeleted; }).length;
-    if(childCount>0) return {ok:false, reason:'children'};
-    var direct = employees.filter(function(e){ return e.nodeId===n.id; });
-    if(direct.length){
-      var missing = direct.filter(function(e){ return !assignments || !assignments[e.eid]; });
+    var descendants = getDescendants(n.id).filter(function(d){ return !d.flags.isDeleted; });
+    var subtreeNodes = [n].concat(descendants);
+    var subtreeIds = subtreeNodes.map(function(x){ return x.id; });
+    var subtreeEmployees = employees.filter(function(e){ return subtreeIds.indexOf(e.nodeId)>=0; });
+    if(subtreeEmployees.length){
+      var missing = subtreeEmployees.filter(function(e){ return !assignments || !assignments[e.eid]; });
       if(missing.length) return {ok:false, reason:'unassigned', missing:missing};
     }
-    if(n.flags.isNew){
-      nodes = nodes.filter(function(x){ return x.id!==n.id; });
-      removeAllLogsForNode(n.id); // never confirmed this session — creating then deleting it is a no-op
-      return {ok:true, removed:true};
-    }
-    var restoreLog = [];
-    direct.forEach(function(e){
-      var toId = assignments[e.eid];
-      restoreLog.push({eid:e.eid, toNodeId:toId, fromNodeId:n.id});
-      commitEmployeeTransfer(e, toId);
+    subtreeNodes.forEach(function(d){
+      if(d.flags.isNew){
+        nodes = nodes.filter(function(x){ return x.id!==d.id; });
+        removeAllLogsForNode(d.id); // never confirmed this session — creating then deleting it is a no-op
+        return;
+      }
+      var directOfD = employees.filter(function(e){ return e.nodeId===d.id; });
+      var restoreLog = [];
+      directOfD.forEach(function(e){
+        var toId = assignments[e.eid];
+        restoreLog.push({eid:e.eid, toNodeId:toId, fromNodeId:d.id});
+        commitEmployeeTransfer(e, toId);
+      });
+      d.restoreLog = restoreLog.length ? restoreLog : null;
+      d.flags.isDeleted = true;
+      addLog('delete', {name:d.name, parent:getNode(d.parentId).name, empCount:restoreLog.length}, d.id);
     });
-    n.restoreLog = restoreLog.length ? restoreLog : null;
-    n.flags.isDeleted = true;
-    addLog('delete', {name:n.name, parent:getNode(n.parentId).name, empCount:restoreLog.length}, n.id);
     return {ok:true};
   }
   function commitRestoreDelete(n){
@@ -640,10 +656,7 @@
       var n=getNode(l.key);
       if(n){
         var res = commitDelete(n, {});
-        if(!res.ok){
-          if(res.reason==='children') toast(t('toastDeleteBlockedChildren'));
-          else toast(t('toastDeleteBlockedEmp')(res.missing.length));
-        }
+        if(!res.ok) toast(t('toastDeleteBlockedEmp')(res.missing.length));
       }
     }
     else if(l.typeKey==='delete'){ var n=getNode(l.key); if(n) commitRestoreDelete(n); }
@@ -719,13 +732,15 @@
   function saveStructureEdit(){
     var n = getNode(selectedId); if(!n) return;
     if(pendingEdit.del.on){
-      var res = commitDelete(n, pendingEdit.del.assignments);
-      if(!res.ok){
-        if(res.reason==='children') toast(t('toastDeleteBlockedChildren'));
-        else toast(t('toastDeleteBlockedEmp')(res.missing.length));
-        return;
-      }
-      toast(t('toastDeleted')); closePanel(); render(); return;
+      var doDelete = function(){
+        var res = commitDelete(n, pendingEdit.del.assignments);
+        if(!res.ok){ toast(t('toastDeleteBlockedEmp')(res.missing.length)); return; }
+        toast(t('toastDeleted')); closePanel(); render();
+      };
+      var descendants = getDescendants(n.id).filter(function(d){ return !d.flags.isDeleted; });
+      if(descendants.length) showConfirm(t('deleteCascadeConfirmTitle'), t('deleteCascadeConfirmText')(descendants.length), t('deleteCascadeOkBtn'), doDelete);
+      else doDelete();
+      return;
     }
     var did = false, moved = false;
     if(pendingEdit.rename.on){
@@ -828,10 +843,10 @@
   }
 
   function renderStructureTab(n, body, foot){
-    var childCount = getChildren(n.id).filter(function(c){ return !c.flags.isDeleted; }).length;
-    var direct = employees.filter(function(e){ return e.nodeId===n.id; });
+    var descendants = getDescendants(n.id).filter(function(d){ return !d.flags.isDeleted; });
+    var subtreeIds = [n.id].concat(descendants.map(function(d){ return d.id; }));
+    var direct = employees.filter(function(e){ return subtreeIds.indexOf(e.nodeId)>=0; });
     var empCount = direct.length;
-    var delBlockedByChildren = childCount>0;
     var otherNodes = nodes.filter(function(x){ return x.id!==n.id && !x.flags.isDeleted && !isDescendant(n.id, x.id); });
 
     var html = '<div class="drag-hint">' + escapeHtml(t('dragHint')(n.name)) + '</div>';
@@ -848,11 +863,12 @@
 
     var anyOtherOn = pendingEdit.rename.on || pendingEdit.move.on;
     html += '<div class="edit-row ' + (anyOtherOn?'disabled':'') + (pendingEdit.del.on?' open':'') + '" style="border-color:var(--warn-border);">'+
-      '<div class="edit-row-head" data-toggle="del"><input type="checkbox" '+(pendingEdit.del.on?'checked':'')+' '+((anyOtherOn||delBlockedByChildren)?'disabled':'')+'><span class="lbl" style="color:var(--warn-text);">'+escapeHtml(t('deleteLbl'))+'</span></div>';
-    if(delBlockedByChildren){
-      html += '<div class="blocked">'+escapeHtml(t('deleteBlocked')(childCount))+'</div>';
-    } else if(pendingEdit.del.on){
+      '<div class="edit-row-head" data-toggle="del"><input type="checkbox" '+(pendingEdit.del.on?'checked':'')+' '+(anyOtherOn?'disabled':'')+'><span class="lbl" style="color:var(--warn-text);">'+escapeHtml(t('deleteLbl'))+'</span></div>';
+    if(pendingEdit.del.on){
       html += '<div class="edit-row-body">';
+      if(descendants.length){
+        html += '<div class="warn-box">'+escapeHtml(t('deleteCascadeNote')(descendants.length))+'</div>';
+      }
       if(empCount>0){
         html += '<div class="reassign-box"><div class="rb-title">'+escapeHtml(t('reassignTitle')(empCount))+'</div>';
         html += '<div class="bulk-row"><div id="bulkDelPicker" style="flex:1;"></div><button class="btn" id="bulkDelApply" type="button">'+escapeHtml(t('bulkApplyBtn'))+'</button></div>';
