@@ -103,6 +103,20 @@
   .layout{display:grid; grid-template-columns:minmax(0,1fr) clamp(300px, 24vw, 400px); gap:18px; align-items:start;}
   @media (max-width:980px){ .layout{grid-template-columns:1fr;} }
 
+  /* ---------- small screens ---------- */
+  @media (max-width:640px){
+    .wrap{padding:14px 12px 32px;}
+    .topbar{flex-direction:column; align-items:stretch;}
+    .topbar > div:last-child{align-items:stretch;}
+    .user-chip{justify-content:space-between;}
+    .data-status{justify-content:space-between;}
+    .controls-row{gap:8px;}
+    .search-box{max-width:none; width:100%;}
+    .btn, .seg button, .ctrl-label{font-size:12px;}
+    .edit-drawer{width:100%;}
+    .tree-scroll{height:calc(100vh - 380px); min-height:280px;}
+  }
+
   .panel{background:var(--surface); border:1px solid var(--line); border-radius:12px; box-shadow:var(--shadow); overflow:hidden;}
   .panel-head{display:flex; align-items:center; justify-content:space-between; gap:10px; padding:12px 14px; border-bottom:1px solid var(--line);}
   .panel-head h2{font-size:13px; font-weight:700; margin:0; text-transform:uppercase; letter-spacing:.04em; color:var(--ink-muted);}
@@ -148,8 +162,9 @@
   .tag.off{background:var(--del-bg); color:var(--del-text); border:1px solid var(--del-border);}
 
   .node.st-new{background:var(--new-bg); border-color:var(--new-border);}
-  .node.st-deleted{background:var(--del-bg); border-color:var(--del-border); cursor:default;}
-  .node.st-deleted .name{color:var(--del-text); text-decoration:line-through;}
+  .node.st-renamed{background:var(--accent-soft); border-color:var(--accent);}
+  .node.st-deleted{background:var(--warn-bg); border-color:var(--warn-border); cursor:default;}
+  .node.st-deleted .name{color:var(--warn-text); text-decoration:line-through;}
 
   .node-ghost{position:relative; z-index:1; min-width:168px; max-width:206px; padding:9px 11px; border-radius:9px; border:1.5px dashed var(--del-border); background:var(--del-bg); color:var(--del-text); font-size:11.5px;}
   .node-ghost .name{font-weight:700; text-decoration:line-through; font-size:12px;}
@@ -222,7 +237,6 @@
 
   /* ---------- roster / transfer ---------- */
   .roster-toolbar{display:flex; align-items:center; gap:8px; margin-bottom:10px; flex-wrap:wrap;}
-  .roster-toolbar select{flex:1; min-width:120px; padding:6px 8px; border-radius:6px; border:1.5px solid var(--line); background:var(--bg); color:var(--ink); font-size:12px;}
   .roster-row{display:flex; align-items:center; gap:8px; padding:8px 0; border-bottom:1px solid var(--line);}
   .roster-row:last-child{border-bottom:none;}
   .roster-row input[type="checkbox"]{width:14px; height:14px; accent-color:var(--accent); flex:none;}
@@ -233,10 +247,20 @@
   .reassign-box{margin-top:10px; padding:10px; border:1px solid var(--warn-border); border-radius:8px; background:var(--warn-bg);}
   .reassign-box .rb-title{font-size:11.5px; font-weight:700; color:var(--warn-text); margin-bottom:8px;}
   .reassign-box .bulk-row{display:flex; gap:6px; margin-bottom:9px;}
-  .reassign-box .bulk-row select{flex:1; padding:6px 8px; border-radius:6px; border:1.5px solid var(--warn-border); background:var(--surface); color:var(--ink); font-size:12px;}
   .reassign-row{display:flex; align-items:center; gap:7px; padding:5px 0;}
   .reassign-row .rn-name{flex:1; font-size:12px; min-width:0;}
-  .reassign-row select{flex:none; width:150px; padding:5px 6px; border-radius:6px; border:1.5px solid var(--line); background:var(--surface); color:var(--ink); font-size:11.5px;}
+  .reassign-picker{flex:1; min-width:150px; max-width:220px;}
+
+  /* ---------- inline searchable org picker (move / delete reassign / roster transfer) ---------- */
+  .op-input{width:100%; padding:7px 9px; border-radius:6px; border:1.5px solid var(--line); background:var(--bg); color:var(--ink); font-size:12.5px;}
+  .op-input:focus-visible{outline:none; border-color:var(--accent);}
+  .op-options{max-height:160px; overflow-y:auto; border:1px solid var(--line); border-radius:8px; margin-top:6px; background:var(--surface);}
+  .op-options button{display:block; width:100%; text-align:left; background:none; border:none; padding:7px 10px; font-size:12px; color:var(--ink); cursor:pointer; border-bottom:1px solid var(--line);}
+  .op-options button:last-child{border-bottom:none;}
+  .op-options button:hover{background:var(--surface-2);}
+  .op-picked{display:flex; align-items:center; justify-content:space-between; gap:8px; padding:7px 9px; border-radius:6px; background:var(--surface-2); border:1px solid var(--line); font-size:12px; font-weight:600;}
+  .op-picked span{overflow:hidden; text-overflow:ellipsis; white-space:nowrap;}
+  .op-picked button{flex:none; background:none; border:none; color:var(--accent); cursor:pointer; font-size:11.5px; font-weight:700;}
 
   /* ---------- global transfer modal ---------- */
   .gmodal-overlay{position:fixed; inset:0; background:rgba(10,11,15,.42); display:none; align-items:center; justify-content:center; z-index:180; padding:20px;}

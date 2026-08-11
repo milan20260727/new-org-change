@@ -6,21 +6,21 @@
     zh: {
       loginTitle:'组织架构调整工具', loginSubtitle:'需要登录后才能查看组织架构与员工数据',
       loginBtnText:'使用飞书账号登录', loginBtnTextLoading:'登录中…',
-      pageTitle:'组织架构调整 Demo',
+      pageTitle:'组织架构调整工具',
       pageDesc:'数据实时来自 Base 里的「Lark Structures」+「Employee list」+「Lark User」三张表，每次打开或点击刷新都会重新拉取。所有编辑操作只在浏览器本地进行，不会写回 Base。',
       scopeTag:'正在加载组织数据…',
       scopeTagLoaded:function(p){ return '共 ' + p.nodeCount + ' 个组织节点 · ' + p.empCount + ' 名在职员工 · 数据来自 Lark Base'; },
       loggedInAs:'已登录：', logoutBtn:'退出',
       snapshotLabel:'数据快照时间：', refreshBtn:'刷新数据', refreshBtnLoading:'刷新中…',
-      refreshToast:'已刷新（模拟）：这个 Demo 还没接入真实 Lark Base，内容跟刷新前一样，只更新了快照时间',
       searchPlaceholder:'搜索组织架构名称…', focusPrefix:'聚焦于「', focusSuffix:'」',
-      globalTransferBtn:'转移员工', orientLabel:'查看方向', orientVertical:'纵向', orientHorizontal:'横向',
+      globalTransferBtn:'转移员工', addOrgBtn:'新增组织架构', orientLabel:'查看方向', orientVertical:'纵向', orientHorizontal:'横向',
       langLabel:'语言', downloadPngBtn:'下载组织架构图（PNG）',
       legendNew:'新增', legendDelete:'删除', legendMoved:'移动 / 影子', legendRenamed:'已改名', legendRoleWarn:'⚠ 角色不一致',
       changeLogTitle:'变更记录', unitRecords:'条', colType:'类型', colDetail:'详情',
       logEmptyNote:'暂无变更，点一个部门框试试', copyLogBtn:'复制变更（可直接粘贴到 Base）', downloadCsvBtn:'下载 CSV',
       affectedEmpTitle:'受影响员工', unitPeople:'人', colName:'姓名', colPathChange:'原部门 → 新部门',
       empEmptyNote:'还没有员工受影响', copyEmpBtn:'复制员工变更（可直接粘贴到 Base）',
+      unassignedTitle:'待安置员工', unassignedEmptyNote:'暂无待安置员工', unassignedTransferBtn:'转移',
       addChildTitle:'新增子部门', tabStructure:'编辑类型', tabRole:'变更角色', tabRoster:'下辖员工名单',
       transferModalTitle:'转移员工', fieldEmployee:'员工', searchEmpPlaceholder:'搜索姓名或 EID…',
       fieldTargetOrg:'目标组织架构', searchOrgPlaceholder:'搜索目标部门…', cancelBtn:'取消', confirmTransferBtn:'确认转移',
@@ -42,7 +42,7 @@
       renameLbl:'重命名', renameInputPh:'新名称',
       moveLbl:'移动', movePlaceholder:'选择目标上级部门…', moveHint:'下拉列表已排除自身及其所有子部门，避免循环嵌套。',
       deleteLbl:'删除该部门', deleteBlocked:function(n){ return '下面还有 ' + n + ' 个子部门，需先移动或删除它们才能删除本部门。'; },
-      deleteHint:'删除后仍会以灰色显示在图中，并保留在变更记录里。与重命名/移动互斥。',
+      deleteHint:'删除后仍会以红色显示在图中，并保留在变更记录里。与重命名/移动互斥。',
       reassignTitle:function(n){ return '删除前需要为以下 ' + n + ' 名员工安置新部门'; },
       bulkTargetPlaceholder:'批量选择目标部门…', bulkApplyBtn:'全部转移到此', assignTargetPlaceholder:'选择新部门…',
       saveBtn:'保存', createBtn:'创建', createTitle:'新增子部门', createUnder:function(name){ return '新增于「' + name + '」下'; },
@@ -90,21 +90,21 @@
     en: {
       loginTitle:'Org Structure Change Tool', loginSubtitle:'Sign in to view the org structure and employee data',
       loginBtnText:'Sign in with Lark', loginBtnTextLoading:'Signing in…',
-      pageTitle:'Org Structure Change Demo',
+      pageTitle:'Org Structure Change Tool',
       pageDesc:'Data is fetched live from the Base tables "Lark Structures" + "Employee list" + "Lark User" on every load and on every refresh. All edits happen locally in the browser only and are never written back to Base.',
       scopeTag:'Loading org data…',
       scopeTagLoaded:function(p){ return p.nodeCount + ' org units · ' + p.empCount + ' active employees · live from Lark Base'; },
       loggedInAs:'Signed in as: ', logoutBtn:'Sign out',
       snapshotLabel:'Data snapshot: ', refreshBtn:'Refresh data', refreshBtnLoading:'Refreshing…',
-      refreshToast:'Refreshed (simulated): this demo isn’t wired to a live Lark Base yet, so content is unchanged — only the snapshot time updated',
       searchPlaceholder:'Search org unit name…', focusPrefix:'Focused on "', focusSuffix:'"',
-      globalTransferBtn:'Transfer employee', orientLabel:'Layout', orientVertical:'Vertical', orientHorizontal:'Horizontal',
+      globalTransferBtn:'Transfer employee', addOrgBtn:'Add org unit', orientLabel:'Layout', orientVertical:'Vertical', orientHorizontal:'Horizontal',
       langLabel:'Language', downloadPngBtn:'Download chart (PNG)',
       legendNew:'New', legendDelete:'Deleted', legendMoved:'Moved / ghost', legendRenamed:'Renamed', legendRoleWarn:'⚠ Role inconsistent',
       changeLogTitle:'Change log', unitRecords:'', colType:'Type', colDetail:'Detail',
       logEmptyNote:'No changes yet — try clicking a department box', copyLogBtn:'Copy changes (paste directly into Base)', downloadCsvBtn:'Download CSV',
       affectedEmpTitle:'Affected employees', unitPeople:'', colName:'Name', colPathChange:'Old dept → New dept',
       empEmptyNote:'No employees affected yet', copyEmpBtn:'Copy employee changes (paste directly into Base)',
+      unassignedTitle:'Unassigned employees', unassignedEmptyNote:'No unassigned employees', unassignedTransferBtn:'Transfer',
       addChildTitle:'Add sub-department', tabStructure:'Edit type', tabRole:'Roles', tabRoster:'Team roster',
       transferModalTitle:'Transfer employee', fieldEmployee:'Employee', searchEmpPlaceholder:'Search by name or EID…',
       fieldTargetOrg:'Target org unit', searchOrgPlaceholder:'Search target department…', cancelBtn:'Cancel', confirmTransferBtn:'Confirm transfer',
@@ -126,7 +126,7 @@
       renameLbl:'Rename', renameInputPh:'New name',
       moveLbl:'Move', movePlaceholder:'Choose a target parent department…', moveHint:'The list excludes this department and all of its sub-departments to avoid circular nesting.',
       deleteLbl:'Delete this department', deleteBlocked:function(n){ return 'There ' + (n===1?'is':'are') + ' still ' + n + ' sub-department(s) below — move or delete them first.'; },
-      deleteHint:'Deleted items stay visible in gray on the chart and remain in the change log. Mutually exclusive with rename/move.',
+      deleteHint:'Deleted items stay visible in red on the chart and remain in the change log. Mutually exclusive with rename/move.',
       reassignTitle:function(n){ return 'Reassign the following ' + n + ' employee(s) before deleting'; },
       bulkTargetPlaceholder:'Bulk-select a target department…', bulkApplyBtn:'Move all here', assignTargetPlaceholder:'Choose a new department…',
       saveBtn:'Save', createBtn:'Create', createTitle:'Add sub-department', createUnder:function(name){ return 'Adding under "' + name + '"'; },
@@ -188,7 +188,7 @@
   var personPool = [];
   var rootId = 'root';
 
-  var nodes, employees, log, selectedId, viewRootId, orientation, logSeq, tempCounter, dragSrcId, pendingEdit, activeTab, createDraft, rosterSelected, gmodalEmp, gmodalOrg, pendingReportPrompt, snapshotAt;
+  var nodes, employees, log, selectedId, viewRootId, orientation, logSeq, tempCounter, dragSrcId, pendingEdit, activeTab, createDraft, rosterSelected, rosterBulkTarget, gmodalEmp, gmodalOrg, pendingReportPrompt, snapshotAt, unassignedId, unassignedTargets;
 
   function hydrateNodes(rawNodes){
     return rawNodes.map(function(n){
@@ -227,6 +227,8 @@
         nodes = hydrateNodes(data.nodes);
         employees = data.employees.map(function(e){ return {eid:e.eid, name:e.name, nodeId:e.nodeId, origPath: pathLabel(e.nodeId), reportsTo:e.reportsTo||'', origReportsTo:e.reportsTo||''}; });
         personPool = data.personPool || [];
+        unassignedId = data.unassignedId || null;
+        unassignedTargets = {};
         snapshotAt = new Date(data.generatedAt);
         log = [];
         selectedId = null;
@@ -238,6 +240,7 @@
         pendingEdit = null;
         createDraft = null;
         rosterSelected = {};
+        rosterBulkTarget = '';
         pendingReportPrompt = null;
         activeTab = 'structure';
         document.getElementById('snapshotTime').textContent = formatSnapshotTime(snapshotAt);
@@ -253,6 +256,10 @@
           toast(LANG==='zh'
             ? data.counts.unmatchedEmployees + ' 名员工的部门在 Lark Structures 里找不到匹配，已归入"Unassigned"'
             : data.counts.unmatchedEmployees + ' employee(s) could not be matched to a Lark Structures department — filed under "Unassigned"');
+        } else if(data.counts && data.counts.inactiveReassignedEmployees){
+          toast(LANG==='zh'
+            ? data.counts.inactiveReassignedEmployees + ' 名员工所属部门已停用（不在组织架构图上显示），已归入"Unassigned"'
+            : data.counts.inactiveReassignedEmployees + ' employee(s) belonged to an inactive department (hidden from the chart) — filed under "Unassigned"');
         }
       })
       .catch(function(err){
@@ -484,9 +491,10 @@
     pendingEdit = {
       rename:{on:false, value:n.name},
       move:{on:false, target:''},
-      del:{on:false, assignments:{}}
+      del:{on:false, assignments:{}, bulkTarget:''}
     };
     rosterSelected = {};
+    rosterBulkTarget = '';
     render();
   }
   function openCreateChild(parentId){
@@ -496,7 +504,7 @@
     render();
   }
   function closePanel(){
-    selectedId = null; pendingEdit = null; createDraft = null; rosterSelected = {};
+    selectedId = null; pendingEdit = null; createDraft = null; rosterSelected = {}; rosterBulkTarget = '';
     document.getElementById('editDrawer').classList.remove('show');
     document.getElementById('panelBackdrop').classList.remove('show');
   }
@@ -613,9 +621,7 @@
 
     html += '<div class="edit-row ' + (pendingEdit.del.on?'disabled':'') + (pendingEdit.move.on?' open':'') + '">'+
       '<div class="edit-row-head" data-toggle="move"><input type="checkbox" '+(pendingEdit.move.on?'checked':'')+' '+(pendingEdit.del.on?'disabled':'')+'><span class="lbl">'+escapeHtml(t('moveLbl'))+'</span></div>'+
-      '<div class="edit-row-body"><select id="moveSelect"><option value="">'+escapeHtml(t('movePlaceholder'))+'</option>'+
-      otherNodes.map(function(x){ return '<option value="'+x.id+'" '+(pendingEdit.move.target===x.id?'selected':'')+'>'+escapeHtml(pathLabel(x.id))+'</option>'; }).join('')+
-      '</select><div class="hint">'+escapeHtml(t('moveHint'))+'</div></div>'+
+      '<div class="edit-row-body"><div id="moveOrgPicker"></div><div class="hint">'+escapeHtml(t('moveHint'))+'</div></div>'+
       '</div>';
 
     var anyOtherOn = pendingEdit.rename.on || pendingEdit.move.on;
@@ -627,14 +633,10 @@
       html += '<div class="edit-row-body">';
       if(empCount>0){
         html += '<div class="reassign-box"><div class="rb-title">'+escapeHtml(t('reassignTitle')(empCount))+'</div>';
-        html += '<div class="bulk-row"><select id="bulkDelTarget"><option value="">'+escapeHtml(t('bulkTargetPlaceholder'))+'</option>'+
-          otherNodes.map(function(x){ return '<option value="'+x.id+'">'+escapeHtml(pathLabel(x.id))+'</option>'; }).join('')+
-          '</select><button class="btn" id="bulkDelApply" type="button">'+escapeHtml(t('bulkApplyBtn'))+'</button></div>';
+        html += '<div class="bulk-row"><div id="bulkDelPicker" style="flex:1;"></div><button class="btn" id="bulkDelApply" type="button">'+escapeHtml(t('bulkApplyBtn'))+'</button></div>';
         direct.forEach(function(e){
           html += '<div class="reassign-row"><span class="rn-name">'+escapeHtml(e.name)+' <span class="mono" style="color:var(--ink-muted);">'+e.eid+'</span></span>'+
-            '<select data-eid="'+e.eid+'" class="del-assign-select"><option value="">'+escapeHtml(t('assignTargetPlaceholder'))+'</option>'+
-            otherNodes.map(function(x){ return '<option value="'+x.id+'" '+(pendingEdit.del.assignments[e.eid]===x.id?'selected':'')+'>'+escapeHtml(pathLabel(x.id))+'</option>'; }).join('')+
-            '</select></div>';
+            '<div class="reassign-picker" data-eid="'+e.eid+'"></div></div>';
         });
         html += '</div>';
       } else {
@@ -659,16 +661,19 @@
       cb.addEventListener('change', function(){ if(!cb.disabled) setPending(el.getAttribute('data-toggle'), cb.checked); });
     });
     var ri = document.getElementById('renameInput'); if(ri) ri.addEventListener('input', function(){ pendingEdit.rename.value = ri.value; });
-    var ms = document.getElementById('moveSelect'); if(ms) ms.addEventListener('change', function(){ pendingEdit.move.target = ms.value; });
-    var bulkSel = document.getElementById('bulkDelTarget');
+    bindOrgPicker(document.getElementById('moveOrgPicker'), otherNodes, pendingEdit.move.target, function(id){ pendingEdit.move.target = id; }, t('movePlaceholder'));
     var bulkBtn = document.getElementById('bulkDelApply');
-    if(bulkBtn) bulkBtn.addEventListener('click', function(){
-      if(!bulkSel.value){ toast(t('toastPickBulkTarget')); return; }
-      direct.forEach(function(e){ pendingEdit.del.assignments[e.eid] = bulkSel.value; });
-      renderPanel();
-    });
-    body.querySelectorAll('.del-assign-select').forEach(function(sel){
-      sel.addEventListener('change', function(){ pendingEdit.del.assignments[sel.getAttribute('data-eid')] = sel.value; });
+    if(bulkBtn){
+      bindOrgPicker(document.getElementById('bulkDelPicker'), otherNodes, pendingEdit.del.bulkTarget, function(id){ pendingEdit.del.bulkTarget = id; }, t('bulkTargetPlaceholder'));
+      bulkBtn.addEventListener('click', function(){
+        if(!pendingEdit.del.bulkTarget){ toast(t('toastPickBulkTarget')); return; }
+        direct.forEach(function(e){ pendingEdit.del.assignments[e.eid] = pendingEdit.del.bulkTarget; });
+        renderPanel();
+      });
+    }
+    body.querySelectorAll('.reassign-picker').forEach(function(el){
+      var eid = el.getAttribute('data-eid');
+      bindOrgPicker(el, otherNodes, pendingEdit.del.assignments[eid], function(id){ pendingEdit.del.assignments[eid] = id; }, t('assignTargetPlaceholder'));
     });
 
     document.getElementById('cancelEditBtn').addEventListener('click', closePanel);
@@ -735,9 +740,8 @@
         '</div>';
     });
     html += '<div class="roster-toolbar" style="margin-top:12px; padding-top:12px; border-top:1px solid var(--line);">'+
-      '<select id="rosterBulkTarget"><option value="">'+escapeHtml(t('rosterTargetPlaceholder'))+'</option>'+
-      otherNodes.map(function(x){ return '<option value="'+x.id+'">'+escapeHtml(pathLabel(x.id))+'</option>'; }).join('')+
-      '</select><button class="btn primary" id="rosterBulkApply" type="button" '+(selCount?'':'disabled')+'>'+escapeHtml(t('transferSelectedBtn')(selCount))+'</button></div>';
+      '<div id="rosterBulkPicker" style="flex:1;"></div>'+
+      '<button class="btn primary" id="rosterBulkApply" type="button" '+(selCount?'':'disabled')+'>'+escapeHtml(t('transferSelectedBtn')(selCount))+'</button></div>';
 
     body.innerHTML = html;
     foot.innerHTML = '<button class="btn ghost" id="cancelEditBtn">'+escapeHtml(t('closeBtn'))+'</button>';
@@ -750,12 +754,14 @@
     body.querySelectorAll('.roster-cb').forEach(function(cb){
       cb.addEventListener('change', function(){ rosterSelected[cb.getAttribute('data-eid')] = cb.checked; renderPanel(); });
     });
+    bindOrgPicker(document.getElementById('rosterBulkPicker'), otherNodes, rosterBulkTarget, function(id){ rosterBulkTarget = id; }, t('rosterTargetPlaceholder'));
     document.getElementById('rosterBulkApply').addEventListener('click', function(){
-      var target = document.getElementById('rosterBulkTarget').value;
+      var target = rosterBulkTarget;
       if(!target){ toast(t('toastPickTransferTarget')); return; }
       var moved = 0;
       direct.forEach(function(e){ if(rosterSelected[e.eid]){ commitEmployeeTransfer(e, target); moved++; } });
       rosterSelected = {};
+      rosterBulkTarget = '';
       toast(t('toastTransferredN')(moved));
       renderTree(); renderLog(); renderEmployees(); renderPanel();
     });
@@ -804,6 +810,38 @@
     });
   }
 
+  // Inline searchable department picker — replaces a plain <select> for target-org
+  // fields (move target, delete-time reassignment, roster transfer) since the real
+  // department list is too long to scan by eye. currentId lives in the caller's own
+  // state; onSelect just reports the pick back, it doesn't own the state.
+  function bindOrgPicker(container, candidates, currentId, onSelect, placeholder){
+    if(!container) return;
+    function renderPicked(id){
+      var n = getNode(id);
+      container.innerHTML = '<div class="op-picked"><span>'+escapeHtml(pathLabel(n.id))+'</span><button type="button" class="op-change">'+escapeHtml(t('reselectBtn'))+'</button></div>';
+      container.querySelector('.op-change').addEventListener('click', function(){ renderSearch(); });
+    }
+    function renderSearch(){
+      container.innerHTML = '<input type="text" class="op-input" placeholder="'+escapeHtml(placeholder)+'" autocomplete="off"><div class="op-options"></div>';
+      var input = container.querySelector('.op-input');
+      var opts = container.querySelector('.op-options');
+      function paint(q){
+        var list = candidates.filter(function(x){ return pathLabel(x.id).toLowerCase().indexOf((q||'').toLowerCase())>=0; }).slice(0,8);
+        opts.innerHTML = list.length ? list.map(function(x){ return '<button type="button" data-id="'+x.id+'">'+escapeHtml(pathLabel(x.id))+'</button>'; }).join('')
+          : '<button type="button" disabled style="color:var(--ink-muted);">'+escapeHtml(t('noMatchDept'))+'</button>';
+      }
+      paint('');
+      input.addEventListener('input', function(){ paint(input.value); });
+      opts.addEventListener('click', function(ev){
+        var btn = ev.target.closest('button[data-id]'); if(!btn) return;
+        var id = btn.getAttribute('data-id');
+        onSelect(id);
+        renderPicked(id);
+      });
+    }
+    if(currentId) renderPicked(currentId); else renderSearch();
+  }
+
   // ---------- drag & drop ----------
   function onDragStart(ev, id){
     var n = getNode(id);
@@ -836,6 +874,7 @@
     var c = ['node'];
     if(n.flags.isDeleted) c.push('st-deleted');
     else if(n.flags.isNew) c.push('st-new');
+    else if(n.flags.isRenamed) c.push('st-renamed');
     if(selectedId===n.id) c.push('selected');
     return c.join(' ');
   }
@@ -1014,10 +1053,46 @@
     }).join('');
   }
 
+  function renderUnassigned(){
+    var panel = document.getElementById('unassignedPanel');
+    var node = unassignedId ? getNode(unassignedId) : null;
+    if(!node){ panel.style.display = 'none'; return; }
+    panel.style.display = '';
+    var list = employees.filter(function(e){ return e.nodeId===unassignedId; });
+    document.getElementById('unassignedCount').textContent = list.length;
+    var body = document.getElementById('unassignedBody');
+    if(!list.length){ body.innerHTML = '<div class="empty-note">'+escapeHtml(t('unassignedEmptyNote'))+'</div>'; return; }
+    var targets = nodes.filter(function(x){ return x.id!==unassignedId && !x.flags.isDeleted; });
+    body.innerHTML = list.map(function(e){
+      return '<div class="roster-row" data-eid="'+e.eid+'">'+
+        '<div class="rr-info"><div class="rr-name">'+escapeHtml(e.name)+'</div><div class="rr-eid">EID '+e.eid+'</div></div>'+
+        '<div class="reassign-picker" data-eid="'+e.eid+'"></div>'+
+        '<button class="btn" type="button" data-transfer-eid="'+e.eid+'">'+escapeHtml(t('unassignedTransferBtn'))+'</button>'+
+        '</div>';
+    }).join('');
+    body.querySelectorAll('.reassign-picker').forEach(function(el){
+      var eid = el.getAttribute('data-eid');
+      bindOrgPicker(el, targets, unassignedTargets[eid], function(id){ unassignedTargets[eid] = id; }, t('rosterTargetPlaceholder'));
+    });
+    body.querySelectorAll('[data-transfer-eid]').forEach(function(btn){
+      btn.addEventListener('click', function(){
+        var eid = btn.getAttribute('data-transfer-eid');
+        var target = unassignedTargets[eid];
+        if(!target){ toast(t('toastPickTransferTarget')); return; }
+        var emp = employees.filter(function(e){ return e.eid===eid; })[0];
+        commitEmployeeTransfer(emp, target);
+        delete unassignedTargets[eid];
+        toast(t('toastTransferredName')(emp.name));
+        renderTree(); renderLog(); renderEmployees(); renderUnassigned();
+      });
+    });
+  }
+
   function render(){
     renderTree();
     renderLog();
     renderEmployees();
+    renderUnassigned();
     renderPanel();
     var pill = document.getElementById('focusPill');
     if(viewRootId!==rootId){ pill.classList.add('show'); document.getElementById('focusPillText').textContent = t('focusLabel')(getNode(viewRootId).name); }
@@ -1095,21 +1170,6 @@
     document.querySelectorAll('#langSeg button').forEach(function(b){ b.classList.toggle('active', b===btn); });
     applyStaticI18n();
     if(nodes) render();
-  });
-
-  // Refresh is simulated — this demo has no live connection to Lark Base. See README.
-  document.getElementById('refreshBtn').addEventListener('click', function(){
-    var btn = document.getElementById('refreshBtn');
-    var original = btn.textContent;
-    btn.disabled = true;
-    btn.textContent = t('refreshBtnLoading');
-    setTimeout(function(){
-      snapshotAt = new Date();
-      document.getElementById('snapshotTime').textContent = formatSnapshotTime(snapshotAt);
-      btn.disabled = false;
-      btn.textContent = t('refreshBtn');
-      toast(t('refreshToast'));
-    }, 550);
   });
 
   var searchInput = document.getElementById('searchInput');
@@ -1196,6 +1256,7 @@
   });
 
   document.getElementById('globalTransferBtn').addEventListener('click', openGlobalTransfer);
+  document.getElementById('addOrgBtn').addEventListener('click', function(){ if(nodes) openCreateChild(viewRootId); });
   document.getElementById('gmodalCancelBtn').addEventListener('click', closeGlobalTransfer);
   document.getElementById('gmodalOverlay').addEventListener('click', function(ev){ if(ev.target.id==='gmodalOverlay') closeGlobalTransfer(); });
   document.getElementById('gmodalEmpSearch').addEventListener('input', function(){ renderGModalOptions('emp', this.value); });
@@ -1220,7 +1281,8 @@
       bg:g('--bg'), surface:g('--surface'), ink:g('--ink'), inkMuted:g('--ink-muted'), line:g('--line'),
       newBg:g('--new-bg'), newText:g('--new-text'), newBorder:g('--new-border'),
       delBg:g('--del-bg'), delText:g('--del-text'), delBorder:g('--del-border'),
-      movText:g('--mov-text'), accent:g('--accent')
+      warnBg:g('--warn-bg'), warnText:g('--warn-text'), warnBorder:g('--warn-border'),
+      movText:g('--mov-text'), accent:g('--accent'), accentSoft:g('--accent-soft')
     };
   }
   function roundRectPath(ctx, x, y, w, h, r){
@@ -1275,9 +1337,10 @@
       var isGhost = el.classList.contains('node-ghost');
       var isDeleted = el.classList.contains('st-deleted');
       var isNew = el.classList.contains('st-new');
-      var bg = (isGhost||isDeleted) ? C.delBg : isNew ? C.newBg : C.surface;
-      var border = (isGhost||isDeleted) ? C.delBorder : isNew ? C.newBorder : C.line;
-      var textColor = (isGhost||isDeleted) ? C.delText : C.ink;
+      var isRenamed = el.classList.contains('st-renamed');
+      var bg = isGhost ? C.delBg : isDeleted ? C.warnBg : isNew ? C.newBg : isRenamed ? C.accentSoft : C.surface;
+      var border = isGhost ? C.delBorder : isDeleted ? C.warnBorder : isNew ? C.newBorder : isRenamed ? C.accent : C.line;
+      var textColor = isGhost ? C.delText : isDeleted ? C.warnText : C.ink;
 
       roundRectPath(ctx, x, y, r.width, r.height, 9);
       ctx.fillStyle = bg; ctx.fill();
