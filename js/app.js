@@ -7,13 +7,15 @@
       loginTitle:'组织架构调整工具', loginSubtitle:'需要登录后才能查看组织架构与员工数据',
       loginBtnText:'使用飞书账号登录', loginBtnTextLoading:'登录中…',
       pageTitle:'组织架构调整工具',
-      pageDesc:'数据实时来自 Base 里的「Lark Structures」+「Employee list」+「Lark User」三张表，每次打开或点击刷新都会重新拉取。所有编辑操作只在浏览器本地进行，不会写回 Base。',
       scopeTag:'正在加载组织数据…',
       scopeTagLoaded:function(p){ return '共 ' + p.nodeCount + ' 个组织节点 · ' + p.empCount + ' 名在职员工 · 数据来自 Lark Base'; },
       loggedInAs:'已登录：', logoutBtn:'退出',
       snapshotLabel:'数据快照时间：', refreshBtn:'刷新数据', refreshBtnLoading:'刷新中…',
       searchPlaceholder:'搜索组织架构名称…', focusPrefix:'聚焦于「', focusSuffix:'」',
-      globalTransferBtn:'转移员工', addOrgBtn:'新增组织架构', orientLabel:'查看方向', orientVertical:'纵向', orientHorizontal:'横向',
+      globalTransferBtn:'转移员工', addOrgBtn:'新增组织架构', viewChart:'组织架构图', viewUnassigned:'待安置员工',
+      expandAllBtn:'全部展开', collapseAllBtn:'全部折叠', expandTitle:'展开', collapseTitle:'折叠',
+      zoomInTitle:'放大', zoomOutTitle:'缩小',
+      orientLabel:'查看方向', orientVertical:'纵向', orientHorizontal:'横向',
       langLabel:'语言', downloadPngBtn:'下载组织架构图（PNG）',
       legendNew:'新增', legendDelete:'删除', legendMoved:'移动 / 影子', legendRenamed:'已改名', legendRoleWarn:'⚠ 角色不一致',
       changeLogTitle:'变更记录', unitRecords:'条', colType:'类型', colDetail:'详情',
@@ -91,13 +93,15 @@
       loginTitle:'Org Structure Change Tool', loginSubtitle:'Sign in to view the org structure and employee data',
       loginBtnText:'Sign in with Lark', loginBtnTextLoading:'Signing in…',
       pageTitle:'Org Structure Change Tool',
-      pageDesc:'Data is fetched live from the Base tables "Lark Structures" + "Employee list" + "Lark User" on every load and on every refresh. All edits happen locally in the browser only and are never written back to Base.',
       scopeTag:'Loading org data…',
       scopeTagLoaded:function(p){ return p.nodeCount + ' org units · ' + p.empCount + ' active employees · live from Lark Base'; },
       loggedInAs:'Signed in as: ', logoutBtn:'Sign out',
       snapshotLabel:'Data snapshot: ', refreshBtn:'Refresh data', refreshBtnLoading:'Refreshing…',
       searchPlaceholder:'Search org unit name…', focusPrefix:'Focused on "', focusSuffix:'"',
-      globalTransferBtn:'Transfer employee', addOrgBtn:'Add org unit', orientLabel:'Layout', orientVertical:'Vertical', orientHorizontal:'Horizontal',
+      globalTransferBtn:'Transfer employee', addOrgBtn:'Add org unit', viewChart:'Org Chart', viewUnassigned:'Unassigned',
+      expandAllBtn:'Expand All', collapseAllBtn:'Collapse All', expandTitle:'Expand', collapseTitle:'Collapse',
+      zoomInTitle:'Zoom in', zoomOutTitle:'Zoom out',
+      orientLabel:'Layout', orientVertical:'Vertical', orientHorizontal:'Horizontal',
       langLabel:'Language', downloadPngBtn:'Download chart (PNG)',
       legendNew:'New', legendDelete:'Deleted', legendMoved:'Moved / ghost', legendRenamed:'Renamed', legendRoleWarn:'⚠ Role inconsistent',
       changeLogTitle:'Change log', unitRecords:'', colType:'Type', colDetail:'Detail',
@@ -188,7 +192,7 @@
   var personPool = [];
   var rootId = 'root';
 
-  var nodes, employees, log, selectedId, viewRootId, orientation, logSeq, tempCounter, dragSrcId, pendingEdit, activeTab, createDraft, rosterSelected, rosterBulkTarget, gmodalEmp, gmodalOrg, pendingReportPrompt, snapshotAt, unassignedId, unassignedTargets;
+  var nodes, employees, log, selectedId, viewRootId, orientation, logSeq, tempCounter, dragSrcId, pendingEdit, activeTab, createDraft, rosterSelected, rosterBulkTarget, gmodalEmp, gmodalOrg, pendingReportPrompt, snapshotAt, unassignedId, unassignedTargets, collapsed, zoomPct;
 
   function hydrateNodes(rawNodes){
     return rawNodes.map(function(n){
@@ -229,6 +233,11 @@
         personPool = data.personPool || [];
         unassignedId = data.unassignedId || null;
         unassignedTargets = {};
+        // Default view: root + its direct children expanded, everything deeper starts
+        // collapsed — a full company tree (hundreds of nodes) is unusable fully unrolled.
+        collapsed = new Set(nodes.filter(function(n){ return depthOf(n.id) >= 2; }).map(function(n){ return n.id; }));
+        zoomPct = 100;
+        applyZoom();
         snapshotAt = new Date(data.generatedAt);
         log = [];
         selectedId = null;
@@ -247,6 +256,7 @@
         document.getElementById('searchInput').value = '';
         document.getElementById('reportPromptOverlay').classList.remove('show');
         document.getElementById('orientSeg').querySelectorAll('button').forEach(function(b){ b.classList.toggle('active', b.getAttribute('data-orient')==='vertical'); });
+        switchView('chart');
         closePanel();
         closeGlobalTransfer();
         wrap.style.opacity = '';
@@ -874,12 +884,13 @@
     var c = ['node'];
     if(n.flags.isDeleted) c.push('st-deleted');
     else if(n.flags.isNew) c.push('st-new');
+    else if(n.movedFrom!==null) c.push('st-moved');
     else if(n.flags.isRenamed) c.push('st-renamed');
     if(selectedId===n.id) c.push('selected');
     return c.join(' ');
   }
 
-  function renderNodeBox(n){
+  function renderNodeBox(n, hasKids, isCollapsed){
     var tags = '';
     if(n.flags.isNew) tags += '<span class="tag new">'+escapeHtml(t('newTag'))+'</span>';
     if(n.flags.isRenamed) tags += '<span class="tag ren" title="'+escapeHtml(t('renamedTooltipPrefix')+n.origName)+'">'+escapeHtml(t('renamedTag'))+'</span>';
@@ -888,7 +899,10 @@
     var warnIco = hasAnyRoleWarning(n.id) ? '<span class="warn-ico" title="'+escapeHtml(t('roleWarnTooltip'))+'">⚠</span>' : '';
     var draggable = n.flags.isDeleted ? 'false' : 'true';
     var titleAttr = n.name + (n.flags.isRenamed ? ' ｜ ' + t('renamedTooltipPrefix') + n.origName : '');
+    var addBtn = n.flags.isDeleted ? '' : '<button type="button" class="node-add-btn" data-add-child="'+n.id+'" title="'+escapeHtml(t('addChildTitle'))+'">+</button>';
+    var toggleBtn = hasKids ? '<button type="button" class="node-toggle-btn" data-toggle-collapse="'+n.id+'" title="'+escapeHtml(isCollapsed ? t('expandTitle') : t('collapseTitle'))+'">'+(isCollapsed?'▸':'▾')+'</button>' : '';
     return '<div class="'+nodeClasses(n)+'" draggable="'+draggable+'" data-id="'+n.id+'" title="'+escapeHtml(titleAttr)+'">'+
+      addBtn+toggleBtn+
       '<div class="name-row"><span class="name">'+escapeHtml(n.name)+'</span>'+warnIco+'</div>'+
       '<div class="meta-line">'+escapeHtml(t('picPrefix'))+(n.pic?escapeHtml(n.pic):escapeHtml(t('notSet')))+'</div>'+
       '<div class="meta-line">'+escapeHtml(t('headcountLabel')(rollupHeadcount(n.id)))+'</div>'+
@@ -906,9 +920,10 @@
     var children = getChildren(id);
     var ghosts = getGhosts(id);
     var kids = children.length + ghosts.length;
+    var isCollapsed = kids>0 && collapsed.has(id);
     var html = '<li class="'+(isRoot?'tlevel-root':'')+(kids===1?' only-child':'')+'">';
-    html += renderNodeBox(n);
-    if(kids){
+    html += renderNodeBox(n, kids>0, isCollapsed);
+    if(kids && !isCollapsed){
       html += '<div class="children-wrap'+(kids===1?' single':'')+'"><ul class="tlevel">';
       children.forEach(function(c){ html += renderSubtree(c.id, false); });
       ghosts.forEach(function(g){ html += renderGhost(g); });
@@ -933,8 +948,43 @@
       el.addEventListener('dragleave', onDragLeave);
       el.addEventListener('drop', function(ev){ onDrop(ev, id); });
     });
+    root.querySelectorAll('.node-add-btn').forEach(function(btn){
+      btn.addEventListener('click', function(ev){
+        ev.stopPropagation();
+        openCreateChild(btn.getAttribute('data-add-child'));
+      });
+    });
+    root.querySelectorAll('.node-toggle-btn').forEach(function(btn){
+      btn.addEventListener('click', function(ev){
+        ev.stopPropagation();
+        var id = btn.getAttribute('data-toggle-collapse');
+        if(collapsed.has(id)) collapsed.delete(id); else collapsed.add(id);
+        renderTree();
+      });
+    });
     drawConnectors();
   }
+
+  // ---------- zoom ----------
+  function applyZoom(){
+    document.getElementById('treeRoot').style.zoom = zoomPct + '%';
+    document.getElementById('zoomLabel').textContent = zoomPct + '%';
+    drawConnectors();
+  }
+  document.getElementById('zoomInBtn').addEventListener('click', function(){ zoomPct = Math.min(200, zoomPct+10); applyZoom(); });
+  document.getElementById('zoomOutBtn').addEventListener('click', function(){ zoomPct = Math.max(30, zoomPct-10); applyZoom(); });
+
+  // ---------- expand / collapse ----------
+  function depthOf(id){
+    var d = 0, cur = getNode(id);
+    while(cur && cur.parentId){ d++; cur = getNode(cur.parentId); }
+    return d;
+  }
+  document.getElementById('expandAllBtn').addEventListener('click', function(){ collapsed = new Set(); renderTree(); });
+  document.getElementById('collapseAllBtn').addEventListener('click', function(){
+    collapsed = new Set(nodes.filter(function(n){ return getChildren(n.id).length>0 || getGhosts(n.id).length>0; }).map(function(n){ return n.id; }));
+    renderTree();
+  });
 
   // ---------- connector geometry (shared by the on-screen SVG and the PNG canvas export) ----------
   var CONNECTOR_GAP = 17;   // half of the children-wrap padding, i.e. the trunk's offset from the parent edge
@@ -1054,11 +1104,16 @@
   }
 
   function renderUnassigned(){
-    var panel = document.getElementById('unassignedPanel');
+    var tabBtn = document.getElementById('viewUnassignedBtn');
     var node = unassignedId ? getNode(unassignedId) : null;
-    if(!node){ panel.style.display = 'none'; return; }
-    panel.style.display = '';
+    if(!node){
+      tabBtn.style.display = 'none';
+      if(tabBtn.classList.contains('active')) switchView('chart');
+      return;
+    }
+    tabBtn.style.display = '';
     var list = employees.filter(function(e){ return e.nodeId===unassignedId; });
+    document.getElementById('viewUnassignedCount').textContent = list.length;
     document.getElementById('unassignedCount').textContent = list.length;
     var body = document.getElementById('unassignedBody');
     if(!list.length){ body.innerHTML = '<div class="empty-note">'+escapeHtml(t('unassignedEmptyNote'))+'</div>'; return; }
@@ -1088,6 +1143,16 @@
     });
   }
 
+  function switchView(view){
+    document.querySelectorAll('#viewTabs button').forEach(function(b){ b.classList.toggle('active', b.getAttribute('data-view')===view); });
+    document.getElementById('chartView').style.display = view==='chart' ? '' : 'none';
+    document.getElementById('unassignedView').style.display = view==='unassigned' ? '' : 'none';
+  }
+  document.getElementById('viewTabs').addEventListener('click', function(ev){
+    var btn = ev.target.closest('button[data-view]'); if(!btn) return;
+    switchView(btn.getAttribute('data-view'));
+  });
+
   function render(){
     renderTree();
     renderLog();
@@ -1111,6 +1176,7 @@
     box.querySelectorAll('button[data-id]').forEach(function(b){
       b.addEventListener('click', function(){
         viewRootId = b.getAttribute('data-id');
+        collapsed.delete(viewRootId);
         document.getElementById('searchInput').value = '';
         box.classList.remove('show');
         render();
@@ -1282,7 +1348,8 @@
       newBg:g('--new-bg'), newText:g('--new-text'), newBorder:g('--new-border'),
       delBg:g('--del-bg'), delText:g('--del-text'), delBorder:g('--del-border'),
       warnBg:g('--warn-bg'), warnText:g('--warn-text'), warnBorder:g('--warn-border'),
-      movText:g('--mov-text'), accent:g('--accent'), accentSoft:g('--accent-soft')
+      movBg:g('--mov-bg'), movBorder:g('--mov-border'), movText:g('--mov-text'),
+      accent:g('--accent'), accentSoft:g('--accent-soft')
     };
   }
   function roundRectPath(ctx, x, y, w, h, r){
@@ -1337,9 +1404,10 @@
       var isGhost = el.classList.contains('node-ghost');
       var isDeleted = el.classList.contains('st-deleted');
       var isNew = el.classList.contains('st-new');
+      var isMoved = el.classList.contains('st-moved');
       var isRenamed = el.classList.contains('st-renamed');
-      var bg = isGhost ? C.delBg : isDeleted ? C.warnBg : isNew ? C.newBg : isRenamed ? C.accentSoft : C.surface;
-      var border = isGhost ? C.delBorder : isDeleted ? C.warnBorder : isNew ? C.newBorder : isRenamed ? C.accent : C.line;
+      var bg = isGhost ? C.delBg : isDeleted ? C.warnBg : isNew ? C.newBg : isMoved ? C.movBg : isRenamed ? C.accentSoft : C.surface;
+      var border = isGhost ? C.delBorder : isDeleted ? C.warnBorder : isNew ? C.newBorder : isMoved ? C.movBorder : isRenamed ? C.accent : C.line;
       var textColor = isGhost ? C.delText : isDeleted ? C.warnText : C.ink;
 
       roundRectPath(ctx, x, y, r.width, r.height, 9);
