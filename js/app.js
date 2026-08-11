@@ -31,8 +31,8 @@
       zoomInTitle:'放大', zoomOutTitle:'缩小',
       orientLabel:'查看方向', orientVertical:'纵向', orientHorizontal:'横向',
       langLabel:'语言', downloadPngBtn:'下载组织架构图（PNG）',
-      legendNew:'新增', legendDelete:'删除', legendMoved:'移动', legendGhost:'影子（原位置）', legendRenamed:'已改名', legendRoleWarn:'⚠ 角色不一致',
-      changeLogTitle:'变更记录', unitRecords:'条', colType:'类型', colDetail:'详情', colEditor:'编辑人', colAction:'操作', undoBtn:'撤销',
+      legendNew:'新增', legendDelete:'删除', legendMoved:'移动', legendRenamed:'已改名', legendRoleWarn:'⚠ 角色不一致',
+      changeLogTitle:'变更记录', unitRecords:'条', colType:'类型', colDetail:'详情', colEditor:'编辑人', colEditTime:'编辑时间',
       logEmptyNote:'暂无变更，点一个部门框试试', copyLogBtn:'复制变更（可直接粘贴到 Base）', downloadCsvBtn:'下载 CSV',
       affectedEmpTitle:'受影响员工', unitPeople:'人', colName:'姓名', colPathChange:'原组织架构 → 新组织架构', colReportsTo:'汇报对象',
       colDivision:'Division', colBusinessUnit:'Business Unit', colDepartment:'Department', colTeam:'Team', colSubTeam:'Sub Team', colSection:'Section', colStatus:'Status', colHrbpLead:'HRBP Lead',
@@ -45,9 +45,9 @@
 
       empty:'（空）', notSet:'未设置', changeBtn:'更改', reselectBtn:'重选', closeBtn:'关闭',
       newTag:'新增', renamedTag:'已改名', movedTag:'已移动', inactiveTag:'既有停用',
+      movedFromLabel:function(name){ return '原上级：' + name; },
       renamedTooltipPrefix:'原名：', roleWarnTooltip:'下级部门角色不一致或未设置',
       picPrefix:'PIC：', headcountLabel:function(n){ return '在职 ' + n + ' 人'; },
-      movedToLabel:function(name){ return '→ 已移至「' + name + '」'; },
       focusLabel:function(name){ return '聚焦于「' + name + '」'; },
       selectAllLabel:function(n){ return '全选（' + n + ' 人）'; },
       transferSelectedBtn:function(n){ return '转移已选员工（' + n + '）'; },
@@ -86,6 +86,7 @@
       toastReportUpdated:'已更新汇报对象', toastTransferredName:function(name){ return '已转移 ' + name; },
       toastPngFailed:'导出失败，请改用浏览器自带的截图功能', toastPngDone:'已下载 PNG',
       toastPngError:function(msg){ return '导出失败：' + msg; },
+      toastPngNeedsChartView:'请先切换到"组织架构图"页面，再下载', toastPngTooLarge:'组织架构图展开范围太大，已自动缩小导出比例；如仍失败，请先折叠部分分支再试',
       deletedPanelNote:'该部门已标记删除。删除时涉及的员工已安置到其他部门；撤销删除会把他们迁回来。',
       undoDeleteBtn:'撤销删除',
 
@@ -138,8 +139,8 @@
       zoomInTitle:'Zoom in', zoomOutTitle:'Zoom out',
       orientLabel:'Layout', orientVertical:'Vertical', orientHorizontal:'Horizontal',
       langLabel:'Language', downloadPngBtn:'Download chart (PNG)',
-      legendNew:'New', legendDelete:'Deleted', legendMoved:'Moved', legendGhost:'Ghost (old spot)', legendRenamed:'Renamed', legendRoleWarn:'⚠ Role inconsistent',
-      changeLogTitle:'Change log', unitRecords:'', colType:'Type', colDetail:'Detail', colEditor:'Editor', colAction:'Action', undoBtn:'Undo',
+      legendNew:'New', legendDelete:'Deleted', legendMoved:'Moved', legendRenamed:'Renamed', legendRoleWarn:'⚠ Role inconsistent',
+      changeLogTitle:'Change log', unitRecords:'', colType:'Type', colDetail:'Detail', colEditor:'Editor', colEditTime:'Edit time',
       logEmptyNote:'No changes yet — try clicking a department box', copyLogBtn:'Copy changes (paste directly into Base)', downloadCsvBtn:'Download CSV',
       affectedEmpTitle:'Affected employees', unitPeople:'', colName:'Name', colPathChange:'Old org → New org', colReportsTo:'Reports to',
       colDivision:'Division', colBusinessUnit:'Business Unit', colDepartment:'Department', colTeam:'Team', colSubTeam:'Sub Team', colSection:'Section', colStatus:'Status', colHrbpLead:'HRBP Lead',
@@ -152,9 +153,9 @@
 
       empty:'(empty)', notSet:'Not set', changeBtn:'Change', reselectBtn:'Change', closeBtn:'Close',
       newTag:'New', renamedTag:'Renamed', movedTag:'Moved', inactiveTag:'Inactive (Lark)',
+      movedFromLabel:function(name){ return 'Previous parent: ' + name; },
       renamedTooltipPrefix:'Was: ', roleWarnTooltip:'Role inconsistent or unset among sub-departments',
       picPrefix:'PIC: ', headcountLabel:function(n){ return n + (n===1?' employee':' employees'); },
-      movedToLabel:function(name){ return '→ moved to "' + name + '"'; },
       focusLabel:function(name){ return 'Focused on "' + name + '"'; },
       selectAllLabel:function(n){ return 'Select all (' + n + ')'; },
       transferSelectedBtn:function(n){ return 'Transfer selected (' + n + ')'; },
@@ -193,6 +194,7 @@
       toastReportUpdated:'Reporting line updated', toastTransferredName:function(name){ return 'Transferred ' + name; },
       toastPngFailed:'Export failed — please use your browser’s screenshot tool instead', toastPngDone:'PNG downloaded',
       toastPngError:function(msg){ return 'Export failed: ' + msg; },
+      toastPngNeedsChartView:'Switch to the "Org Chart" tab before downloading', toastPngTooLarge:'The expanded chart is very large — export scale was reduced automatically; collapse some branches first if it still fails',
       deletedPanelNote:'This department is marked as deleted. Employees affected by this deletion were reassigned; undoing the deletion moves them back.',
       undoDeleteBtn:'Undo delete',
 
@@ -420,7 +422,6 @@
 
   function getNode(id){ for(var i=0;i<nodes.length;i++) if(nodes[i].id===id) return nodes[i]; return null; }
   function getChildren(id){ return nodes.filter(function(n){ return n.parentId===id; }); }
-  function getGhosts(parentId){ return nodes.filter(function(n){ return n.movedFrom===parentId && n.parentId!==parentId; }); }
   function isDescendant(ancestorId, id){
     var n = getNode(id);
     while(n && n.parentId){
@@ -473,14 +474,14 @@
   // Log entries store a typeKey + structured params, formatted into display text at render
   // time via STR[LANG] — this is what lets the language toggle re-render existing history
   // correctly, instead of freezing whatever language was active when each entry was created.
-  function addLog(typeKey, params, key){ log.push({seq:logSeq++, typeKey:typeKey, params:params||{}, key:key||null, by:currentUserName}); }
+  function addLog(typeKey, params, key){ log.push({seq:logSeq++, typeKey:typeKey, params:params||{}, key:key||null, by:currentUserName, time:Date.now()}); }
   // Rename / move / role-change are reversible within a session — upsertLog keeps exactly ONE
   // entry per (typeKey, key), always describing session-original → current, so undoing an edit
   // (or moving a department out and back) removes the noise instead of leaving a "process" trail.
   function upsertLog(typeKey, key, params){
     var existing = log.filter(function(l){ return l.typeKey===typeKey && l.key===key; })[0];
-    if(existing){ existing.params = params; existing.by = currentUserName; }
-    else log.push({seq:logSeq++, typeKey:typeKey, params:params, key:key, by:currentUserName});
+    if(existing){ existing.params = params; existing.by = currentUserName; existing.time = Date.now(); }
+    else log.push({seq:logSeq++, typeKey:typeKey, params:params, key:key, by:currentUserName, time:Date.now()});
   }
   function removeLog(typeKey, key){ log = log.filter(function(l){ return !(l.typeKey===typeKey && l.key===key); }); }
   function removeAllLogsForNode(nodeId){
@@ -662,57 +663,6 @@
     else upsertLog('report_change', emp.eid, {name:emp.name, from:old, to:newSupervisor});
   }
 
-  // ---------- change-log undo ----------
-  // rename/move/role_change/report_change are upsert-logged as session-original -> current, so
-  // reverting to the original value makes the commit fns remove their own log line (see upsertLog
-  // callers above). add/delete already have dedicated undo paths. emp_transfer is the one type with
-  // no self-cleaning story, so its undo manually drops the entry after reversing it.
-  function canUndoLogEntry(l){
-    if(!canEdit()) return false;
-    if(l.typeKey==='rename' || l.typeKey==='move') return !!getNode(l.key);
-    if(l.typeKey==='role_change'){ return !!getNode(l.key.split('#')[0]); }
-    if(l.typeKey==='report_change'){ return employees.some(function(e){ return e.eid===l.key; }); }
-    if(l.typeKey==='add'){ var n=getNode(l.key); return !!n && n.flags.isNew && !n.flags.isDeleted; }
-    if(l.typeKey==='delete'){ var n=getNode(l.key); return !!n && n.flags.isDeleted; }
-    if(l.typeKey==='emp_transfer'){
-      var e = employees.filter(function(x){ return x.eid===l.params.eid; })[0];
-      return !!e && !!l.params.toId && e.nodeId===l.params.toId;
-    }
-    if(l.typeKey==='role_cascade'){ return !!(l.params.beforeValues && l.params.beforeValues.length); }
-    return false;
-  }
-  function undoLogEntry(l){
-    if(l.typeKey==='rename'){ var n=getNode(l.key); if(n) commitRename(n, n.origName); }
-    else if(l.typeKey==='move'){ var n=getNode(l.key); if(n) commitMove(n, n.movedFrom); }
-    else if(l.typeKey==='role_change'){ var parts=l.key.split('#'); var n=getNode(parts[0]); if(n) commitRoleChange(n, parts[1], n.origRoles[parts[1]]); }
-    else if(l.typeKey==='report_change'){ var e=employees.filter(function(x){ return x.eid===l.key; })[0]; if(e) commitReportChange(e, e.origReportsTo); }
-    else if(l.typeKey==='add'){
-      var n=getNode(l.key);
-      if(n){
-        var res = commitDelete(n, {});
-        if(!res.ok) toast(t('toastDeleteBlockedEmp')(res.missing.length));
-      }
-    }
-    else if(l.typeKey==='delete'){ var n=getNode(l.key); if(n) commitRestoreDelete(n); }
-    else if(l.typeKey==='emp_transfer'){
-      var e = employees.filter(function(x){ return x.eid===l.params.eid; })[0];
-      if(e && l.params.fromId){
-        commitEmployeeTransfer(e, l.params.fromId, true);
-        log = log.filter(function(x){ return x.seq!==l.seq; });
-      }
-    }
-    else if(l.typeKey==='role_cascade'){
-      (l.params.beforeValues||[]).forEach(function(bv){
-        var d = getNode(bv.id);
-        if(!d) return;
-        commitRoleChange(d, 'hrbp1', bv.hrbp1);
-        commitRoleChange(d, 'hrbp2', bv.hrbp2);
-        commitRoleChange(d, 'hrbpLead', bv.hrbpLead);
-        commitRoleChange(d, 'da', bv.da);
-      });
-      log = log.filter(function(x){ return x.seq!==l.seq; });
-    }
-  }
   function maybePromptReportChange(n){
     if(!n.pic) return;
     var picEmp = employees.filter(function(e){ return matchesPersonName(e.name, n.pic); })[0];
@@ -1178,32 +1128,27 @@
     var titleAttr = n.name + (n.flags.isRenamed ? ' ｜ ' + t('renamedTooltipPrefix') + n.origName : '');
     var addBtn = (n.flags.isDeleted || !canEdit()) ? '' : '<button type="button" class="node-add-btn" data-add-child="'+n.id+'" title="'+escapeHtml(t('addChildTitle'))+'">+</button>';
     var toggleBtn = hasKids ? '<button type="button" class="node-toggle-btn" data-toggle-collapse="'+n.id+'" title="'+escapeHtml(isCollapsed ? t('expandTitle') : t('collapseTitle'))+'">'+(isCollapsed?'▸':'▾')+'</button>' : '';
+    var movedFromNode = n.movedFrom!==null ? getNode(n.movedFrom) : null;
     return '<div class="'+nodeClasses(n)+'" draggable="'+draggable+'" data-id="'+n.id+'" title="'+escapeHtml(titleAttr)+'">'+
       addBtn+toggleBtn+
       '<div class="name-row"><span class="name">'+escapeHtml(n.name)+'</span>'+warnIco+'</div>'+
       '<div class="meta-line">'+escapeHtml(t('picPrefix'))+(n.pic?escapeHtml(n.pic):escapeHtml(t('notSet')))+'</div>'+
       '<div class="meta-line">'+escapeHtml(t('headcountLabel')(rollupHeadcount(n.id)))+'</div>'+
+      (movedFromNode ? '<div class="meta-line moved-from">'+escapeHtml(t('movedFromLabel')(movedFromNode.name))+'</div>' : '')+
       (tags? '<div class="tags">'+tags+'</div>' : '')+
       '</div>';
-  }
-
-  function renderGhost(n){
-    var newParentName = getNode(n.parentId).name;
-    return '<li><div class="node-ghost"><div class="name">'+escapeHtml(n.origName)+'</div><div class="arrow">'+escapeHtml(t('movedToLabel')(newParentName))+'</div></div></li>';
   }
 
   function renderSubtree(id, isRoot){
     var n = getNode(id);
     var children = getChildren(id);
-    var ghosts = getGhosts(id);
-    var kids = children.length + ghosts.length;
+    var kids = children.length;
     var isCollapsed = kids>0 && collapsed.has(id);
     var html = '<li class="'+(isRoot?'tlevel-root':'')+(kids===1?' only-child':'')+'">';
     html += renderNodeBox(n, kids>0, isCollapsed);
     if(kids && !isCollapsed){
       html += '<div class="children-wrap'+(kids===1?' single':'')+'"><ul class="tlevel">';
       children.forEach(function(c){ html += renderSubtree(c.id, false); });
-      ghosts.forEach(function(g){ html += renderGhost(g); });
       html += '</ul></div>';
     }
     html += '</li>';
@@ -1259,7 +1204,7 @@
   }
   document.getElementById('expandAllBtn').addEventListener('click', function(){ collapsed = new Set(); renderTree(); });
   document.getElementById('collapseAllBtn').addEventListener('click', function(){
-    collapsed = new Set(nodes.filter(function(n){ return getChildren(n.id).length>0 || getGhosts(n.id).length>0; }).map(function(n){ return n.id; }));
+    collapsed = new Set(nodes.filter(function(n){ return getChildren(n.id).length>0; }).map(function(n){ return n.id; }));
     renderTree();
   });
 
@@ -1282,16 +1227,15 @@
 
     var segments = [];
     function walk(li){
-      var box = li.querySelector(':scope > .node, :scope > .node-ghost');
+      var box = li.querySelector(':scope > .node');
       var childWrap = li.querySelector(':scope > .children-wrap');
       if(!box || !childWrap) return;
       var kidLis = Array.prototype.slice.call(childWrap.querySelectorAll(':scope > ul.tlevel > li'));
-      var kidBoxes = kidLis.map(function(kli){ return kli.querySelector(':scope > .node, :scope > .node-ghost'); }).filter(Boolean);
+      var kidBoxes = kidLis.map(function(kli){ return kli.querySelector(':scope > .node'); }).filter(Boolean);
       if(!kidBoxes.length) return;
       var p0 = centerOf(box, 'out');
       kidBoxes.forEach(function(kb){
         var p1 = centerOf(kb, 'in');
-        var moved = kb.classList.contains('node-ghost');
         var pts;
         if(orientation==='vertical'){
           var trunkY = p0.y + CONNECTOR_GAP;
@@ -1300,7 +1244,7 @@
           var trunkX = p0.x + CONNECTOR_GAP;
           pts = [{x:p0.x,y:p0.y}, {x:trunkX,y:p0.y}, {x:trunkX,y:p1.y}, {x:p1.x,y:p1.y}];
         }
-        segments.push({points:pts, moved:moved});
+        segments.push({points:pts});
       });
       kidLis.forEach(walk);
     }
@@ -1350,8 +1294,7 @@
     svg.setAttribute('height', result.height);
     svg.setAttribute('viewBox', '0 0 ' + result.width + ' ' + result.height);
     var paths = result.segments.map(function(seg){
-      var cls = seg.moved ? ' class="c-moved"' : '';
-      return '<path'+cls+' d="'+roundedPathD(seg.points, CONNECTOR_RADIUS)+'"/>';
+      return '<path d="'+roundedPathD(seg.points, CONNECTOR_RADIUS)+'"/>';
     });
     svg.innerHTML = paths.join('');
   }
@@ -1362,18 +1305,9 @@
     var body = document.getElementById(bodyId);
     if(!log.length){ body.innerHTML = '<tr><td colspan="5" class="empty-note">'+escapeHtml(t('logEmptyNote'))+'</td></tr>'; return; }
     body.innerHTML = log.map(function(l){
-      var action = canUndoLogEntry(l) ? '<button class="btn ghost" type="button" data-undo-seq="'+l.seq+'">'+escapeHtml(t('undoBtn'))+'</button>' : '';
-      return '<tr><td class="mono">'+l.seq+'</td><td>'+escapeHtml(formatLogType(l))+'</td><td>'+escapeHtml(formatLogDetail(l))+'</td><td>'+escapeHtml(l.by||'')+'</td><td>'+action+'</td></tr>';
+      var timeText = l.time ? formatSnapshotTime(new Date(l.time)) : '';
+      return '<tr><td class="mono">'+l.seq+'</td><td>'+escapeHtml(formatLogType(l))+'</td><td>'+escapeHtml(formatLogDetail(l))+'</td><td>'+escapeHtml(l.by||'')+'</td><td class="mono">'+escapeHtml(timeText)+'</td></tr>';
     }).join('');
-    body.querySelectorAll('[data-undo-seq]').forEach(function(btn){
-      btn.addEventListener('click', function(){
-        var seq = Number(btn.getAttribute('data-undo-seq'));
-        var entry = log.filter(function(l){ return l.seq===seq; })[0];
-        if(!entry) return;
-        undoLogEntry(entry);
-        renderTree(); renderLog(); renderEmployees(); renderUnassigned(); renderPanel();
-      });
-    });
   }
   function renderLog(){
     var countText = log.length + (t('unitRecords') ? ' ' + t('unitRecords') : '');
@@ -1485,12 +1419,12 @@
   function renderAdmin(){
     if(!isAdminRole()) return;
     var body = document.getElementById('adminBody');
-    body.innerHTML = '<tr><td colspan="4" class="empty-note">'+escapeHtml(t('adminLoading'))+'</td></tr>';
+    body.innerHTML = '<tr><td colspan="5" class="empty-note">'+escapeHtml(t('adminLoading'))+'</td></tr>';
     fetch('/api/permissions/list', {credentials:'same-origin'})
       .then(function(res){ return res.json().then(function(j){ if(!res.ok) throw new Error(j.error||'error'); return j; }); })
       .then(function(data){
         var viewerRole = data.viewerRole;
-        if(!data.users.length){ body.innerHTML = '<tr><td colspan="4" class="empty-note">'+escapeHtml(t('adminNoUsers'))+'</td></tr>'; return; }
+        if(!data.users.length){ body.innerHTML = '<tr><td colspan="5" class="empty-note">'+escapeHtml(t('adminNoUsers'))+'</td></tr>'; return; }
         body.innerHTML = data.users.map(function(u){
           var roleCell;
           if(u.role==='Owner'){
@@ -1501,12 +1435,9 @@
           } else {
             roleCell = '<span class="role-badge '+roleBadgeClass(u.role)+'">'+escapeHtml(roleDisplayName(u.role))+'</span>';
           }
-          var actions = '';
-          if(u.role!=='Owner'){
-            if(viewerRole==='Owner') actions += '<button class="btn ghost" type="button" data-transfer-owner="'+u.recordId+'">'+escapeHtml(t('adminTransferOwnerBtn'))+'</button> ';
-            actions += '<button class="btn ghost" type="button" data-remove-user="'+u.recordId+'">'+escapeHtml(t('adminRemoveBtn'))+'</button>';
-          }
-          return '<tr><td>'+escapeHtml(u.name||'—')+'</td><td>'+escapeHtml(u.email||'—')+'</td><td>'+roleCell+'</td><td>'+actions+'</td></tr>';
+          var transferCell = (u.role!=='Owner' && viewerRole==='Owner') ? '<button class="btn ghost" type="button" data-transfer-owner="'+u.recordId+'">'+escapeHtml(t('adminTransferOwnerBtn'))+'</button>' : '';
+          var removeCell = u.role!=='Owner' ? '<button class="btn ghost" type="button" data-remove-user="'+u.recordId+'">'+escapeHtml(t('adminRemoveBtn'))+'</button>' : '';
+          return '<tr><td>'+escapeHtml(u.name||'—')+'</td><td>'+escapeHtml(u.email||'—')+'</td><td>'+roleCell+'</td><td>'+transferCell+'</td><td>'+removeCell+'</td></tr>';
         }).join('');
         body.querySelectorAll('.admin-role-select').forEach(function(sel){
           sel.addEventListener('change', function(){
@@ -1922,24 +1853,20 @@
 
     // connectors first (identical geometry to the on-screen SVG overlay)
     computeConnectorSegments().segments.forEach(function(seg){
-      ctx.strokeStyle = seg.moved ? C.movText : C.line;
-      ctx.setLineDash(seg.moved ? [4,3] : []);
-      ctx.lineWidth = 1.5;
+      ctx.strokeStyle = C.line;
       strokeRoundedPolyline(ctx, seg.points, CONNECTOR_RADIUS);
     });
-    ctx.setLineDash([]);
 
-    document.querySelectorAll('#treeRoot .node, #treeRoot .node-ghost').forEach(function(el){
+    document.querySelectorAll('#treeRoot .node').forEach(function(el){
       var r = el.getBoundingClientRect();
       var x = r.left - wrapRect.left, y = r.top - wrapRect.top;
-      var isGhost = el.classList.contains('node-ghost');
       var isDeleted = el.classList.contains('st-deleted');
       var isNew = el.classList.contains('st-new');
       var isMoved = el.classList.contains('st-moved');
       var isRenamed = el.classList.contains('st-renamed');
-      var bg = isGhost ? C.delBg : isDeleted ? C.warnBg : isNew ? C.newBg : isMoved ? C.movBg : isRenamed ? C.accentSoft : C.surface;
-      var border = isGhost ? C.delBorder : isDeleted ? C.warnBorder : isNew ? C.newBorder : isMoved ? C.movBorder : isRenamed ? C.accent : C.line;
-      var textColor = isGhost ? C.delText : isDeleted ? C.warnText : C.ink;
+      var bg = isDeleted ? C.warnBg : isNew ? C.newBg : isMoved ? C.movBg : isRenamed ? C.accentSoft : C.surface;
+      var border = isDeleted ? C.warnBorder : isNew ? C.newBorder : isMoved ? C.movBorder : isRenamed ? C.accent : C.line;
+      var textColor = isDeleted ? C.warnText : C.ink;
 
       roundRectPath(ctx, x, y, r.width, r.height, 9);
       ctx.fillStyle = bg; ctx.fill();
@@ -1951,44 +1878,47 @@
       ctx.font = '700 12.5px -apple-system, "Segoe UI", sans-serif';
       ctx.textBaseline = 'top';
       var nameLines = wrapLines(ctx, nameEl ? nameEl.textContent : '', r.width - padX*2, 2);
-      nameLines.forEach(function(line){ ctx.fillText(line, x+padX, cy); cy += 15; if(isGhost){ ctx.font = 'italic 10.5px -apple-system, "Segoe UI", sans-serif'; } });
+      nameLines.forEach(function(line){ ctx.fillText(line, x+padX, cy); cy += 15; });
 
-      if(isGhost){
-        var arrowEl = el.querySelector('.arrow');
-        ctx.fillStyle = C.movText;
-        ctx.font = '10.5px -apple-system, "Segoe UI", sans-serif';
-        ctx.fillText(arrowEl ? arrowEl.textContent : '', x+padX, cy+2);
-      } else {
-        cy += 2;
-        ctx.font = '10.5px -apple-system, "Segoe UI", sans-serif';
+      cy += 2;
+      ctx.font = '10.5px -apple-system, "Segoe UI", sans-serif';
+      ctx.fillStyle = C.inkMuted;
+      el.querySelectorAll('.meta-line').forEach(function(m){ ctx.fillText(m.textContent, x+padX, cy); cy += 13; });
+      var tagY = cy + 3;
+      var tagX = x + padX;
+      el.querySelectorAll('.tag').forEach(function(tag){
+        ctx.font = '700 9.5px -apple-system, "Segoe UI", sans-serif';
+        var tw = ctx.measureText(tag.textContent).width + 10;
+        ctx.fillStyle = C.bg;
+        roundRectPath(ctx, tagX, tagY, tw, 14, 4); ctx.fill();
+        ctx.strokeStyle = C.line; ctx.lineWidth = 1; ctx.stroke();
         ctx.fillStyle = C.inkMuted;
-        el.querySelectorAll('.meta-line').forEach(function(m){ ctx.fillText(m.textContent, x+padX, cy); cy += 13; });
-        var tagY = cy + 3;
-        var tagX = x + padX;
-        el.querySelectorAll('.tag').forEach(function(tag){
-          ctx.font = '700 9.5px -apple-system, "Segoe UI", sans-serif';
-          var tw = ctx.measureText(tag.textContent).width + 10;
-          ctx.fillStyle = C.bg;
-          roundRectPath(ctx, tagX, tagY, tw, 14, 4); ctx.fill();
-          ctx.strokeStyle = C.line; ctx.lineWidth = 1; ctx.stroke();
-          ctx.fillStyle = C.inkMuted;
-          ctx.fillText(tag.textContent, tagX+5, tagY+2);
-          tagX += tw + 4;
-        });
-      }
+        ctx.fillText(tag.textContent, tagX+5, tagY+2);
+        tagX += tw + 4;
+      });
     });
     return canvas;
   }
+  // Common browsers cap a canvas at roughly 16384px per side (some lower); a fully expanded
+  // chart with thousands of employees can exceed that at the normal 2x export scale, which
+  // makes toBlob silently resolve null instead of throwing. Scale down first if needed.
+  var PNG_MAX_DIM = 14000;
   document.getElementById('downloadPngBtn').addEventListener('click', function(){
     try{
-      var canvas = drawChartToCanvas(2);
+      var wrap = document.getElementById('treeWrap');
+      if(!wrap.scrollWidth || !wrap.scrollHeight){ toast(t('toastPngNeedsChartView')); return; }
+      var scale = 2;
+      var longSide = Math.max(wrap.scrollWidth, wrap.scrollHeight);
+      var scaledDown = false;
+      if(longSide*scale > PNG_MAX_DIM){ scale = Math.max(1, PNG_MAX_DIM/longSide); scaledDown = true; }
+      var canvas = drawChartToCanvas(scale);
       canvas.toBlob(function(blob){
         if(!blob){ toast(t('toastPngFailed')); return; }
         var a = document.createElement('a');
         a.href = URL.createObjectURL(blob);
         a.download = LANG==='zh' ? '组织架构图.png' : 'org-chart.png';
         document.body.appendChild(a); a.click(); document.body.removeChild(a);
-        toast(t('toastPngDone'));
+        toast(scaledDown ? t('toastPngTooLarge') : t('toastPngDone'));
       }, 'image/png');
     }catch(e){
       toast(t('toastPngError')(e.message));

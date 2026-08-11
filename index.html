@@ -85,7 +85,6 @@
         <div class="legend-item"><span class="swatch" style="background:var(--new-bg); border-color:var(--new-border);"></span><span data-i18n="legendNew">新增</span></div>
         <div class="legend-item"><span class="swatch" style="background:var(--warn-bg); border-color:var(--warn-border);"></span><span data-i18n="legendDelete">删除</span></div>
         <div class="legend-item"><span class="swatch" style="background:var(--mov-bg); border-color:var(--mov-border);"></span><span data-i18n="legendMoved">移动</span></div>
-        <div class="legend-item"><span class="swatch" style="background:var(--del-bg); border-color:var(--del-border);"></span><span data-i18n="legendGhost">影子（原位置）</span></div>
         <div class="legend-item"><span class="swatch" style="background:var(--accent-soft); border-color:var(--accent);"></span><span data-i18n="legendRenamed">已改名</span></div>
         <div class="legend-item" style="color:var(--warn-text);" data-i18n="legendRoleWarn">⚠ 角色不一致</div>
       </div>
@@ -106,7 +105,7 @@
         <div class="panel-body">
           <div class="scroll-table">
             <table class="logtbl">
-              <thead><tr><th style="width:34px;">#</th><th style="width:64px;" data-i18n="colType">类型</th><th data-i18n="colDetail">详情</th><th style="width:110px;" data-i18n="colEditor">编辑人</th><th style="width:52px;" data-i18n="colAction">操作</th></tr></thead>
+              <thead><tr><th style="width:34px;">#</th><th style="width:128px;" data-i18n="colType">类型</th><th data-i18n="colDetail">详情</th><th style="width:220px;" data-i18n="colEditor">编辑人</th><th style="width:200px;" data-i18n="colEditTime">编辑时间</th></tr></thead>
               <tbody id="logBody"><tr><td colspan="5" class="empty-note" data-i18n="logEmptyNote">暂无变更，点一个部门框试试</td></tr></tbody>
             </table>
           </div>
@@ -179,7 +178,7 @@
     <div class="panel-body">
       <div class="scroll-table" style="max-height:calc(100vh - 260px);">
         <table class="logtbl">
-          <thead><tr><th style="width:34px;">#</th><th style="width:64px;" data-i18n="colType">类型</th><th data-i18n="colDetail">详情</th><th style="width:110px;" data-i18n="colEditor">编辑人</th><th style="width:52px;" data-i18n="colAction">操作</th></tr></thead>
+          <thead><tr><th style="width:34px;">#</th><th style="width:128px;" data-i18n="colType">类型</th><th data-i18n="colDetail">详情</th><th style="width:220px;" data-i18n="colEditor">编辑人</th><th style="width:200px;" data-i18n="colEditTime">编辑时间</th></tr></thead>
           <tbody id="changelogBody"><tr><td colspan="5" class="empty-note" data-i18n="logEmptyNote">暂无变更，点一个部门框试试</td></tr></tbody>
         </table>
       </div>
@@ -190,56 +189,59 @@
     </div>
   </div>
 
-  <div class="panel" id="adminView" style="display:none;">
-    <div class="panel-head">
-      <h2 data-i18n="adminTitle">管理员</h2>
-      <div class="data-status">
-        <span data-i18n="snapshotLabel">数据快照时间：</span><span class="mono" id="adminSnapshotTime">—</span>
-        <button class="btn ghost" id="refreshBtn" data-i18n="refreshBtn">刷新数据</button>
+  <div class="admin-layout" id="adminView" style="display:none;">
+    <div class="panel">
+      <div class="panel-head">
+        <h2 data-i18n="adminTitle">管理员</h2>
+        <div class="data-status">
+          <span data-i18n="snapshotLabel">数据快照时间：</span><span class="mono" id="adminSnapshotTime">—</span>
+          <button class="btn ghost" id="refreshBtn" data-i18n="refreshBtn">刷新数据</button>
+        </div>
+      </div>
+      <div class="panel-body">
+        <div class="admin-add-row">
+          <input type="text" id="adminNewEmail" data-i18n-placeholder="adminEmailPh" placeholder="邮箱">
+          <input type="text" id="adminNewName" data-i18n-placeholder="adminNamePh" placeholder="姓名（可选）">
+          <select id="adminNewRole">
+            <option value="Viewer" data-i18n="roleViewer">访问用户</option>
+            <option value="Editor" data-i18n="roleEditor">编辑用户</option>
+            <option value="Senior Admin" data-i18n="roleSeniorAdmin">高级管理员</option>
+          </select>
+          <button class="btn primary" id="adminAddBtn" data-i18n="adminAddBtn">添加</button>
+        </div>
+        <div class="scroll-table" style="max-height:calc(100vh - 320px);">
+          <table class="emptbl">
+            <thead><tr>
+              <th data-i18n="colName">姓名</th>
+              <th data-i18n="adminColEmail">邮箱</th>
+              <th style="width:160px;" data-i18n="adminColRole">角色</th>
+              <th style="width:150px;"></th>
+              <th style="width:90px;"></th>
+            </tr></thead>
+            <tbody id="adminBody"></tbody>
+          </table>
+        </div>
       </div>
     </div>
-    <div class="panel-body">
-      <div class="admin-layout">
-        <div>
-          <div class="admin-add-row">
-            <input type="text" id="adminNewEmail" data-i18n-placeholder="adminEmailPh" placeholder="邮箱">
-            <input type="text" id="adminNewName" data-i18n-placeholder="adminNamePh" placeholder="姓名（可选）">
-            <select id="adminNewRole">
-              <option value="Viewer" data-i18n="roleViewer">访问用户</option>
-              <option value="Editor" data-i18n="roleEditor">编辑用户</option>
-              <option value="Senior Admin" data-i18n="roleSeniorAdmin">高级管理员</option>
-            </select>
-            <button class="btn primary" id="adminAddBtn" data-i18n="adminAddBtn">添加</button>
-          </div>
-          <div class="scroll-table" style="max-height:calc(100vh - 320px);">
-            <table class="emptbl">
-              <thead><tr>
-                <th data-i18n="colName">姓名</th>
-                <th data-i18n="adminColEmail">邮箱</th>
-                <th style="width:150px;" data-i18n="adminColRole">角色</th>
-                <th style="width:160px;"></th>
-              </tr></thead>
-              <tbody id="adminBody"></tbody>
-            </table>
-          </div>
+    <div class="panel">
+      <div class="panel-head">
+        <h2 data-i18n="editWindowTitle">编辑时间窗口</h2>
+      </div>
+      <div class="panel-body">
+        <p class="hint" data-i18n="editWindowHint">只有在此时间范围内才能编辑组织架构（重命名、移动、删除、角色变更、员工调动等）。开始/结束都留空则不限制编辑时间。</p>
+        <div class="settings-field">
+          <label data-i18n="editWindowStartLabel">开始时间</label>
+          <input type="datetime-local" id="editWindowStart">
         </div>
-        <div class="settings-card">
-          <h3 data-i18n="editWindowTitle">编辑时间窗口</h3>
-          <p class="hint" data-i18n="editWindowHint">只有在此时间范围内才能编辑组织架构（重命名、移动、删除、角色变更、员工调动等）。开始/结束都留空则不限制编辑时间。</p>
-          <div class="settings-field">
-            <label data-i18n="editWindowStartLabel">开始时间</label>
-            <input type="datetime-local" id="editWindowStart">
-          </div>
-          <div class="settings-field">
-            <label data-i18n="editWindowEndLabel">结束时间</label>
-            <input type="datetime-local" id="editWindowEnd">
-          </div>
-          <div class="btn-row">
-            <button class="btn ghost" id="editWindowClearBtn" data-i18n="editWindowClearBtn">清除限制</button>
-            <button class="btn primary" id="editWindowSaveBtn" data-i18n="saveBtn">保存</button>
-          </div>
-          <div class="settings-status" id="editWindowStatus"></div>
+        <div class="settings-field">
+          <label data-i18n="editWindowEndLabel">结束时间</label>
+          <input type="datetime-local" id="editWindowEnd">
         </div>
+        <div class="btn-row">
+          <button class="btn ghost" id="editWindowClearBtn" data-i18n="editWindowClearBtn">清除限制</button>
+          <button class="btn primary" id="editWindowSaveBtn" data-i18n="saveBtn">保存</button>
+        </div>
+        <div class="settings-status" id="editWindowStatus"></div>
       </div>
     </div>
   </div>
