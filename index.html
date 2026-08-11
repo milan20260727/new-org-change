@@ -21,8 +21,12 @@
 <div class="wrap" id="app">
 
   <div class="topbar">
-    <div>
+    <div class="topbar-left">
       <h1 data-i18n="pageTitle">组织架构调整工具</h1>
+      <div class="seg view-tabs" id="viewTabs">
+        <button data-view="chart" class="active" data-i18n="viewChart">组织架构图</button>
+        <button data-view="unassigned" id="viewUnassignedBtn" style="display:none;"><span data-i18n="viewUnassigned">待安置员工</span> (<span id="viewUnassignedCount">0</span>)</button>
+      </div>
       <span class="scope-tag" data-i18n="scopeTag">范围：Central → Investor Relations Corp Comms &amp; Sustainability</span>
     </div>
     <div style="display:flex; flex-direction:column; align-items:flex-end; gap:10px;">
@@ -63,18 +67,14 @@
     <button class="btn ghost" id="downloadPngBtn" data-i18n="downloadPngBtn">下载组织架构图（PNG）</button>
   </div>
 
-  <div class="seg view-tabs" id="viewTabs">
-    <button data-view="chart" class="active" data-i18n="viewChart">组织架构图</button>
-    <button data-view="unassigned" id="viewUnassignedBtn" style="display:none;"><span data-i18n="viewUnassigned">待安置员工</span> (<span id="viewUnassignedCount">0</span>)</button>
-  </div>
-
   <div class="layout" id="chartView">
 
     <div class="panel">
       <div class="legend">
         <div class="legend-item"><span class="swatch" style="background:var(--new-bg); border-color:var(--new-border);"></span><span data-i18n="legendNew">新增</span></div>
         <div class="legend-item"><span class="swatch" style="background:var(--warn-bg); border-color:var(--warn-border);"></span><span data-i18n="legendDelete">删除</span></div>
-        <div class="legend-item"><span class="swatch" style="background:var(--mov-bg); border-color:var(--mov-border);"></span><span data-i18n="legendMoved">移动 / 影子</span></div>
+        <div class="legend-item"><span class="swatch" style="background:var(--mov-bg); border-color:var(--mov-border);"></span><span data-i18n="legendMoved">移动</span></div>
+        <div class="legend-item"><span class="swatch" style="background:var(--del-bg); border-color:var(--del-border);"></span><span data-i18n="legendGhost">影子（原位置）</span></div>
         <div class="legend-item"><span class="swatch" style="background:var(--accent-soft); border-color:var(--accent);"></span><span data-i18n="legendRenamed">已改名</span></div>
         <div class="legend-item" style="color:var(--warn-text);" data-i18n="legendRoleWarn">⚠ 角色不一致</div>
       </div>
@@ -95,8 +95,8 @@
         <div class="panel-body">
           <div class="scroll-table">
             <table class="logtbl">
-              <thead><tr><th style="width:34px;">#</th><th style="width:64px;" data-i18n="colType">类型</th><th data-i18n="colDetail">详情</th></tr></thead>
-              <tbody id="logBody"><tr><td colspan="3" class="empty-note" data-i18n="logEmptyNote">暂无变更，点一个部门框试试</td></tr></tbody>
+              <thead><tr><th style="width:34px;">#</th><th style="width:64px;" data-i18n="colType">类型</th><th data-i18n="colDetail">详情</th><th style="width:52px;" data-i18n="colAction">操作</th></tr></thead>
+              <tbody id="logBody"><tr><td colspan="4" class="empty-note" data-i18n="logEmptyNote">暂无变更，点一个部门框试试</td></tr></tbody>
             </table>
           </div>
           <div class="btn-row" style="margin-top:10px;">
@@ -135,7 +135,18 @@
       <span class="count mono" id="unassignedCount">0</span>
     </div>
     <div class="panel-body">
-      <div id="unassignedBody" class="unassigned-grid"></div>
+      <div class="scroll-table unassigned-scroll">
+        <table class="emptbl">
+          <thead><tr>
+            <th style="width:80px;">EID</th>
+            <th data-i18n="colName">姓名</th>
+            <th data-i18n="colReportsTo">汇报对象</th>
+            <th style="width:280px;" data-i18n="fieldTargetOrg">目标组织架构</th>
+            <th style="width:80px;"></th>
+          </tr></thead>
+          <tbody id="unassignedBody"></tbody>
+        </table>
+      </div>
     </div>
   </div>
 </div>

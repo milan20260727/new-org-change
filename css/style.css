@@ -63,8 +63,10 @@
   .wrap{margin:0 auto; padding:16px clamp(14px, 1.5vw, 24px) 16px; display:none;}
   .wrap.ready{display:block;}
 
-  .topbar{display:flex; align-items:flex-start; justify-content:space-between; gap:16px; padding-bottom:14px; border-bottom:1px solid var(--line); margin-bottom:14px; flex-wrap:wrap;}
-  .topbar h1{font-size:19px; font-weight:700; letter-spacing:-.01em; margin:0 0 4px; text-wrap:balance;}
+  .topbar{display:flex; align-items:flex-start; justify-content:space-between; gap:16px; padding-bottom:10px; border-bottom:1px solid var(--line); margin-bottom:10px; flex-wrap:wrap;}
+  .topbar-left{display:flex; flex-wrap:wrap; align-items:center; gap:10px;}
+  .topbar h1{font-size:17px; font-weight:700; letter-spacing:-.01em; margin:0; text-wrap:balance;}
+  .topbar .scope-tag{flex-basis:100%; margin-top:0;}
   .topbar p{margin:0; color:var(--ink-muted); font-size:12.5px; max-width:64ch;}
   .scope-tag{font-size:11px; color:var(--ink-muted); background:var(--surface-2); border:1px solid var(--line); border-radius:5px; padding:2px 7px; display:inline-block; margin-top:6px;}
   .user-chip{display:flex; align-items:center; gap:8px; font-size:12.5px; color:var(--ink-muted);}
@@ -111,8 +113,8 @@
   .layout{display:grid; grid-template-columns:minmax(0,1fr) clamp(300px, 24vw, 400px); gap:18px; align-items:start;}
   @media (max-width:980px){ .layout{grid-template-columns:1fr;} }
 
-  .unassigned-grid{display:grid; grid-template-columns:repeat(auto-fill, minmax(300px, 1fr)); gap:10px; max-height:calc(100vh - 260px); overflow:auto; padding:2px;}
-  .unassigned-grid .roster-row{border:1px solid var(--line); border-radius:8px; padding:10px 12px; flex-wrap:wrap;}
+  .scroll-table.unassigned-scroll{max-height:calc(100vh - 260px);}
+  #unassignedBody .reassign-picker{max-width:none;}
 
   /* ---------- small screens ---------- */
   @media (max-width:640px){
@@ -283,6 +285,7 @@
   .gmodal-overlay{position:fixed; inset:0; background:rgba(10,11,15,.42); display:none; align-items:center; justify-content:center; z-index:180; padding:20px;}
   .gmodal-overlay.show{display:flex;}
   .gmodal-box{background:var(--surface); border:1px solid var(--line); border-radius:12px; box-shadow:var(--shadow); width:100%; max-width:400px; padding:18px;}
+  #gmodalOverlay .gmodal-box{max-width:800px;}
   .gmodal-box h3{margin:0 0 12px; font-size:15px; font-weight:700;}
   .gmodal-field{margin-bottom:14px;}
   .gmodal-field label{display:block; font-size:11px; font-weight:700; text-transform:uppercase; letter-spacing:.03em; color:var(--ink-muted); margin-bottom:6px;}

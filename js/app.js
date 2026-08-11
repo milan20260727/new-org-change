@@ -17,10 +17,10 @@
       zoomInTitle:'放大', zoomOutTitle:'缩小',
       orientLabel:'查看方向', orientVertical:'纵向', orientHorizontal:'横向',
       langLabel:'语言', downloadPngBtn:'下载组织架构图（PNG）',
-      legendNew:'新增', legendDelete:'删除', legendMoved:'移动 / 影子', legendRenamed:'已改名', legendRoleWarn:'⚠ 角色不一致',
-      changeLogTitle:'变更记录', unitRecords:'条', colType:'类型', colDetail:'详情',
+      legendNew:'新增', legendDelete:'删除', legendMoved:'移动', legendGhost:'影子（原位置）', legendRenamed:'已改名', legendRoleWarn:'⚠ 角色不一致',
+      changeLogTitle:'变更记录', unitRecords:'条', colType:'类型', colDetail:'详情', colAction:'操作', undoBtn:'撤销',
       logEmptyNote:'暂无变更，点一个部门框试试', copyLogBtn:'复制变更（可直接粘贴到 Base）', downloadCsvBtn:'下载 CSV',
-      affectedEmpTitle:'受影响员工', unitPeople:'人', colName:'姓名', colPathChange:'原部门 → 新部门',
+      affectedEmpTitle:'受影响员工', unitPeople:'人', colName:'姓名', colPathChange:'原部门 → 新部门', colReportsTo:'汇报对象',
       empEmptyNote:'还没有员工受影响', copyEmpBtn:'复制员工变更（可直接粘贴到 Base）',
       unassignedTitle:'待安置员工', unassignedEmptyNote:'暂无待安置员工', unassignedTransferBtn:'转移',
       addChildTitle:'新增子部门', tabStructure:'编辑类型', tabRole:'变更角色', tabRoster:'下辖员工名单',
@@ -103,10 +103,10 @@
       zoomInTitle:'Zoom in', zoomOutTitle:'Zoom out',
       orientLabel:'Layout', orientVertical:'Vertical', orientHorizontal:'Horizontal',
       langLabel:'Language', downloadPngBtn:'Download chart (PNG)',
-      legendNew:'New', legendDelete:'Deleted', legendMoved:'Moved / ghost', legendRenamed:'Renamed', legendRoleWarn:'⚠ Role inconsistent',
-      changeLogTitle:'Change log', unitRecords:'', colType:'Type', colDetail:'Detail',
+      legendNew:'New', legendDelete:'Deleted', legendMoved:'Moved', legendGhost:'Ghost (old spot)', legendRenamed:'Renamed', legendRoleWarn:'⚠ Role inconsistent',
+      changeLogTitle:'Change log', unitRecords:'', colType:'Type', colDetail:'Detail', colAction:'Action', undoBtn:'Undo',
       logEmptyNote:'No changes yet — try clicking a department box', copyLogBtn:'Copy changes (paste directly into Base)', downloadCsvBtn:'Download CSV',
-      affectedEmpTitle:'Affected employees', unitPeople:'', colName:'Name', colPathChange:'Old dept → New dept',
+      affectedEmpTitle:'Affected employees', unitPeople:'', colName:'Name', colPathChange:'Old dept → New dept', colReportsTo:'Reports to',
       empEmptyNote:'No employees affected yet', copyEmpBtn:'Copy employee changes (paste directly into Base)',
       unassignedTitle:'Unassigned employees', unassignedEmptyNote:'No unassigned employees', unassignedTransferBtn:'Transfer',
       addChildTitle:'Add sub-department', tabStructure:'Edit type', tabRole:'Roles', tabRoster:'Team roster',
@@ -405,7 +405,7 @@
     var toNode = getNode(targetId);
     if(!toNode || targetId===emp.nodeId) return false;
     emp.nodeId = targetId;
-    if(!silent) addLog('emp_transfer', {name:emp.name, eid:emp.eid, from:fromNode.name, to:toNode.name});
+    if(!silent) addLog('emp_transfer', {name:emp.name, eid:emp.eid, from:fromNode.name, to:toNode.name, fromId:fromNode.id, toId:toNode.id});
     return true;
   }
   function commitDelete(n, assignments){
@@ -429,7 +429,7 @@
     });
     n.restoreLog = restoreLog.length ? restoreLog : null;
     n.flags.isDeleted = true;
-    addLog('delete', {name:n.name, parent:getNode(n.parentId).name, empCount:restoreLog.length});
+    addLog('delete', {name:n.name, parent:getNode(n.parentId).name, empCount:restoreLog.length}, n.id);
     return {ok:true};
   }
   function commitRestoreDelete(n){
@@ -479,6 +479,48 @@
     emp.reportsTo = newSupervisor;
     if(emp.reportsTo === emp.origReportsTo) removeLog('report_change', emp.eid);
     else upsertLog('report_change', emp.eid, {name:emp.name, from:old, to:newSupervisor});
+  }
+
+  // ---------- change-log undo ----------
+  // rename/move/role_change/report_change are upsert-logged as session-original -> current, so
+  // reverting to the original value makes the commit fns remove their own log line (see upsertLog
+  // callers above). add/delete already have dedicated undo paths. emp_transfer is the one type with
+  // no self-cleaning story, so its undo manually drops the entry after reversing it.
+  function canUndoLogEntry(l){
+    if(l.typeKey==='rename' || l.typeKey==='move') return !!getNode(l.key);
+    if(l.typeKey==='role_change'){ return !!getNode(l.key.split('#')[0]); }
+    if(l.typeKey==='report_change'){ return employees.some(function(e){ return e.eid===l.key; }); }
+    if(l.typeKey==='add'){ var n=getNode(l.key); return !!n && n.flags.isNew && !n.flags.isDeleted; }
+    if(l.typeKey==='delete'){ var n=getNode(l.key); return !!n && n.flags.isDeleted; }
+    if(l.typeKey==='emp_transfer'){
+      var e = employees.filter(function(x){ return x.eid===l.params.eid; })[0];
+      return !!e && !!l.params.toId && e.nodeId===l.params.toId;
+    }
+    return false;
+  }
+  function undoLogEntry(l){
+    if(l.typeKey==='rename'){ var n=getNode(l.key); if(n) commitRename(n, n.origName); }
+    else if(l.typeKey==='move'){ var n=getNode(l.key); if(n) commitMove(n, n.movedFrom); }
+    else if(l.typeKey==='role_change'){ var parts=l.key.split('#'); var n=getNode(parts[0]); if(n) commitRoleChange(n, parts[1], n.origRoles[parts[1]]); }
+    else if(l.typeKey==='report_change'){ var e=employees.filter(function(x){ return x.eid===l.key; })[0]; if(e) commitReportChange(e, e.origReportsTo); }
+    else if(l.typeKey==='add'){
+      var n=getNode(l.key);
+      if(n){
+        var res = commitDelete(n, {});
+        if(!res.ok){
+          if(res.reason==='children') toast(t('toastDeleteBlockedChildren'));
+          else toast(t('toastDeleteBlockedEmp')(res.missing.length));
+        }
+      }
+    }
+    else if(l.typeKey==='delete'){ var n=getNode(l.key); if(n) commitRestoreDelete(n); }
+    else if(l.typeKey==='emp_transfer'){
+      var e = employees.filter(function(x){ return x.eid===l.params.eid; })[0];
+      if(e && l.params.fromId){
+        commitEmployeeTransfer(e, l.params.fromId, true);
+        log = log.filter(function(x){ return x.seq!==l.seq; });
+      }
+    }
   }
   function maybePromptReportChange(n){
     if(!n.pic) return;
@@ -732,6 +774,7 @@
     var direct = employees.filter(function(e){ return e.nodeId===n.id; });
     var otherNodes = nodes.filter(function(x){ return x.id!==n.id && !x.flags.isDeleted; });
     var selCount = Object.keys(rosterSelected).filter(function(k){ return rosterSelected[k]; }).length;
+    var allSelected = direct.length>0 && direct.every(function(e){ return rosterSelected[e.eid]; });
 
     if(!direct.length){
       body.innerHTML = '<div class="empty-note">'+escapeHtml(t('rosterEmptyNote'))+'</div>';
@@ -741,7 +784,7 @@
     }
 
     var html = '<div class="roster-toolbar">'+
-      '<label style="display:flex; align-items:center; gap:6px; font-size:11.5px; color:var(--ink-muted);"><input type="checkbox" id="rosterSelectAll"> '+escapeHtml(t('selectAllLabel')(direct.length))+'</label>'+
+      '<label style="display:flex; align-items:center; gap:6px; font-size:11.5px; color:var(--ink-muted);"><input type="checkbox" id="rosterSelectAll" '+(allSelected?'checked':'')+'> '+escapeHtml(t('selectAllLabel')(direct.length))+'</label>'+
       '</div>';
     direct.forEach(function(e){
       html += '<div class="roster-row" data-eid="'+e.eid+'">'+
@@ -757,8 +800,9 @@
     foot.innerHTML = '<button class="btn ghost" id="cancelEditBtn">'+escapeHtml(t('closeBtn'))+'</button>';
     document.getElementById('cancelEditBtn').addEventListener('click', closePanel);
 
-    document.getElementById('rosterSelectAll').addEventListener('change', function(ev){
-      direct.forEach(function(e){ rosterSelected[e.eid] = ev.target.checked; });
+    document.getElementById('rosterSelectAll').addEventListener('change', function(){
+      var newVal = !allSelected;
+      direct.forEach(function(e){ rosterSelected[e.eid] = newVal; });
       renderPanel();
     });
     body.querySelectorAll('.roster-cb').forEach(function(cb){
@@ -1082,8 +1126,20 @@
   function renderLog(){
     var body = document.getElementById('logBody');
     document.getElementById('logCount').textContent = log.length + (t('unitRecords') ? ' ' + t('unitRecords') : '');
-    if(!log.length){ body.innerHTML = '<tr><td colspan="3" class="empty-note">'+escapeHtml(t('logEmptyNote'))+'</td></tr>'; return; }
-    body.innerHTML = log.map(function(l){ return '<tr><td class="mono">'+l.seq+'</td><td>'+escapeHtml(formatLogType(l))+'</td><td>'+escapeHtml(formatLogDetail(l))+'</td></tr>'; }).join('');
+    if(!log.length){ body.innerHTML = '<tr><td colspan="4" class="empty-note">'+escapeHtml(t('logEmptyNote'))+'</td></tr>'; return; }
+    body.innerHTML = log.map(function(l){
+      var action = canUndoLogEntry(l) ? '<button class="btn ghost" type="button" data-undo-seq="'+l.seq+'">'+escapeHtml(t('undoBtn'))+'</button>' : '';
+      return '<tr><td class="mono">'+l.seq+'</td><td>'+escapeHtml(formatLogType(l))+'</td><td>'+escapeHtml(formatLogDetail(l))+'</td><td>'+action+'</td></tr>';
+    }).join('');
+    body.querySelectorAll('[data-undo-seq]').forEach(function(btn){
+      btn.addEventListener('click', function(){
+        var seq = Number(btn.getAttribute('data-undo-seq'));
+        var entry = log.filter(function(l){ return l.seq===seq; })[0];
+        if(!entry) return;
+        undoLogEntry(entry);
+        renderTree(); renderLog(); renderEmployees(); renderUnassigned(); renderPanel();
+      });
+    });
   }
 
   function computeImpacted(){
@@ -1116,14 +1172,16 @@
     document.getElementById('viewUnassignedCount').textContent = list.length;
     document.getElementById('unassignedCount').textContent = list.length;
     var body = document.getElementById('unassignedBody');
-    if(!list.length){ body.innerHTML = '<div class="empty-note">'+escapeHtml(t('unassignedEmptyNote'))+'</div>'; return; }
+    if(!list.length){ body.innerHTML = '<tr><td colspan="5" class="empty-note">'+escapeHtml(t('unassignedEmptyNote'))+'</td></tr>'; return; }
     var targets = nodes.filter(function(x){ return x.id!==unassignedId && !x.flags.isDeleted; });
     body.innerHTML = list.map(function(e){
-      return '<div class="roster-row" data-eid="'+e.eid+'">'+
-        '<div class="rr-info"><div class="rr-name">'+escapeHtml(e.name)+'</div><div class="rr-eid">EID '+e.eid+'</div></div>'+
-        '<div class="reassign-picker" data-eid="'+e.eid+'"></div>'+
-        '<button class="btn" type="button" data-transfer-eid="'+e.eid+'">'+escapeHtml(t('unassignedTransferBtn'))+'</button>'+
-        '</div>';
+      return '<tr data-eid="'+e.eid+'">'+
+        '<td class="mono">'+e.eid+'</td>'+
+        '<td>'+escapeHtml(e.name)+'</td>'+
+        '<td>'+(e.reportsTo?escapeHtml(e.reportsTo):escapeHtml(t('notSet')))+'</td>'+
+        '<td><div class="reassign-picker" data-eid="'+e.eid+'"></div></td>'+
+        '<td><button class="btn" type="button" data-transfer-eid="'+e.eid+'">'+escapeHtml(t('unassignedTransferBtn'))+'</button></td>'+
+        '</tr>';
     }).join('');
     body.querySelectorAll('.reassign-picker').forEach(function(el){
       var eid = el.getAttribute('data-eid');
