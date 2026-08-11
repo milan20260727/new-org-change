@@ -1,0 +1,9 @@
+{
+  "name": "new-org-change",
+  "private": true,
+  "version": "1.0.0",
+  "description": "Org structure change tool — live Lark Base data via Vercel serverless functions",
+  "engines": {
+    "node": ">=18"
+  }
+}

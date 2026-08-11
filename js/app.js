@@ -6,11 +6,11 @@
     zh: {
       loginTitle:'组织架构调整工具', loginSubtitle:'需要登录后才能查看组织架构与员工数据',
       loginBtnText:'使用飞书账号登录', loginBtnTextLoading:'登录中…',
-      loginNote:'此 Demo 运行在 Claude Artifact 沙盒中，无法完成真实的飞书 OAuth 跳转与回调，这里用一次模拟登录代表该流程；正式版本会替换为真实的飞书第三方登录。',
       pageTitle:'组织架构调整 Demo',
-      pageDesc:'数据取自 Base 里「Lark Structures」+「Employee list」+「Lark User」的真实子集（Central / Investor Relations Corporate Communications and Sustainability，10 个节点、15 名员工）。所有操作只在浏览器本地进行，不会写回 Base。',
-      scopeTag:'范围：Central → Investor Relations Corp Comms & Sustainability',
-      loggedInAs:'已登录：', logoutBtn:'退出', resetBtn:'重置演示',
+      pageDesc:'数据实时来自 Base 里的「Lark Structures」+「Employee list」+「Lark User」三张表，每次打开或点击刷新都会重新拉取。所有编辑操作只在浏览器本地进行，不会写回 Base。',
+      scopeTag:'正在加载组织数据…',
+      scopeTagLoaded:function(p){ return '共 ' + p.nodeCount + ' 个组织节点 · ' + p.empCount + ' 名在职员工 · 数据来自 Lark Base'; },
+      loggedInAs:'已登录：', logoutBtn:'退出',
       snapshotLabel:'数据快照时间：', refreshBtn:'刷新数据', refreshBtnLoading:'刷新中…',
       refreshToast:'已刷新（模拟）：这个 Demo 还没接入真实 Lark Base，内容跟刷新前一样，只更新了快照时间',
       searchPlaceholder:'搜索组织架构名称…', focusPrefix:'聚焦于「', focusSuffix:'」',
@@ -61,7 +61,7 @@
       toastPickBulkTarget:'请先选择批量目标部门', toastCascaded:'已应用到所有下级部门',
       toastPickTransferTarget:'请先选择转移目标部门', toastTransferredN:function(n){ return '已转移 ' + n + ' 名员工'; },
       toastUndoDeleted:'已撤销删除', toastMovePending:'已选定目标，点击"保存"确认这次移动',
-      toastCopied:'已复制，可直接粘贴到 Base', toastCopyFailed:'复制失败，请改用下载', toastReset:'已重置演示',
+      toastCopied:'已复制，可直接粘贴到 Base', toastCopyFailed:'复制失败，请改用下载',
       toastReportUpdated:'已更新汇报对象', toastTransferredName:function(name){ return '已转移 ' + name; },
       toastPngFailed:'导出失败，请改用浏览器自带的截图功能', toastPngDone:'已下载 PNG',
       toastPngError:function(msg){ return '导出失败：' + msg; },
@@ -90,11 +90,11 @@
     en: {
       loginTitle:'Org Structure Change Tool', loginSubtitle:'Sign in to view the org structure and employee data',
       loginBtnText:'Sign in with Lark', loginBtnTextLoading:'Signing in…',
-      loginNote:'This demo runs inside the Claude Artifact sandbox, which cannot complete a real Lark OAuth redirect/callback — this is a one-time simulated sign-in standing in for that flow. The production version would use real Lark third-party login.',
       pageTitle:'Org Structure Change Demo',
-      pageDesc:'Data is a real subset from the Base tables "Lark Structures" + "Employee list" + "Lark User" (Central / Investor Relations Corporate Communications and Sustainability — 10 nodes, 15 employees). All actions run locally in the browser only and are never written back to Base.',
-      scopeTag:'Scope: Central → Investor Relations Corp Comms & Sustainability',
-      loggedInAs:'Signed in as: ', logoutBtn:'Sign out', resetBtn:'Reset demo',
+      pageDesc:'Data is fetched live from the Base tables "Lark Structures" + "Employee list" + "Lark User" on every load and on every refresh. All edits happen locally in the browser only and are never written back to Base.',
+      scopeTag:'Loading org data…',
+      scopeTagLoaded:function(p){ return p.nodeCount + ' org units · ' + p.empCount + ' active employees · live from Lark Base'; },
+      loggedInAs:'Signed in as: ', logoutBtn:'Sign out',
       snapshotLabel:'Data snapshot: ', refreshBtn:'Refresh data', refreshBtnLoading:'Refreshing…',
       refreshToast:'Refreshed (simulated): this demo isn’t wired to a live Lark Base yet, so content is unchanged — only the snapshot time updated',
       searchPlaceholder:'Search org unit name…', focusPrefix:'Focused on "', focusSuffix:'"',
@@ -145,7 +145,7 @@
       toastPickBulkTarget:'Choose a bulk target department first', toastCascaded:'Applied to all sub-departments',
       toastPickTransferTarget:'Choose a transfer target department first', toastTransferredN:function(n){ return 'Transferred ' + n + ' employee(s)'; },
       toastUndoDeleted:'Deletion undone', toastMovePending:'Target selected — click "Save" to confirm the move',
-      toastCopied:'Copied — paste directly into Base', toastCopyFailed:'Copy failed, please download instead', toastReset:'Demo reset',
+      toastCopied:'Copied — paste directly into Base', toastCopyFailed:'Copy failed, please download instead',
       toastReportUpdated:'Reporting line updated', toastTransferredName:function(name){ return 'Transferred ' + name; },
       toastPngFailed:'Export failed — please use your browser’s screenshot tool instead', toastPngDone:'PNG downloaded',
       toastPngError:function(msg){ return 'Export failed: ' + msg; },
@@ -184,57 +184,17 @@
     if(loginBtnText && !document.getElementById('loginCard').classList.contains('loading')) loginBtnText.textContent = t('loginBtnText');
   }
 
-  // ---------- seed data (real snapshot: Central / Investor Relations Corp Comms & Sustainability) ----------
-  var seedNodes = [
-    {id:'bu-root', name:'Investor Relations Corporate Communications and Sustainability', parentId:null, pic:'Celeste JOVENIR'},
-    {id:'ir',        name:'Investor Relations',      parentId:'bu-root', pic:'Celeste JOVENIR'},
-    {id:'cc',        name:'Corporate Communications', parentId:'bu-root', pic:'Celeste JOVENIR'},
-    {id:'sustain',    name:'Sustainability',           parentId:'bu-root', pic:'Celeste JOVENIR'},
-    {id:'deptsupport',name:'Department Support',       parentId:'bu-root', pic:'Celeste JOVENIR'},
-    {id:'comm',      name:'Communications',    parentId:'cc', pic:'Monica MABUTI'},
-    {id:'creatives', name:'Creatives',          parentId:'cc', pic:'Junvi ALABADO'},
-    {id:'media',     name:'Media Relations',    parentId:'cc', pic:'Josephine CRUZ'},
-    {id:'social',    name:'DigiPlus Social Media', parentId:'cc', pic:'Junvi ALABADO'},
-    {id:'influencer',name:'Influencer Marketing', parentId:'cc', inactive:true, pic:'Maica ARITAO'}
-  ];
-  var DEFAULT_HRBP1 = 'John Billy BAUTISTA', DEFAULT_HRBP2 = 'Alyssha RICONOSE';
-
-  var seedEmployees = [
-    {eid:'100329', name:'DUCUT, RAE ANNE LAGARTO', nodeId:'social', reportsTo:'Celeste JOVENIR'},
-    {eid:'100418', name:'ALABADO, JUNVI SOLIS', nodeId:'creatives', reportsTo:'Celeste JOVENIR'},
-    {eid:'100736', name:'ARITAO, MAICA ELLIANA ROSADA', nodeId:'social', reportsTo:'Junvi ALABADO'},
-    {eid:'100964', name:'IBAÑEZ, JOHN RENZO EVANGELISTA', nodeId:'social', reportsTo:'Junvi ALABADO'},
-    {eid:'101270', name:'ESPINOZA, LOUISE JOHN TANGHAL', nodeId:'social', reportsTo:'Junvi ALABADO'},
-    {eid:'101457', name:'FERNANDEZ, ZSCHAIRIELLE PANGILINAN', nodeId:'creatives', reportsTo:'Junvi ALABADO'},
-    {eid:'101681', name:'CRUZ, JOSEPHINE CARPIO', nodeId:'media', reportsTo:'Celeste JOVENIR'},
-    {eid:'101901', name:'MABUTI, MONICA CIARA SISON', nodeId:'comm', reportsTo:'Celeste JOVENIR'},
-    {eid:'101975', name:'OCON, RHODA MAY TEJERO', nodeId:'social', reportsTo:'Junvi ALABADO'},
-    {eid:'102288', name:'MAULION, RICARDO JR. SUAREZ', nodeId:'sustain', reportsTo:'Celeste JOVENIR'},
-    {eid:'102409', name:'FAUSTO, GIAN CARLO SANTOS', nodeId:'creatives', reportsTo:'Junvi ALABADO'},
-    {eid:'102424', name:'MORALES, HIRON', nodeId:'ir', reportsTo:'Celeste JOVENIR'},
-    {eid:'102549', name:'GARCIA, ALFRED BENJAMIN RIVERA', nodeId:'ir', reportsTo:'Celeste JOVENIR'},
-    {eid:'20486',  name:'JOVENIR, CELESTE M.', nodeId:'bu-root', reportsTo:'Ping'},
-    {eid:'20663',  name:'RAMOS, VIVIENNE S.', nodeId:'deptsupport', reportsTo:'Celeste JOVENIR'}
-  ];
-
-  // Lark User directory — role pickers only pull from this pool
-  var personPool = ['Celeste JOVENIR','Monica MABUTI','Junvi ALABADO','Josephine CRUZ','Maica ARITAO','John Billy BAUTISTA','Alyssha RICONOSE',
-    'Christine GABRIELES','Lauridsen','Su','Firesound','Smile','Tommy','Vernice','Jovelle NAGAMOS','Ami','Kei-Anne NACE','Kyla Mae ANCHORES',
-    'Ronz SORIANO','Samantha Ysabel MEJORADA','Mylene INUMERABLE','Cherry LACUESTA','April Joy SALAZAR','Hazel Ma-Anne BARRO','Marinel SUAL',
-    'Angelo SAMSON','Ariel JARITO','Kc GATON','Hensy','Rex TAN','Camille FRANCISCO','Ariel BERMUDO','Ruel DELA CRUZ','Kriezel CARGULLO',
-    'Louie CAGAOAN','Carl Andrew CALZADO','Maevilyn ESMALLA','Mark LEAL','Wilard DIAZ','Eliezer MAGSAKAY','Ervic BORJA','Ricardo CORTEZ',
-    'Jeffrey IBASCO','Ronn Renson DEL ROSARIO','Micko SAN BUENAVENTURA','Edgar Valen SINAMPAGA','Salvador CULAR','Elmer BRIT','Christopher BON',
-    'Jeffrey SALADAN','Jerby RAGURO','Patrick CABADDU','Vernie BELISTA','Mark Louie AMPOAN','Jerico ULANIMO','Niño CRUZ','Adrian ASUNCION',
-    'Ermar RAMIREZ','Ralph PITALUNA','Hilton PATUNGAN','Ryan DEL ROSARIO','Irish DOMAWAL','Honiely DIGNADICE','Michael FERNANDEZ',
-    'Darwin LINGAD','Abraham SOLIS','Arnel BAQUE'];
+  // ---------- live data (fetched from /api/org-data, which reads Lark Base on every call) ----------
+  var personPool = [];
+  var rootId = 'root';
 
   var nodes, employees, log, selectedId, viewRootId, orientation, logSeq, tempCounter, dragSrcId, pendingEdit, activeTab, createDraft, rosterSelected, gmodalEmp, gmodalOrg, pendingReportPrompt, snapshotAt;
 
-  function cloneSeed(){
-    return seedNodes.map(function(n){
+  function hydrateNodes(rawNodes){
+    return rawNodes.map(function(n){
       return {id:n.id, name:n.name, origName:n.name, parentId:n.parentId,
         inactive: !!n.inactive, movedFrom:null, restoreLog:null,
-        pic:n.pic||'', hrbp1:DEFAULT_HRBP1, hrbp2:DEFAULT_HRBP2, da:'',
+        pic:n.pic||'', hrbp1:n.hrbp1||'', hrbp2:n.hrbp2||'', da:n.da||'', origRoles:null,
         flags:{isNew:false, isDeleted:false, isRenamed:false}};
     });
   }
@@ -244,29 +204,61 @@
     return d.getFullYear()+'-'+pad(d.getMonth()+1)+'-'+pad(d.getDate())+' '+pad(d.getHours())+':'+pad(d.getMinutes());
   }
 
-  function init(keepSnapshot){
-    nodes = cloneSeed();
-    employees = seedEmployees.map(function(e){ return {eid:e.eid, name:e.name, nodeId:e.nodeId, origPath: pathLabel(e.nodeId), reportsTo:e.reportsTo||'', origReportsTo:e.reportsTo||''}; });
-    log = [];
-    selectedId = null;
-    viewRootId = 'bu-root';
-    orientation = 'vertical';
-    logSeq = 1;
-    tempCounter = 1;
-    dragSrcId = null;
-    pendingEdit = null;
-    createDraft = null;
-    rosterSelected = {};
-    pendingReportPrompt = null;
-    activeTab = 'structure';
-    if(!keepSnapshot) snapshotAt = new Date();
-    document.getElementById('snapshotTime').textContent = formatSnapshotTime(snapshotAt);
-    document.getElementById('searchInput').value = '';
-    document.getElementById('reportPromptOverlay').classList.remove('show');
-    document.getElementById('orientSeg').querySelectorAll('button').forEach(function(b){ b.classList.toggle('active', b.getAttribute('data-orient')==='vertical'); });
-    closePanel();
-    closeGlobalTransfer();
-    render();
+  function showLoadError(msg){
+    document.getElementById('treeRoot').innerHTML = '';
+    document.getElementById('snapshotTime').textContent = '—';
+    toast(msg);
+  }
+
+  // Fetches live data from Base. Resets any in-progress local edits (matches
+  // the earlier "reset demo" behavior) — this now pulls real data each call,
+  // it's not just re-stamping a frozen snapshot.
+  function init(){
+    var wrap = document.getElementById('treeWrap');
+    wrap.style.opacity = '.4';
+    return fetch('/api/org-data', {credentials:'same-origin'})
+      .then(function(res){
+        if(res.status===401){ showLoginOverlay(); throw new Error('not-authenticated'); }
+        if(!res.ok) return res.json().then(function(j){ throw new Error(j.error||('HTTP '+res.status)); });
+        return res.json();
+      })
+      .then(function(data){
+        rootId = data.rootId || 'root';
+        nodes = hydrateNodes(data.nodes);
+        employees = data.employees.map(function(e){ return {eid:e.eid, name:e.name, nodeId:e.nodeId, origPath: pathLabel(e.nodeId), reportsTo:e.reportsTo||'', origReportsTo:e.reportsTo||''}; });
+        personPool = data.personPool || [];
+        snapshotAt = new Date(data.generatedAt);
+        log = [];
+        selectedId = null;
+        viewRootId = rootId;
+        orientation = 'vertical';
+        logSeq = 1;
+        tempCounter = 1;
+        dragSrcId = null;
+        pendingEdit = null;
+        createDraft = null;
+        rosterSelected = {};
+        pendingReportPrompt = null;
+        activeTab = 'structure';
+        document.getElementById('snapshotTime').textContent = formatSnapshotTime(snapshotAt);
+        document.getElementById('searchInput').value = '';
+        document.getElementById('reportPromptOverlay').classList.remove('show');
+        document.getElementById('orientSeg').querySelectorAll('button').forEach(function(b){ b.classList.toggle('active', b.getAttribute('data-orient')==='vertical'); });
+        closePanel();
+        closeGlobalTransfer();
+        wrap.style.opacity = '';
+        document.querySelector('.scope-tag').textContent = t('scopeTagLoaded')({nodeCount:nodes.length, empCount:employees.length});
+        render();
+        if(data.counts && data.counts.unmatchedEmployees){
+          toast(LANG==='zh'
+            ? data.counts.unmatchedEmployees + ' 名员工的部门在 Lark Structures 里找不到匹配，已归入"Unassigned"'
+            : data.counts.unmatchedEmployees + ' employee(s) could not be matched to a Lark Structures department — filed under "Unassigned"');
+        }
+      })
+      .catch(function(err){
+        wrap.style.opacity = '';
+        if(err.message!=='not-authenticated') showLoadError((LANG==='zh'?'加载失败：':'Load failed: ') + err.message);
+      });
   }
 
   function getNode(id){ for(var i=0;i<nodes.length;i++) if(nodes[i].id===id) return nodes[i]; return null; }
@@ -1028,7 +1020,7 @@
     renderEmployees();
     renderPanel();
     var pill = document.getElementById('focusPill');
-    if(viewRootId!=='bu-root'){ pill.classList.add('show'); document.getElementById('focusPillText').textContent = t('focusLabel')(getNode(viewRootId).name); }
+    if(viewRootId!==rootId){ pill.classList.add('show'); document.getElementById('focusPillText').textContent = t('focusLabel')(getNode(viewRootId).name); }
     else pill.classList.remove('show');
   }
 
@@ -1081,7 +1073,6 @@
   document.getElementById('downloadLogBtn').addEventListener('click', function(){ downloadCsv(t('csvLogFilename'), logRows()); });
   document.getElementById('copyEmpBtn').addEventListener('click', function(){ copyText(empRows().map(function(r){ return r.join('\t'); }).join('\n')); });
   document.getElementById('downloadEmpBtn').addEventListener('click', function(){ downloadCsv(t('csvEmpFilename'), empRows()); });
-  document.getElementById('resetBtn').addEventListener('click', function(){ init(); toast(t('toastReset')); });
   document.getElementById('editCloseBtn').addEventListener('click', closePanel);
   document.getElementById('panelBackdrop').addEventListener('click', closePanel);
   document.addEventListener('keydown', function(ev){ if(ev.key==='Escape' && selectedId) closePanel(); });
@@ -1126,7 +1117,7 @@
   document.addEventListener('click', function(ev){
     if(!ev.target.closest('.search-box')) document.getElementById('searchResults').classList.remove('show');
   });
-  document.getElementById('clearFocus').addEventListener('click', function(){ viewRootId='bu-root'; render(); });
+  document.getElementById('clearFocus').addEventListener('click', function(){ viewRootId=rootId; render(); });
   window.addEventListener('resize', function(){ if(nodes) drawConnectors(); });
 
   // ---------- global employee transfer modal ----------
@@ -1342,26 +1333,67 @@
     }
   });
 
-  // ---------- login (simulated — real Lark OAuth cannot run inside this sandbox) ----------
-  document.getElementById('loginBtn').addEventListener('click', function(){
-    var card = document.getElementById('loginCard');
-    card.classList.add('loading');
-    document.getElementById('loginBtnText').textContent = t('loginBtnTextLoading');
-    setTimeout(function(){
-      document.getElementById('loginOverlay').style.display = 'none';
-      document.getElementById('userName').textContent = 'Celeste JOVENIR';
-      document.getElementById('app').classList.add('ready');
-      card.classList.remove('loading');
-      init();
-    }, 650);
+  // ---------- generic confirm modal (used by "refresh", which can now discard real local edits) ----------
+  var pendingConfirm = null;
+  function showConfirm(title, message, okLabel, onConfirm){
+    pendingConfirm = onConfirm;
+    document.getElementById('confirmTitle').textContent = title;
+    document.getElementById('confirmText').textContent = message;
+    document.getElementById('confirmOkBtn').textContent = okLabel;
+    document.getElementById('confirmOverlay').classList.add('show');
+  }
+  document.getElementById('confirmOkBtn').addEventListener('click', function(){
+    document.getElementById('confirmOverlay').classList.remove('show');
+    var fn = pendingConfirm; pendingConfirm = null;
+    if(fn) fn();
   });
-  document.getElementById('logoutBtn').addEventListener('click', function(){
+  document.getElementById('confirmCancelBtn').addEventListener('click', function(){
+    document.getElementById('confirmOverlay').classList.remove('show');
+    pendingConfirm = null;
+  });
+
+  // ---------- real Lark login/logout (redirects through the Vercel serverless functions in /api) ----------
+  function showLoginOverlay(){
     document.getElementById('app').classList.remove('ready');
     document.getElementById('loginOverlay').style.display = 'flex';
     document.getElementById('loginCard').classList.remove('loading');
     document.getElementById('loginBtnText').textContent = t('loginBtnText');
-    closePanel();
+  }
+  document.getElementById('loginBtn').addEventListener('click', function(){
+    document.getElementById('loginCard').classList.add('loading');
+    document.getElementById('loginBtnText').textContent = t('loginBtnTextLoading');
+    window.location.href = '/api/auth/login';
+  });
+  document.getElementById('logoutBtn').addEventListener('click', function(){
+    window.location.href = '/api/auth/logout';
+  });
+  document.getElementById('refreshBtn').addEventListener('click', function(){
+    showConfirm(
+      t('refreshBtn'),
+      LANG==='zh' ? '会重新从 Base 拉取最新数据，当前未导出的本地编辑（重命名、移动、角色变更等）会被放弃，确定继续？' : 'This re-fetches the latest data from Base. Any unexported local edits (renames, moves, role changes, etc.) will be discarded. Continue?',
+      LANG==='zh' ? '确认刷新' : 'Refresh',
+      function(){
+        var btn = document.getElementById('refreshBtn');
+        btn.disabled = true;
+        btn.textContent = t('refreshBtnLoading');
+        init().then(function(){
+          btn.disabled = false;
+          btn.textContent = t('refreshBtn');
+        });
+      }
+    );
   });
 
+  // ---------- bootstrap: is there already a valid session? ----------
   applyStaticI18n();
+  fetch('/api/auth/me', {credentials:'same-origin'})
+    .then(function(res){ return res.ok ? res.json() : null; })
+    .then(function(me){
+      if(!me){ showLoginOverlay(); return; }
+      document.getElementById('loginOverlay').style.display = 'none';
+      document.getElementById('userName').textContent = me.name;
+      document.getElementById('app').classList.add('ready');
+      init();
+    })
+    .catch(function(){ showLoginOverlay(); });
 })();

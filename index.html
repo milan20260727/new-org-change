@@ -14,7 +14,7 @@
     <h1 data-i18n="loginTitle">组织架构调整工具</h1>
     <p data-i18n="loginSubtitle">需要登录后才能查看组织架构与员工数据</p>
     <button class="login-btn" id="loginBtn"><span class="dot"></span><span id="loginBtnText" data-i18n="loginBtnText">使用飞书账号登录</span></button>
-    <div class="login-note" data-i18n="loginNote">此 Demo 运行在 Claude Artifact 沙盒中，无法完成真实的飞书 OAuth 跳转与回调，这里用一次模拟登录代表该流程；正式版本会替换为真实的飞书第三方登录。</div>
+    <div class="login-note" id="loginError" style="display:none;"></div>
   </div>
 </div>
 
@@ -32,7 +32,6 @@
         <span data-i18n="snapshotLabel">数据快照时间：</span><span class="mono" id="snapshotTime">—</span>
         <button class="btn ghost" id="refreshBtn" data-i18n="refreshBtn">刷新数据</button>
       </div>
-      <button class="btn ghost" id="resetBtn" data-i18n="resetBtn">重置演示</button>
     </div>
   </div>
 
@@ -169,6 +168,17 @@
     <div class="gmodal-actions">
       <button class="btn ghost" id="reportPromptSkipBtn" data-i18n="skipBtn">保持不变</button>
       <button class="btn primary" id="reportPromptApplyBtn" data-i18n="applyReportBtn">更新汇报对象</button>
+    </div>
+  </div>
+</div>
+
+<div class="gmodal-overlay" id="confirmOverlay">
+  <div class="gmodal-box">
+    <h3 id="confirmTitle"></h3>
+    <p id="confirmText" style="font-size:12.5px; color:var(--ink-muted); line-height:1.7; margin:0 0 16px;"></p>
+    <div class="gmodal-actions">
+      <button class="btn ghost" id="confirmCancelBtn" data-i18n="cancelBtn">取消</button>
+      <button class="btn primary" id="confirmOkBtn"></button>
     </div>
   </div>
 </div>
