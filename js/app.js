@@ -61,6 +61,7 @@
       toastDeleteBlockedEmp:function(n){ return '还有 ' + n + ' 名员工尚未安置新部门'; },
       toastDeleted:'已标记删除', toastNothingToSave:'没有可保存的变更', toastSaved:'已保存变更',
       toastNeedName:'请填写新部门名称', toastAdded:'已新增部门',
+      toastNameDuplicate:'该名称已存在，请换一个', toastNameInvalidChars:'名称不能包含特殊符号（如 & - 等），只能使用文字、数字和空格',
       toastPickBulkTarget:'请先选择批量目标部门', toastCascaded:'已应用到所有下级部门',
       toastPickTransferTarget:'请先选择转移目标部门', toastTransferredN:function(n){ return '已转移 ' + n + ' 名员工'; },
       toastUndoDeleted:'已撤销删除', toastMovePending:'已选定目标，点击"保存"确认这次移动',
@@ -148,6 +149,7 @@
       toastDeleteBlockedEmp:function(n){ return n + ' employee(s) still need a new department'; },
       toastDeleted:'Marked as deleted', toastNothingToSave:'No changes to save', toastSaved:'Changes saved',
       toastNeedName:'Please enter a department name', toastAdded:'Department added',
+      toastNameDuplicate:'That name is already in use — pick another', toastNameInvalidChars:'Names can\'t contain special symbols (like & or -) — letters, numbers, and spaces only',
       toastPickBulkTarget:'Choose a bulk target department first', toastCascaded:'Applied to all sub-departments',
       toastPickTransferTarget:'Choose a transfer target department first', toastTransferredN:function(n){ return 'Transferred ' + n + ' employee(s)'; },
       toastUndoDeleted:'Deletion undone', toastMovePending:'Target selected — click "Save" to confirm the move',
@@ -195,6 +197,31 @@
   var rootId = 'root';
 
   var nodes, employees, log, selectedId, viewRootId, orientation, logSeq, tempCounter, dragSrcId, pendingEdit, activeTab, createDraft, rosterSelected, rosterBulkTarget, gmodalEmp, gmodalOrg, pendingReportPrompt, snapshotAt, unassignedId, unassignedTargets, collapsed, zoomPct;
+
+  // ---------- local persistence ----------
+  // Edits live only in this browser until exported — but a stray refresh (or closing the tab)
+  // shouldn't discard them. Everything needed to resume is mirrored to localStorage after every
+  // logged change; a real refetch (the "刷新数据" button) is the only thing that overwrites it.
+  var STORAGE_KEY = 'orgChangeToolState_v1';
+  function saveState(){
+    try{
+      localStorage.setItem(STORAGE_KEY, JSON.stringify({
+        rootId:rootId, nodes:nodes, employees:employees, log:log, logSeq:logSeq, tempCounter:tempCounter,
+        viewRootId:viewRootId, orientation:orientation, unassignedId:unassignedId, personPool:personPool,
+        snapshotAt: snapshotAt ? snapshotAt.toISOString() : null,
+        collapsed: collapsed ? Array.from(collapsed) : [], zoomPct: zoomPct
+      }));
+    }catch(e){ /* storage unavailable/full — editing still works, just won't survive a refresh */ }
+  }
+  function loadSavedState(){
+    try{
+      var raw = localStorage.getItem(STORAGE_KEY);
+      return raw ? JSON.parse(raw) : null;
+    }catch(e){ return null; }
+  }
+  function clearSavedState(){
+    try{ localStorage.removeItem(STORAGE_KEY); }catch(e){}
+  }
 
   function hydrateNodes(rawNodes){
     return rawNodes.map(function(n){
@@ -284,6 +311,44 @@
       });
   }
 
+  // Resumes exactly where a previous session left off — everything here was written by
+  // saveState() after the last logged change, so no network round-trip is needed. Only a real
+  // refetch (the "刷新数据" button, which calls init() instead) discards this and starts clean.
+  function restoreState(saved){
+    rootId = saved.rootId || 'root';
+    nodes = saved.nodes || [];
+    employees = saved.employees || [];
+    personPool = saved.personPool || [];
+    unassignedId = saved.unassignedId || null;
+    unassignedTargets = {};
+    collapsed = new Set(saved.collapsed || []);
+    zoomPct = saved.zoomPct || 100;
+    applyZoom();
+    snapshotAt = saved.snapshotAt ? new Date(saved.snapshotAt) : new Date();
+    log = saved.log || [];
+    logSeq = saved.logSeq || 1;
+    tempCounter = saved.tempCounter || 1;
+    selectedId = null;
+    viewRootId = saved.viewRootId || rootId;
+    orientation = saved.orientation || 'vertical';
+    dragSrcId = null;
+    pendingEdit = null;
+    createDraft = null;
+    rosterSelected = {};
+    rosterBulkTarget = '';
+    pendingReportPrompt = null;
+    activeTab = 'structure';
+    document.getElementById('snapshotTime').textContent = formatSnapshotTime(snapshotAt);
+    document.getElementById('searchInput').value = '';
+    document.getElementById('reportPromptOverlay').classList.remove('show');
+    document.getElementById('orientSeg').querySelectorAll('button').forEach(function(b){ b.classList.toggle('active', b.getAttribute('data-orient')===orientation); });
+    switchView('chart');
+    closePanel();
+    closeGlobalTransfer();
+    document.querySelector('.scope-tag').textContent = t('scopeTagLoaded')({nodeCount:nodes.length, empCount:employees.length});
+    render();
+  }
+
   function getNode(id){ for(var i=0;i<nodes.length;i++) if(nodes[i].id===id) return nodes[i]; return null; }
   function getChildren(id){ return nodes.filter(function(n){ return n.parentId===id; }); }
   function getGhosts(parentId){ return nodes.filter(function(n){ return n.movedFrom===parentId && n.parentId!==parentId; }); }
@@ -366,8 +431,27 @@
   // Rename / move / role fields upsert a single log line keyed to the node (and field, for roles),
   // always phrased as session-original → current. Reverting a change removes that line entirely,
   // so back-and-forth edits (move A→B→A, rename X→Y→X) show no net change instead of a process trail.
+  // Letters (any script) + digits + spaces only — no &, -, /, punctuation. Rejects renaming to
+  // a name already used elsewhere in the (non-deleted) tree, case-insensitive.
+  var NAME_CHAR_RE = /^[\p{L}\p{N}\s]+$/u;
+  function validateOrgName(val, excludeId){
+    val = (val||'').trim();
+    if(!val) return {ok:false, reason:'empty'};
+    if(!NAME_CHAR_RE.test(val)) return {ok:false, reason:'invalid_chars'};
+    var dup = nodes.some(function(x){ return x.id!==excludeId && !x.flags.isDeleted && x.name.toLowerCase()===val.toLowerCase(); });
+    if(dup) return {ok:false, reason:'duplicate'};
+    return {ok:true};
+  }
+  function toastNameError(reason){
+    toast(reason==='duplicate' ? t('toastNameDuplicate') : t('toastNameInvalidChars'));
+  }
+  // Returns {ok, reason} rather than a bare boolean so the caller can tell "nothing to do"
+  // apart from "rejected by validation" and show the right toast instead of clobbering it.
   function commitRename(n, val){
-    if(!val || val===n.name) return false;
+    val = (val||'').trim();
+    if(!val || val===n.name) return {ok:false, reason:'nochange'};
+    var check = validateOrgName(val, n.id);
+    if(!check.ok) return {ok:false, reason:check.reason};
     if(!n.flags.isRenamed){ n.origName = n.name; n.flags.isRenamed = true; }
     n.name = val;
     if(n.name === n.origName){
@@ -376,7 +460,7 @@
     } else {
       upsertLog('rename', n.id, {from:n.origName, to:n.name});
     }
-    return true;
+    return {ok:true};
   }
   function commitMove(n, targetId){
     if(!targetId || targetId===n.parentId || targetId===n.id || isDescendant(n.id, targetId)) return false;
@@ -464,13 +548,19 @@
   function commitCascade(n){
     var desc = getDescendants(n.id);
     if(!desc.length) return;
-    desc.forEach(function(d){
+    // beforeValues captures each descendant's value right before this cascade overwrote it —
+    // undo restores exactly that (not session-original), so an earlier legitimate edit that
+    // predates this cascade isn't silently wiped out along with it.
+    var beforeValues = desc.map(function(d){
       if(!d.origRoles) d.origRoles = {pic:d.pic, hrbp1:d.hrbp1, hrbp2:d.hrbp2, da:d.da};
+      return {id:d.id, hrbp1:d.hrbp1, hrbp2:d.hrbp2, da:d.da};
+    });
+    desc.forEach(function(d){
       d.hrbp1 = n.hrbp1; d.hrbp2 = n.hrbp2; d.da = n.da;
       // the batch summary line below supersedes any individual role_change entries for these fields
       ['hrbp1','hrbp2','da'].forEach(function(field){ removeLog('role_change', d.id+'#'+field); });
     });
-    addLog('role_cascade', {name:n.name, count:desc.length});
+    addLog('role_cascade', {name:n.name, count:desc.length, beforeValues:beforeValues});
   }
 
   // BIPO ("LAST, First Middle") and Lark/PIC ("First Last") name formats differ — the same
@@ -502,6 +592,7 @@
       var e = employees.filter(function(x){ return x.eid===l.params.eid; })[0];
       return !!e && !!l.params.toId && e.nodeId===l.params.toId;
     }
+    if(l.typeKey==='role_cascade'){ return !!(l.params.beforeValues && l.params.beforeValues.length); }
     return false;
   }
   function undoLogEntry(l){
@@ -526,6 +617,16 @@
         commitEmployeeTransfer(e, l.params.fromId, true);
         log = log.filter(function(x){ return x.seq!==l.seq; });
       }
+    }
+    else if(l.typeKey==='role_cascade'){
+      (l.params.beforeValues||[]).forEach(function(bv){
+        var d = getNode(bv.id);
+        if(!d) return;
+        commitRoleChange(d, 'hrbp1', bv.hrbp1);
+        commitRoleChange(d, 'hrbp2', bv.hrbp2);
+        commitRoleChange(d, 'da', bv.da);
+      });
+      log = log.filter(function(x){ return x.seq!==l.seq; });
     }
   }
   function maybePromptReportChange(n){
@@ -590,7 +691,11 @@
       toast(t('toastDeleted')); closePanel(); render(); return;
     }
     var did = false, moved = false;
-    if(pendingEdit.rename.on) did = commitRename(n, (pendingEdit.rename.value||'').trim()) || did;
+    if(pendingEdit.rename.on){
+      var renameRes = commitRename(n, (pendingEdit.rename.value||'').trim());
+      if(!renameRes.ok && renameRes.reason!=='nochange'){ toastNameError(renameRes.reason); return; }
+      did = renameRes.ok || did;
+    }
     if(pendingEdit.move.on){ moved = commitMove(n, pendingEdit.move.target); did = moved || did; }
     if(!did){ toast(t('toastNothingToSave')); return; }
     closePanel(); render();
@@ -601,6 +706,8 @@
   function saveCreateChild(){
     var parent = getNode(selectedId); if(!parent) return;
     if(!(createDraft.name||'').trim()){ toast(t('toastNeedName')); return; }
+    var check = validateOrgName(createDraft.name, null);
+    if(!check.ok){ toastNameError(check.reason); return; }
     var newNode = commitAddChild(parent, createDraft);
     if(!newNode){ toast(t('toastNeedName')); return; }
     toast(t('toastAdded')); closePanel(); render();
@@ -1144,6 +1251,7 @@
   function renderLog(){
     var body = document.getElementById('logBody');
     document.getElementById('logCount').textContent = log.length + (t('unitRecords') ? ' ' + t('unitRecords') : '');
+    saveState();
     if(!log.length){ body.innerHTML = '<tr><td colspan="4" class="empty-note">'+escapeHtml(t('logEmptyNote'))+'</td></tr>'; return; }
     body.innerHTML = log.map(function(l){
       var action = canUndoLogEntry(l) ? '<button class="btn ghost" type="button" data-undo-seq="'+l.seq+'">'+escapeHtml(t('undoBtn'))+'</button>' : '';
@@ -1574,6 +1682,7 @@
     window.location.href = '/api/auth/login';
   });
   document.getElementById('logoutBtn').addEventListener('click', function(){
+    clearSavedState();
     window.location.href = '/api/auth/logout';
   });
   document.getElementById('refreshBtn').addEventListener('click', function(){
@@ -1602,7 +1711,8 @@
       document.getElementById('loginOverlay').style.display = 'none';
       document.getElementById('userName').textContent = me.name;
       document.getElementById('app').classList.add('ready');
-      init();
+      var saved = loadSavedState();
+      if(saved) restoreState(saved); else init();
     })
     .catch(function(){ showLoginOverlay(); });
 })();
