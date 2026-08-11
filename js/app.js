@@ -15,6 +15,11 @@
       adminTransferOwnerBtn:'转为最高管理员', adminRemoveBtn:'移除',
       adminRemoveConfirm:'确定要移除该用户的访问权限吗？', adminTransferOwnerConfirm:'确定要把最高管理员身份转移给该用户吗？转移后你会变成高级管理员。',
       adminSaved:'已保存', adminNeedEmail:'请填写邮箱', adminOnlyOwnerGrantsSenior:'只有最高管理员能设置高级管理员',
+      editWindowTitle:'编辑时间窗口',
+      editWindowHint:'只有在此时间范围内才能编辑组织架构（重命名、移动、删除、角色变更、员工调动等）。开始/结束都留空则不限制编辑时间。',
+      editWindowStartLabel:'开始时间', editWindowEndLabel:'结束时间', editWindowClearBtn:'清除限制',
+      editWindowInvalidRange:'开始时间必须早于结束时间',
+      editWindowLockedBanner:function(range){ return '当前不在允许编辑的时间段内' + (range?'（'+range+'）':'') + '，编辑功能已暂时隐藏。'; },
       pageTitle:'组织架构调整工具',
       scopeTag:'正在加载组织数据…',
       scopeTagLoaded:function(p){ return '共 ' + p.nodeCount + ' 个组织节点 · ' + p.empCount + ' 名在职员工 · 数据来自 Lark Base'; },
@@ -27,7 +32,7 @@
       orientLabel:'查看方向', orientVertical:'纵向', orientHorizontal:'横向',
       langLabel:'语言', downloadPngBtn:'下载组织架构图（PNG）',
       legendNew:'新增', legendDelete:'删除', legendMoved:'移动', legendGhost:'影子（原位置）', legendRenamed:'已改名', legendRoleWarn:'⚠ 角色不一致',
-      changeLogTitle:'变更记录', unitRecords:'条', colType:'类型', colDetail:'详情', colAction:'操作', undoBtn:'撤销',
+      changeLogTitle:'变更记录', unitRecords:'条', colType:'类型', colDetail:'详情', colEditor:'编辑人', colAction:'操作', undoBtn:'撤销',
       logEmptyNote:'暂无变更，点一个部门框试试', copyLogBtn:'复制变更（可直接粘贴到 Base）', downloadCsvBtn:'下载 CSV',
       affectedEmpTitle:'受影响员工', unitPeople:'人', colName:'姓名', colPathChange:'原组织架构 → 新组织架构', colReportsTo:'汇报对象',
       colDivision:'Division', colBusinessUnit:'Business Unit', colDepartment:'Department', colTeam:'Team', colSubTeam:'Sub Team', colSection:'Section', colStatus:'Status', colHrbpLead:'HRBP Lead',
@@ -117,6 +122,11 @@
       adminTransferOwnerBtn:'Make Owner', adminRemoveBtn:'Remove',
       adminRemoveConfirm:"Revoke this user's access?", adminTransferOwnerConfirm:'Transfer Owner to this user? You will become a Senior Admin.',
       adminSaved:'Saved', adminNeedEmail:'Please enter an email', adminOnlyOwnerGrantsSenior:'Only the Owner can grant Senior Admin',
+      editWindowTitle:'Edit window',
+      editWindowHint:'Editing the org structure (rename, move, delete, role changes, employee transfers, etc.) is only allowed within this time range. Leave both blank to remove the restriction.',
+      editWindowStartLabel:'Start time', editWindowEndLabel:'End time', editWindowClearBtn:'Clear restriction',
+      editWindowInvalidRange:'Start time must be before end time',
+      editWindowLockedBanner:function(range){ return "You're outside the allowed editing window" + (range?' ('+range+')':'') + ' — editing controls are hidden for now.'; },
       pageTitle:'Org Structure Change Tool',
       scopeTag:'Loading org data…',
       scopeTagLoaded:function(p){ return p.nodeCount + ' org units · ' + p.empCount + ' active employees · live from Lark Base'; },
@@ -129,7 +139,7 @@
       orientLabel:'Layout', orientVertical:'Vertical', orientHorizontal:'Horizontal',
       langLabel:'Language', downloadPngBtn:'Download chart (PNG)',
       legendNew:'New', legendDelete:'Deleted', legendMoved:'Moved', legendGhost:'Ghost (old spot)', legendRenamed:'Renamed', legendRoleWarn:'⚠ Role inconsistent',
-      changeLogTitle:'Change log', unitRecords:'', colType:'Type', colDetail:'Detail', colAction:'Action', undoBtn:'Undo',
+      changeLogTitle:'Change log', unitRecords:'', colType:'Type', colDetail:'Detail', colEditor:'Editor', colAction:'Action', undoBtn:'Undo',
       logEmptyNote:'No changes yet — try clicking a department box', copyLogBtn:'Copy changes (paste directly into Base)', downloadCsvBtn:'Download CSV',
       affectedEmpTitle:'Affected employees', unitPeople:'', colName:'Name', colPathChange:'Old org → New org', colReportsTo:'Reports to',
       colDivision:'Division', colBusinessUnit:'Business Unit', colDepartment:'Department', colTeam:'Team', colSubTeam:'Sub Team', colSection:'Section', colStatus:'Status', colHrbpLead:'HRBP Lead',
@@ -224,8 +234,32 @@
 
   // ---------- role (Owner/Senior Admin/Editor/Viewer, resolved server-side at login) ----------
   var currentUserRole = null;
-  function canEdit(){ return currentUserRole==='Editor' || currentUserRole==='Senior Admin' || currentUserRole==='Owner'; }
+  var currentUserName = '';
+  // Tool-wide edit window (start/end are datetime-local strings, e.g. "2026-08-20T09:00", or
+  // null for "no restriction"), fetched from /api/settings/edit-window. No role is exempt —
+  // Senior Admin/Owner are locked out of editing the org data too, same as Editor; only access
+  // to the admin page itself (and this setting) stays ungated, or nobody could ever reopen it.
+  var editWindow = {start:null, end:null};
+  function isWithinEditWindow(){
+    if(!editWindow.start && !editWindow.end) return true;
+    var now = new Date();
+    if(editWindow.start && now < new Date(editWindow.start)) return false;
+    if(editWindow.end && now > new Date(editWindow.end)) return false;
+    return true;
+  }
+  function canEdit(){ return (currentUserRole==='Editor' || currentUserRole==='Senior Admin' || currentUserRole==='Owner') && isWithinEditWindow(); }
   function isAdminRole(){ return currentUserRole==='Senior Admin' || currentUserRole==='Owner'; }
+  function formatEditWindowRange(){
+    var s = editWindow.start ? editWindow.start.replace('T',' ') : '';
+    var e = editWindow.end ? editWindow.end.replace('T',' ') : '';
+    return s && e ? (s + ' → ' + e) : (s || e);
+  }
+  function fetchEditWindow(){
+    return fetch('/api/settings/edit-window', {credentials:'same-origin'})
+      .then(function(res){ return res.ok ? res.json() : {start:null, end:null}; })
+      .then(function(data){ editWindow = {start:data.start||null, end:data.end||null}; })
+      .catch(function(){});
+  }
 
   // ---------- live data (fetched from /api/org-data, which reads Lark Base on every call) ----------
   var personPool = [];
@@ -439,14 +473,14 @@
   // Log entries store a typeKey + structured params, formatted into display text at render
   // time via STR[LANG] — this is what lets the language toggle re-render existing history
   // correctly, instead of freezing whatever language was active when each entry was created.
-  function addLog(typeKey, params, key){ log.push({seq:logSeq++, typeKey:typeKey, params:params||{}, key:key||null}); }
+  function addLog(typeKey, params, key){ log.push({seq:logSeq++, typeKey:typeKey, params:params||{}, key:key||null, by:currentUserName}); }
   // Rename / move / role-change are reversible within a session — upsertLog keeps exactly ONE
   // entry per (typeKey, key), always describing session-original → current, so undoing an edit
   // (or moving a department out and back) removes the noise instead of leaving a "process" trail.
   function upsertLog(typeKey, key, params){
     var existing = log.filter(function(l){ return l.typeKey===typeKey && l.key===key; })[0];
-    if(existing) existing.params = params;
-    else log.push({seq:logSeq++, typeKey:typeKey, params:params, key:key});
+    if(existing){ existing.params = params; existing.by = currentUserName; }
+    else log.push({seq:logSeq++, typeKey:typeKey, params:params, key:key, by:currentUserName});
   }
   function removeLog(typeKey, key){ log = log.filter(function(l){ return !(l.typeKey===typeKey && l.key===key); }); }
   function removeAllLogsForNode(nodeId){
@@ -1322,14 +1356,14 @@
     svg.innerHTML = paths.join('');
   }
 
-  function renderLog(){
-    var body = document.getElementById('logBody');
-    document.getElementById('logCount').textContent = log.length + (t('unitRecords') ? ' ' + t('unitRecords') : '');
-    saveState();
-    if(!log.length){ body.innerHTML = '<tr><td colspan="4" class="empty-note">'+escapeHtml(t('logEmptyNote'))+'</td></tr>'; return; }
+  // The compact panel (inside the chart view) and the full-page "变更记录" tab show the exact
+  // same log — rendered into both tbodies so neither ever falls out of sync with the other.
+  function renderLogInto(bodyId){
+    var body = document.getElementById(bodyId);
+    if(!log.length){ body.innerHTML = '<tr><td colspan="5" class="empty-note">'+escapeHtml(t('logEmptyNote'))+'</td></tr>'; return; }
     body.innerHTML = log.map(function(l){
       var action = canUndoLogEntry(l) ? '<button class="btn ghost" type="button" data-undo-seq="'+l.seq+'">'+escapeHtml(t('undoBtn'))+'</button>' : '';
-      return '<tr><td class="mono">'+l.seq+'</td><td>'+escapeHtml(formatLogType(l))+'</td><td>'+escapeHtml(formatLogDetail(l))+'</td><td>'+action+'</td></tr>';
+      return '<tr><td class="mono">'+l.seq+'</td><td>'+escapeHtml(formatLogType(l))+'</td><td>'+escapeHtml(formatLogDetail(l))+'</td><td>'+escapeHtml(l.by||'')+'</td><td>'+action+'</td></tr>';
     }).join('');
     body.querySelectorAll('[data-undo-seq]').forEach(function(btn){
       btn.addEventListener('click', function(){
@@ -1340,6 +1374,15 @@
         renderTree(); renderLog(); renderEmployees(); renderUnassigned(); renderPanel();
       });
     });
+  }
+  function renderLog(){
+    var countText = log.length + (t('unitRecords') ? ' ' + t('unitRecords') : '');
+    document.getElementById('logCount').textContent = countText;
+    document.getElementById('changelogCount').textContent = countText;
+    document.getElementById('viewChangelogCount').textContent = log.length;
+    saveState();
+    renderLogInto('logBody');
+    renderLogInto('changelogBody');
   }
 
   function computeImpacted(){
@@ -1407,8 +1450,9 @@
     document.querySelectorAll('#viewTabs button').forEach(function(b){ b.classList.toggle('active', b.getAttribute('data-view')===view); });
     document.getElementById('chartView').style.display = view==='chart' ? '' : 'none';
     document.getElementById('unassignedView').style.display = view==='unassigned' ? '' : 'none';
+    document.getElementById('changelogView').style.display = view==='changelog' ? '' : 'none';
     document.getElementById('adminView').style.display = view==='admin' ? '' : 'none';
-    if(view==='admin') renderAdmin();
+    if(view==='admin'){ renderAdmin(); renderEditWindowSettings(); }
   }
   document.getElementById('viewTabs').addEventListener('click', function(ev){
     var btn = ev.target.closest('button[data-view]'); if(!btn) return;
@@ -1420,6 +1464,14 @@
     document.getElementById('viewAdminBtn').style.display = isAdminRole() ? '' : 'none';
     document.getElementById('globalTransferBtn').style.display = canEdit() ? '' : 'none';
     document.getElementById('addOrgBtn').style.display = canEdit() ? '' : 'none';
+    var roleAllowsEdit = currentUserRole==='Editor' || currentUserRole==='Senior Admin' || currentUserRole==='Owner';
+    var banner = document.getElementById('editWindowBanner');
+    if(roleAllowsEdit && !isWithinEditWindow()){
+      banner.style.display = '';
+      banner.textContent = t('editWindowLockedBanner')(formatEditWindowRange());
+    } else {
+      banner.style.display = 'none';
+    }
   }
 
   var ROLE_OPTIONS = ['Viewer', 'Editor', 'Senior Admin', 'Owner'];
@@ -1502,6 +1554,32 @@
         renderAdmin();
       })
       .catch(function(err){ toast(err.message); });
+  });
+
+  function renderEditWindowSettings(){
+    document.getElementById('editWindowStart').value = editWindow.start || '';
+    document.getElementById('editWindowEnd').value = editWindow.end || '';
+    document.getElementById('editWindowStatus').textContent = '';
+  }
+  function saveEditWindow(start, end){
+    fetch('/api/settings/edit-window', {method:'POST', credentials:'same-origin', headers:{'Content-Type':'application/json'}, body:JSON.stringify({start:start, end:end})})
+      .then(function(res){ return res.json().then(function(j){ if(!res.ok) throw new Error(j.error||'error'); return j; }); })
+      .then(function(){
+        editWindow = {start:start, end:end};
+        toast(t('adminSaved'));
+        renderEditWindowSettings();
+        applyRoleGating(); renderPanel();
+      })
+      .catch(function(err){ toast(err.message); });
+  }
+  document.getElementById('editWindowSaveBtn').addEventListener('click', function(){
+    var start = document.getElementById('editWindowStart').value || null;
+    var end = document.getElementById('editWindowEnd').value || null;
+    if(start && end && start > end){ toast(t('editWindowInvalidRange')); return; }
+    saveEditWindow(start, end);
+  });
+  document.getElementById('editWindowClearBtn').addEventListener('click', function(){
+    saveEditWindow(null, null);
   });
 
   function render(){
@@ -1663,6 +1741,8 @@
   // headers itself; only the data rows are needed).
   document.getElementById('copyLogBtn').addEventListener('click', function(){ copyText(buildOrgChangeRows().slice(1).map(function(r){ return r.join('\t'); }).join('\n')); });
   document.getElementById('downloadLogBtn').addEventListener('click', function(){ downloadCsv(ct('csvOrgChangeFilename'), buildOrgChangeRows()); });
+  document.getElementById('copyChangelogBtn').addEventListener('click', function(){ copyText(buildOrgChangeRows().slice(1).map(function(r){ return r.join('\t'); }).join('\n')); });
+  document.getElementById('downloadChangelogBtn').addEventListener('click', function(){ downloadCsv(ct('csvOrgChangeFilename'), buildOrgChangeRows()); });
   document.getElementById('copyEmpBtn').addEventListener('click', function(){ copyText(buildPersonnelRows().slice(1).map(function(r){ return r.join('\t'); }).join('\n')); });
   document.getElementById('downloadEmpBtn').addEventListener('click', function(){ downloadCsv(ct('csvPersonnelFilename'), buildPersonnelRows()); });
   document.getElementById('editCloseBtn').addEventListener('click', closePanel);
@@ -1978,6 +2058,7 @@
     .then(function(res){ return res.ok ? res.json() : null; })
     .then(function(me){
       if(!me){ showLoginOverlay(); return; }
+      currentUserName = me.name || '';
       document.getElementById('userName').textContent = me.name;
       return fetch('/api/permissions/me', {credentials:'same-origin'})
         .then(function(res){ return res.ok ? res.json() : {role:null}; })
@@ -1988,11 +2069,20 @@
             document.getElementById('noAccessOverlay').style.display = 'flex';
             return;
           }
-          applyRoleGating();
-          document.getElementById('app').classList.add('ready');
-          var saved = loadSavedState();
-          if(saved) restoreState(saved); else init();
+          return fetchEditWindow().then(function(){
+            applyRoleGating();
+            document.getElementById('app').classList.add('ready');
+            var saved = loadSavedState();
+            if(saved) restoreState(saved); else init();
+          });
         });
     })
     .catch(function(){ showLoginOverlay(); });
+
+  // Catches the edit window opening/closing while the tab is left open, without needing a
+  // refresh — re-pulls the setting (an admin may have changed it) and re-evaluates gating.
+  setInterval(function(){
+    if(!currentUserRole) return;
+    fetchEditWindow().then(function(){ applyRoleGating(); renderPanel(); });
+  }, 60000);
 })();
