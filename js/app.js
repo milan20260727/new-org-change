@@ -6,6 +6,15 @@
     zh: {
       loginTitle:'组织架构调整工具', loginSubtitle:'需要登录后才能查看组织架构与员工数据',
       loginBtnText:'使用飞书账号登录', loginBtnTextLoading:'登录中…',
+      noAccessTitle:'暂无访问权限', noAccessSubtitle:'你的飞书账号还没有被授权使用这个工具，请联系管理员开通访问权限。',
+      viewAdmin:'管理员', adminTitle:'管理员',
+      adminEmailPh:'邮箱', adminNamePh:'姓名（可选）', adminAddBtn:'添加',
+      adminColEmail:'邮箱', adminColRole:'角色',
+      roleOwner:'最高管理员', roleSeniorAdmin:'高级管理员', roleEditor:'编辑用户', roleViewer:'访问用户',
+      adminLoading:'加载中…', adminNoUsers:'还没有添加任何用户',
+      adminTransferOwnerBtn:'转为最高管理员', adminRemoveBtn:'移除',
+      adminRemoveConfirm:'确定要移除该用户的访问权限吗？', adminTransferOwnerConfirm:'确定要把最高管理员身份转移给该用户吗？转移后你会变成高级管理员。',
+      adminSaved:'已保存', adminNeedEmail:'请填写邮箱', adminOnlyOwnerGrantsSenior:'只有最高管理员能设置高级管理员',
       pageTitle:'组织架构调整工具',
       scopeTag:'正在加载组织数据…',
       scopeTagLoaded:function(p){ return '共 ' + p.nodeCount + ' 个组织节点 · ' + p.empCount + ' 名在职员工 · 数据来自 Lark Base'; },
@@ -53,7 +62,7 @@
 
       roleWarnHeader:'⚠ 下级部门角色需要核查：', roleOkBox:'✓ 该分支下的 HRBP / Department Assistant 设置一致。',
       roleDiffers:'下级部门取值不一致', roleBlank:'存在未设置（空值）',
-      cascadeBtn:'应用到所有下级部门（HRBP1/HRBP2/Dept. Assistant）',
+      cascadeBtn:'应用到所有下级部门（HRBP1/HRBP2/HRBP Lead/Dept. Assistant）',
       rosterEmptyNote:'该部门目前没有直属员工。', rosterTargetPlaceholder:'转移目标部门…',
       pickerSearchPh:'从 Lark User 中搜索姓名…', clearRoleOption:'清空该角色', noMatchResult:'无匹配结果', noMatchDept:'无匹配部门', noMatchEmp:'无匹配员工',
 
@@ -74,7 +83,7 @@
 
       reportPromptText:function(p){ return '「' + p.dept + '」已移动到「' + p.parent + '」下。是否把负责人「' + p.pic + '」的直属汇报对象，从「' + (p.from||STR.zh.empty) + '」改为「' + p.to + '」？'; },
 
-      role_pic:'PIC', role_hrbp1:'HRBP1', role_hrbp2:'HRBP2', role_da:'Department Assistant',
+      role_pic:'PIC', role_hrbp1:'HRBP1', role_hrbp2:'HRBP2', role_hrbpLead:'HRBP Lead', role_da:'Department Assistant',
 
       logType:{ rename:'重命名', move:'移动', add:'新增', emp_transfer:'员工调动', delete:'删除', undo_delete:'撤销删除', role_change:'角色变更', role_cascade:'角色批量应用', report_change:'汇报关系变更' },
       logDetail:{
@@ -89,11 +98,24 @@
         report_change: function(p){ return p.name + '：直属主管 ' + (p.from || STR.zh.empty) + ' → ' + p.to; }
       },
       csvLogHeaders:['操作类型','详情'], csvEmpHeaders:['EID','姓名','原部门','新部门'],
-      csvLogFilename:'组织架构变更记录.csv', csvEmpFilename:'员工变更清单.csv'
+      csvLogFilename:'组织架构变更记录.csv', csvEmpFilename:'员工变更清单.csv',
+      csvOrgChangeHeaders:['变更类型','变更前的组织架构名','变更前PIC','变更前HRBP1','变更前HRBP2','变更前Assistant','变更后的组织架构名','变更后PIC','变更后HRBP1','变更后HRBP2','变更后Assistant'],
+      csvPersonnelHeaders:['EID','员工名','变更类型','变更前的组织架构','变更前汇报对象','变更后组织架构','变更后汇报对象','变更后的HRBP1','变更后的HRBP2','变更后的HRBP Lead','备注'],
+      csvOrgChangeFilename:'组织变更记录.csv', csvPersonnelFilename:'人员变更记录.csv',
+      empChangeTransfer:'员工调动', empChangeReport:'汇报关系变更', empChangeRestructure:'部门调整'
     },
     en: {
       loginTitle:'Org Structure Change Tool', loginSubtitle:'Sign in to view the org structure and employee data',
       loginBtnText:'Sign in with Lark', loginBtnTextLoading:'Signing in…',
+      noAccessTitle:'No access yet', noAccessSubtitle:"Your Lark account hasn't been granted access to this tool yet — ask an admin to add you.",
+      viewAdmin:'Admin', adminTitle:'Admin',
+      adminEmailPh:'Email', adminNamePh:'Name (optional)', adminAddBtn:'Add',
+      adminColEmail:'Email', adminColRole:'Role',
+      roleOwner:'Owner', roleSeniorAdmin:'Senior Admin', roleEditor:'Editor', roleViewer:'Viewer',
+      adminLoading:'Loading…', adminNoUsers:'No users added yet',
+      adminTransferOwnerBtn:'Make Owner', adminRemoveBtn:'Remove',
+      adminRemoveConfirm:"Revoke this user's access?", adminTransferOwnerConfirm:'Transfer Owner to this user? You will become a Senior Admin.',
+      adminSaved:'Saved', adminNeedEmail:'Please enter an email', adminOnlyOwnerGrantsSenior:'Only the Owner can grant Senior Admin',
       pageTitle:'Org Structure Change Tool',
       scopeTag:'Loading org data…',
       scopeTagLoaded:function(p){ return p.nodeCount + ' org units · ' + p.empCount + ' active employees · live from Lark Base'; },
@@ -141,7 +163,7 @@
 
       roleWarnHeader:'⚠ Roles need review in sub-departments:', roleOkBox:'✓ HRBP / Department Assistant are consistent across this branch.',
       roleDiffers:'values differ among sub-departments', roleBlank:'not set somewhere (blank)',
-      cascadeBtn:'Apply to all sub-departments (HRBP1/HRBP2/Dept. Assistant)',
+      cascadeBtn:'Apply to all sub-departments (HRBP1/HRBP2/HRBP Lead/Dept. Assistant)',
       rosterEmptyNote:'No employees report directly to this department.', rosterTargetPlaceholder:'Transfer target department…',
       pickerSearchPh:'Search names from Lark User…', clearRoleOption:'Clear this role', noMatchResult:'No matches', noMatchDept:'No matching department', noMatchEmp:'No matching employee',
 
@@ -162,7 +184,7 @@
 
       reportPromptText:function(p){ return '"' + p.dept + '" moved under "' + p.parent + '". Update the reporting line for its PIC "' + p.pic + '" from "' + (p.from||STR.en.empty) + '" to "' + p.to + '"?'; },
 
-      role_pic:'PIC', role_hrbp1:'HRBP1', role_hrbp2:'HRBP2', role_da:'Department Assistant',
+      role_pic:'PIC', role_hrbp1:'HRBP1', role_hrbp2:'HRBP2', role_hrbpLead:'HRBP Lead', role_da:'Department Assistant',
 
       logType:{ rename:'Rename', move:'Move', add:'Add', emp_transfer:'Transfer', delete:'Delete', undo_delete:'Undo delete', role_change:'Role change', role_cascade:'Role cascade', report_change:'Reporting line' },
       logDetail:{
@@ -177,7 +199,11 @@
         report_change: function(p){ return p.name + ': direct manager ' + (p.from || STR.en.empty) + ' → ' + p.to; }
       },
       csvLogHeaders:['Type','Detail'], csvEmpHeaders:['EID','Name','Old department','New department'],
-      csvLogFilename:'org-change-log.csv', csvEmpFilename:'employee-changes.csv'
+      csvLogFilename:'org-change-log.csv', csvEmpFilename:'employee-changes.csv',
+      csvOrgChangeHeaders:['Change Type','Org Unit Before','PIC Before','HRBP1 Before','HRBP2 Before','Assistant Before','Org Unit After','PIC After','HRBP1 After','HRBP2 After','Assistant After'],
+      csvPersonnelHeaders:['EID','Name','Change Type','Dept Before','Reports-to Before','Dept After','Reports-to After','HRBP1 After','HRBP2 After','HRBP Lead After','Notes'],
+      csvOrgChangeFilename:'org-change-record.csv', csvPersonnelFilename:'personnel-change-record.csv',
+      empChangeTransfer:'Transferred', empChangeReport:'Reporting line changed', empChangeRestructure:'Department restructured'
     }
   };
   function t(key){ var v = STR[LANG][key]; return v===undefined ? key : v; }
@@ -191,6 +217,11 @@
     var loginBtnText = document.getElementById('loginBtnText');
     if(loginBtnText && !document.getElementById('loginCard').classList.contains('loading')) loginBtnText.textContent = t('loginBtnText');
   }
+
+  // ---------- role (Owner/Senior Admin/Editor/Viewer, resolved server-side at login) ----------
+  var currentUserRole = null;
+  function canEdit(){ return currentUserRole==='Editor' || currentUserRole==='Senior Admin' || currentUserRole==='Owner'; }
+  function isAdminRole(){ return currentUserRole==='Senior Admin' || currentUserRole==='Owner'; }
 
   // ---------- live data (fetched from /api/org-data, which reads Lark Base on every call) ----------
   var personPool = [];
@@ -227,7 +258,7 @@
     return rawNodes.map(function(n){
       return {id:n.id, name:n.name, origName:n.name, parentId:n.parentId,
         inactive: !!n.inactive, movedFrom:null, restoreLog:null,
-        pic:n.pic||'', hrbp1:n.hrbp1||'', hrbp2:n.hrbp2||'', da:n.da||'', origRoles:null,
+        pic:n.pic||'', hrbp1:n.hrbp1||'', hrbp2:n.hrbp2||'', hrbpLead:n.hrbpLead||'', da:n.da||'', origRoles:null,
         flags:{isNew:false, isDeleted:false, isRenamed:false}};
     });
   }
@@ -239,7 +270,7 @@
 
   function showLoadError(msg){
     document.getElementById('treeRoot').innerHTML = '';
-    document.getElementById('snapshotTime').textContent = '—';
+    document.getElementById('adminSnapshotTime').textContent = '—';
     toast(msg);
   }
 
@@ -285,7 +316,7 @@
         rosterBulkTarget = '';
         pendingReportPrompt = null;
         activeTab = 'structure';
-        document.getElementById('snapshotTime').textContent = formatSnapshotTime(snapshotAt);
+        document.getElementById('adminSnapshotTime').textContent = formatSnapshotTime(snapshotAt);
         document.getElementById('searchInput').value = '';
         document.getElementById('reportPromptOverlay').classList.remove('show');
         document.getElementById('orientSeg').querySelectorAll('button').forEach(function(b){ b.classList.toggle('active', b.getAttribute('data-orient')==='vertical'); });
@@ -338,7 +369,7 @@
     rosterBulkTarget = '';
     pendingReportPrompt = null;
     activeTab = 'structure';
-    document.getElementById('snapshotTime').textContent = formatSnapshotTime(snapshotAt);
+    document.getElementById('adminSnapshotTime').textContent = formatSnapshotTime(snapshotAt);
     document.getElementById('searchInput').value = '';
     document.getElementById('reportPromptOverlay').classList.remove('show');
     document.getElementById('orientSeg').querySelectorAll('button').forEach(function(b){ b.classList.toggle('active', b.getAttribute('data-orient')===orientation); });
@@ -393,12 +424,12 @@
       var differs = distinct.length > 1;
       return {bad: hasBlank || differs, hasBlank:hasBlank, differs:differs, values:vals};
     }
-    return {hrbp1:check('hrbp1'), hrbp2:check('hrbp2'), da:check('da')};
+    return {hrbp1:check('hrbp1'), hrbp2:check('hrbp2'), hrbpLead:check('hrbpLead'), da:check('da')};
   }
   function hasAnyRoleWarning(id){
     if(getChildren(id).length===0) return false;
     var r = roleInconsistency(id);
-    return r.hrbp1.bad || r.hrbp2.bad || r.da.bad;
+    return r.hrbp1.bad || r.hrbp2.bad || r.hrbpLead.bad || r.da.bad;
   }
 
   // Log entries store a typeKey + structured params, formatted into display text at render
@@ -479,13 +510,14 @@
     if(!val) return null;
     var id = 'new-' + (tempCounter++);
     var newNode = {id:id, name:val, origName:val, parentId:parentNode.id, inactive:false, movedFrom:null, restoreLog:null,
-      pic:draft.pic||'', hrbp1:draft.hrbp1||'', hrbp2:draft.hrbp2||'', da:draft.da||'', origRoles:null,
+      pic:draft.pic||'', hrbp1:draft.hrbp1||'', hrbp2:draft.hrbp2||'', hrbpLead:draft.hrbpLead||'', da:draft.da||'', origRoles:null,
       flags:{isNew:true, isDeleted:false, isRenamed:false}};
     nodes.push(newNode);
     var roleBits = [];
     if(newNode.pic) roleBits.push(roleLabelFor('pic')+'：'+newNode.pic);
     if(newNode.hrbp1) roleBits.push(roleLabelFor('hrbp1')+'：'+newNode.hrbp1);
     if(newNode.hrbp2) roleBits.push(roleLabelFor('hrbp2')+'：'+newNode.hrbp2);
+    if(newNode.hrbpLead) roleBits.push(roleLabelFor('hrbpLead')+'：'+newNode.hrbpLead);
     if(newNode.da) roleBits.push(roleLabelFor('da')+'：'+newNode.da);
     addLog('add', {name:val, parent:parentNode.name, roleBits:roleBits}, id);
     return newNode;
@@ -536,7 +568,7 @@
   }
   function commitRoleChange(n, field, val){
     if(val===n[field]) return;
-    if(!n.origRoles) n.origRoles = {pic:n.pic, hrbp1:n.hrbp1, hrbp2:n.hrbp2, da:n.da};
+    if(!n.origRoles) n.origRoles = {pic:n.pic, hrbp1:n.hrbp1, hrbp2:n.hrbp2, hrbpLead:n.hrbpLead, da:n.da};
     n[field] = val;
     var key = n.id + '#' + field;
     if(n[field] === n.origRoles[field]){
@@ -545,6 +577,7 @@
       upsertLog('role_change', key, {name:n.name, roleLabel:roleLabelFor(field), from:n.origRoles[field], to:n[field]});
     }
   }
+  var CASCADE_FIELDS = ['hrbp1', 'hrbp2', 'hrbpLead', 'da'];
   function commitCascade(n){
     var desc = getDescendants(n.id);
     if(!desc.length) return;
@@ -552,15 +585,19 @@
     // undo restores exactly that (not session-original), so an earlier legitimate edit that
     // predates this cascade isn't silently wiped out along with it.
     var beforeValues = desc.map(function(d){
-      if(!d.origRoles) d.origRoles = {pic:d.pic, hrbp1:d.hrbp1, hrbp2:d.hrbp2, da:d.da};
-      return {id:d.id, hrbp1:d.hrbp1, hrbp2:d.hrbp2, da:d.da};
+      if(!d.origRoles) d.origRoles = {pic:d.pic, hrbp1:d.hrbp1, hrbp2:d.hrbp2, hrbpLead:d.hrbpLead, da:d.da};
+      return {id:d.id, hrbp1:d.hrbp1, hrbp2:d.hrbp2, hrbpLead:d.hrbpLead, da:d.da};
     });
+    // Snapshot what's actually being applied, separate from beforeValues — a CSV/report built
+    // later must show what THIS cascade did, not diff against whatever the descendant's fields
+    // happen to hold by then (a later individual edit would otherwise get misattributed here).
+    var appliedValues = {hrbp1:n.hrbp1, hrbp2:n.hrbp2, hrbpLead:n.hrbpLead, da:n.da};
     desc.forEach(function(d){
-      d.hrbp1 = n.hrbp1; d.hrbp2 = n.hrbp2; d.da = n.da;
+      d.hrbp1 = n.hrbp1; d.hrbp2 = n.hrbp2; d.hrbpLead = n.hrbpLead; d.da = n.da;
       // the batch summary line below supersedes any individual role_change entries for these fields
-      ['hrbp1','hrbp2','da'].forEach(function(field){ removeLog('role_change', d.id+'#'+field); });
+      CASCADE_FIELDS.forEach(function(field){ removeLog('role_change', d.id+'#'+field); });
     });
-    addLog('role_cascade', {name:n.name, count:desc.length, beforeValues:beforeValues});
+    addLog('role_cascade', {name:n.name, count:desc.length, beforeValues:beforeValues, appliedValues:appliedValues});
   }
 
   // BIPO ("LAST, First Middle") and Lark/PIC ("First Last") name formats differ — the same
@@ -583,6 +620,7 @@
   // callers above). add/delete already have dedicated undo paths. emp_transfer is the one type with
   // no self-cleaning story, so its undo manually drops the entry after reversing it.
   function canUndoLogEntry(l){
+    if(!canEdit()) return false;
     if(l.typeKey==='rename' || l.typeKey==='move') return !!getNode(l.key);
     if(l.typeKey==='role_change'){ return !!getNode(l.key.split('#')[0]); }
     if(l.typeKey==='report_change'){ return employees.some(function(e){ return e.eid===l.key; }); }
@@ -624,6 +662,7 @@
         if(!d) return;
         commitRoleChange(d, 'hrbp1', bv.hrbp1);
         commitRoleChange(d, 'hrbp2', bv.hrbp2);
+        commitRoleChange(d, 'hrbpLead', bv.hrbpLead);
         commitRoleChange(d, 'da', bv.da);
       });
       log = log.filter(function(x){ return x.seq!==l.seq; });
@@ -659,7 +698,7 @@
   function openCreateChild(parentId){
     selectedId = parentId;
     activeTab = 'create';
-    createDraft = {name:'', pic:'', hrbp1:'', hrbp2:'', da:''};
+    createDraft = {name:'', pic:'', hrbp1:'', hrbp2:'', hrbpLead:'', da:''};
     render();
   }
   function closePanel(){
@@ -740,18 +779,38 @@
 
     if(n.flags.isDeleted){
       body.innerHTML = '<div class="warn-box">' + escapeHtml(t('deletedPanelNote')) + '</div>';
-      foot.innerHTML = '<button class="btn ghost" id="cancelEditBtn">' + escapeHtml(t('closeBtn')) + '</button><button class="btn primary" id="undoDeleteBtn">' + escapeHtml(t('undoDeleteBtn')) + '</button>';
+      foot.innerHTML = canEdit()
+        ? '<button class="btn ghost" id="cancelEditBtn">' + escapeHtml(t('closeBtn')) + '</button><button class="btn primary" id="undoDeleteBtn">' + escapeHtml(t('undoDeleteBtn')) + '</button>'
+        : '<button class="btn ghost" id="cancelEditBtn">' + escapeHtml(t('closeBtn')) + '</button>';
       document.getElementById('cancelEditBtn').addEventListener('click', closePanel);
-      document.getElementById('undoDeleteBtn').addEventListener('click', function(){
+      var undoBtn = document.getElementById('undoDeleteBtn');
+      if(undoBtn) undoBtn.addEventListener('click', function(){
         commitRestoreDelete(n);
         toast(t('toastUndoDeleted')); closePanel(); render();
       });
       return;
     }
 
+    if(!canEdit()){ tabs.style.display = 'none'; addBtn.style.display = 'none'; renderReadOnlyPanel(n, body, foot); return; }
     if(activeTab==='structure') renderStructureTab(n, body, foot);
     else if(activeTab==='role') renderRoleTab(n, body, foot);
     else renderRosterTab(n, body, foot);
+  }
+
+  // Viewer role: informational only, no rename/move/delete/role/roster-transfer controls.
+  function renderReadOnlyPanel(n, body, foot){
+    var direct = employees.filter(function(e){ return e.nodeId===n.id; });
+    var html = '<div class="role-row"><div class="rlbl">'+escapeHtml(roleLabelFor('pic'))+'</div><div class="role-value" style="cursor:default;"><span class="rv-name'+(n.pic?'':' empty')+'">'+escapeHtml(n.pic||t('notSet'))+'</span></div></div>'+
+      '<div class="role-row"><div class="rlbl">'+escapeHtml(roleLabelFor('hrbp1'))+'</div><div class="role-value" style="cursor:default;"><span class="rv-name'+(n.hrbp1?'':' empty')+'">'+escapeHtml(n.hrbp1||t('notSet'))+'</span></div></div>'+
+      '<div class="role-row"><div class="rlbl">'+escapeHtml(roleLabelFor('hrbp2'))+'</div><div class="role-value" style="cursor:default;"><span class="rv-name'+(n.hrbp2?'':' empty')+'">'+escapeHtml(n.hrbp2||t('notSet'))+'</span></div></div>'+
+      '<div class="role-row"><div class="rlbl">'+escapeHtml(roleLabelFor('hrbpLead'))+'</div><div class="role-value" style="cursor:default;"><span class="rv-name'+(n.hrbpLead?'':' empty')+'">'+escapeHtml(n.hrbpLead||t('notSet'))+'</span></div></div>'+
+      '<div class="role-row"><div class="rlbl">'+escapeHtml(roleLabelFor('da'))+'</div><div class="role-value" style="cursor:default;"><span class="rv-name'+(n.da?'':' empty')+'">'+escapeHtml(n.da||t('notSet'))+'</span></div></div>'+
+      '<div class="role-row"><div class="rlbl">'+escapeHtml(t('tabRoster'))+' ('+direct.length+')</div>'+
+      (direct.length ? direct.map(function(e){ return '<div class="roster-row"><div class="rr-info"><div class="rr-name">'+escapeHtml(e.name)+'</div><div class="rr-eid">EID '+e.eid+'</div></div></div>'; }).join('') : '<div class="empty-note">'+escapeHtml(t('rosterEmptyNote'))+'</div>')+
+      '</div>';
+    body.innerHTML = html;
+    foot.innerHTML = '<button class="btn ghost" id="cancelEditBtn">'+escapeHtml(t('closeBtn'))+'</button>';
+    document.getElementById('cancelEditBtn').addEventListener('click', closePanel);
   }
 
   function renderCreatePanel(parent, body, foot){
@@ -848,7 +907,7 @@
   function renderRoleTab(n, body, foot){
     var inc = roleInconsistency(n.id);
     var warnParts = [];
-    ['hrbp1','hrbp2','da'].forEach(function(f){
+    ['hrbp1','hrbp2','hrbpLead','da'].forEach(function(f){
       if(inc[f].bad){
         var reason = inc[f].differs ? t('roleDiffers') : t('roleBlank');
         warnParts.push('<b>'+escapeHtml(roleLabelFor(f))+'</b>：'+escapeHtml(reason));
@@ -866,6 +925,7 @@
     html += roleRowHtml(n, 'pic');
     html += roleRowHtml(n, 'hrbp1');
     html += roleRowHtml(n, 'hrbp2');
+    html += roleRowHtml(n, 'hrbpLead');
     html += roleRowHtml(n, 'da');
 
     body.innerHTML = html;
@@ -1024,7 +1084,7 @@
   // ---------- drag & drop ----------
   function onDragStart(ev, id){
     var n = getNode(id);
-    if(n.flags.isDeleted) { ev.preventDefault(); return; }
+    if(n.flags.isDeleted || !canEdit()) { ev.preventDefault(); return; }
     dragSrcId = id;
     ev.dataTransfer.effectAllowed = 'move';
     ev.target.classList.add('dragging');
@@ -1066,9 +1126,9 @@
     if(n.movedFrom!==null) tags += '<span class="tag mov">'+escapeHtml(t('movedTag'))+'</span>';
     if(n.inactive) tags += '<span class="tag off">'+escapeHtml(t('inactiveTag'))+'</span>';
     var warnIco = hasAnyRoleWarning(n.id) ? '<span class="warn-ico" title="'+escapeHtml(t('roleWarnTooltip'))+'">⚠</span>' : '';
-    var draggable = n.flags.isDeleted ? 'false' : 'true';
+    var draggable = (n.flags.isDeleted || !canEdit()) ? 'false' : 'true';
     var titleAttr = n.name + (n.flags.isRenamed ? ' ｜ ' + t('renamedTooltipPrefix') + n.origName : '');
-    var addBtn = n.flags.isDeleted ? '' : '<button type="button" class="node-add-btn" data-add-child="'+n.id+'" title="'+escapeHtml(t('addChildTitle'))+'">+</button>';
+    var addBtn = (n.flags.isDeleted || !canEdit()) ? '' : '<button type="button" class="node-add-btn" data-add-child="'+n.id+'" title="'+escapeHtml(t('addChildTitle'))+'">+</button>';
     var toggleBtn = hasKids ? '<button type="button" class="node-toggle-btn" data-toggle-collapse="'+n.id+'" title="'+escapeHtml(isCollapsed ? t('expandTitle') : t('collapseTitle'))+'">'+(isCollapsed?'▸':'▾')+'</button>' : '';
     return '<div class="'+nodeClasses(n)+'" draggable="'+draggable+'" data-id="'+n.id+'" title="'+escapeHtml(titleAttr)+'">'+
       addBtn+toggleBtn+
@@ -1307,10 +1367,10 @@
         '<td>'+escapeHtml(e.name)+'</td>'+
         cell(e.division)+cell(e.businessUnit)+cell(e.department)+cell(e.team)+cell(e.subTeam)+cell(e.section)+cell(e.status)+cell(e.hrbp1)+cell(e.hrbp2)+cell(e.hrbpLead)+
         '<td>'+(e.reportsTo?escapeHtml(e.reportsTo):escapeHtml(t('notSet')))+'</td>'+
-        '<td><div class="reassign-picker" data-eid="'+e.eid+'"></div></td>'+
-        '<td><button class="btn" type="button" data-transfer-eid="'+e.eid+'">'+escapeHtml(t('unassignedTransferBtn'))+'</button></td>'+
+        (canEdit() ? '<td><div class="reassign-picker" data-eid="'+e.eid+'"></div></td><td><button class="btn" type="button" data-transfer-eid="'+e.eid+'">'+escapeHtml(t('unassignedTransferBtn'))+'</button></td>' : '<td></td><td></td>')+
         '</tr>';
     }).join('');
+    if(!canEdit()) return;
     body.querySelectorAll('.reassign-picker').forEach(function(el){
       var eid = el.getAttribute('data-eid');
       bindOrgPicker(el, targets, unassignedTargets[eid], function(id){ unassignedTargets[eid] = id; }, t('rosterTargetPlaceholder'));
@@ -1333,10 +1393,101 @@
     document.querySelectorAll('#viewTabs button').forEach(function(b){ b.classList.toggle('active', b.getAttribute('data-view')===view); });
     document.getElementById('chartView').style.display = view==='chart' ? '' : 'none';
     document.getElementById('unassignedView').style.display = view==='unassigned' ? '' : 'none';
+    document.getElementById('adminView').style.display = view==='admin' ? '' : 'none';
+    if(view==='admin') renderAdmin();
   }
   document.getElementById('viewTabs').addEventListener('click', function(ev){
     var btn = ev.target.closest('button[data-view]'); if(!btn) return;
+    if(btn.getAttribute('data-view')==='admin' && !isAdminRole()) return;
     switchView(btn.getAttribute('data-view'));
+  });
+
+  function applyRoleGating(){
+    document.getElementById('viewAdminBtn').style.display = isAdminRole() ? '' : 'none';
+    document.getElementById('globalTransferBtn').style.display = canEdit() ? '' : 'none';
+    document.getElementById('addOrgBtn').style.display = canEdit() ? '' : 'none';
+  }
+
+  var ROLE_OPTIONS = ['Viewer', 'Editor', 'Senior Admin', 'Owner'];
+  function roleBadgeClass(role){
+    return role==='Owner' ? 'owner' : role==='Senior Admin' ? 'senior' : role==='Editor' ? 'editor' : 'viewer';
+  }
+  function roleDisplayName(role){
+    var key = role==='Owner' ? 'roleOwner' : role==='Senior Admin' ? 'roleSeniorAdmin' : role==='Editor' ? 'roleEditor' : 'roleViewer';
+    return t(key);
+  }
+  function renderAdmin(){
+    if(!isAdminRole()) return;
+    var body = document.getElementById('adminBody');
+    body.innerHTML = '<tr><td colspan="4" class="empty-note">'+escapeHtml(t('adminLoading'))+'</td></tr>';
+    fetch('/api/permissions/list', {credentials:'same-origin'})
+      .then(function(res){ return res.json().then(function(j){ if(!res.ok) throw new Error(j.error||'error'); return j; }); })
+      .then(function(data){
+        var viewerRole = data.viewerRole;
+        if(!data.users.length){ body.innerHTML = '<tr><td colspan="4" class="empty-note">'+escapeHtml(t('adminNoUsers'))+'</td></tr>'; return; }
+        body.innerHTML = data.users.map(function(u){
+          var roleCell;
+          if(u.role==='Owner'){
+            roleCell = '<span class="role-badge owner">'+escapeHtml(roleDisplayName('Owner'))+'</span>';
+          } else if(viewerRole==='Owner' || (viewerRole==='Senior Admin' && u.role!=='Senior Admin')){
+            var opts = ROLE_OPTIONS.filter(function(r){ return r!=='Owner' && (viewerRole==='Owner' || r!=='Senior Admin'); });
+            roleCell = '<select class="admin-role-select" data-record-id="'+u.recordId+'">'+opts.map(function(r){ return '<option value="'+r+'" '+(r===u.role?'selected':'')+'>'+escapeHtml(roleDisplayName(r))+'</option>'; }).join('')+'</select>';
+          } else {
+            roleCell = '<span class="role-badge '+roleBadgeClass(u.role)+'">'+escapeHtml(roleDisplayName(u.role))+'</span>';
+          }
+          var actions = '';
+          if(u.role!=='Owner'){
+            if(viewerRole==='Owner') actions += '<button class="btn ghost" type="button" data-transfer-owner="'+u.recordId+'">'+escapeHtml(t('adminTransferOwnerBtn'))+'</button> ';
+            actions += '<button class="btn ghost" type="button" data-remove-user="'+u.recordId+'">'+escapeHtml(t('adminRemoveBtn'))+'</button>';
+          }
+          return '<tr><td>'+escapeHtml(u.name||'—')+'</td><td>'+escapeHtml(u.email||'—')+'</td><td>'+roleCell+'</td><td>'+actions+'</td></tr>';
+        }).join('');
+        body.querySelectorAll('.admin-role-select').forEach(function(sel){
+          sel.addEventListener('change', function(){
+            fetch('/api/permissions/update', {method:'POST', credentials:'same-origin', headers:{'Content-Type':'application/json'}, body:JSON.stringify({recordId:sel.getAttribute('data-record-id'), role:sel.value})})
+              .then(function(res){ return res.json().then(function(j){ if(!res.ok) throw new Error(j.error||'error'); return j; }); })
+              .then(function(){ toast(t('adminSaved')); renderAdmin(); })
+              .catch(function(err){ toast(err.message); renderAdmin(); });
+          });
+        });
+        body.querySelectorAll('[data-remove-user]').forEach(function(btn){
+          btn.addEventListener('click', function(){
+            showConfirm(t('adminRemoveBtn'), t('adminRemoveConfirm'), t('adminRemoveBtn'), function(){
+              fetch('/api/permissions/remove', {method:'POST', credentials:'same-origin', headers:{'Content-Type':'application/json'}, body:JSON.stringify({recordId:btn.getAttribute('data-remove-user')})})
+                .then(function(res){ return res.json().then(function(j){ if(!res.ok) throw new Error(j.error||'error'); return j; }); })
+                .then(function(){ toast(t('adminSaved')); renderAdmin(); })
+                .catch(function(err){ toast(err.message); });
+            });
+          });
+        });
+        body.querySelectorAll('[data-transfer-owner]').forEach(function(btn){
+          btn.addEventListener('click', function(){
+            showConfirm(t('adminTransferOwnerBtn'), t('adminTransferOwnerConfirm'), t('adminTransferOwnerBtn'), function(){
+              fetch('/api/permissions/transfer-owner', {method:'POST', credentials:'same-origin', headers:{'Content-Type':'application/json'}, body:JSON.stringify({recordId:btn.getAttribute('data-transfer-owner')})})
+                .then(function(res){ return res.json().then(function(j){ if(!res.ok) throw new Error(j.error||'error'); return j; }); })
+                .then(function(){ toast(t('adminSaved')); currentUserRole='Senior Admin'; applyRoleGating(); renderAdmin(); })
+                .catch(function(err){ toast(err.message); });
+            });
+          });
+        });
+      })
+      .catch(function(err){ body.innerHTML = '<tr><td colspan="4" class="empty-note">'+escapeHtml(err.message)+'</td></tr>'; });
+  }
+  document.getElementById('adminAddBtn').addEventListener('click', function(){
+    var email = (document.getElementById('adminNewEmail').value||'').trim();
+    var name = (document.getElementById('adminNewName').value||'').trim();
+    var role = document.getElementById('adminNewRole').value;
+    if(!email){ toast(t('adminNeedEmail')); return; }
+    if(role==='Senior Admin' && currentUserRole!=='Owner'){ toast(t('adminOnlyOwnerGrantsSenior')); return; }
+    fetch('/api/permissions/update', {method:'POST', credentials:'same-origin', headers:{'Content-Type':'application/json'}, body:JSON.stringify({email:email, name:name, role:role})})
+      .then(function(res){ return res.json().then(function(j){ if(!res.ok) throw new Error(j.error||'error'); return j; }); })
+      .then(function(){
+        document.getElementById('adminNewEmail').value = '';
+        document.getElementById('adminNewName').value = '';
+        toast(t('adminSaved'));
+        renderAdmin();
+      })
+      .catch(function(err){ toast(err.message); });
   });
 
   function render(){
@@ -1395,11 +1546,102 @@
     }));
   }
 
+  // pathLabel() always walks the CURRENT tree; this variant substitutes the leaf name so we can
+  // reconstruct a "before" path (e.g. the old name under a rename, or the leaf under its old
+  // parent for a move) without needing a snapshot of the whole tree at that point in time.
+  function pathLabelWithLeaf(parentId, leafName){
+    var parentPath = parentId ? pathLabel(parentId) : '';
+    return parentPath ? parentPath + ' / ' + leafName : leafName;
+  }
+
+  // ---------- structured CSV exports (distinct from the on-screen copy/paste tables above) ----------
+  // One row per org-structure change: rename/move/add/delete/role adjustment. "Before" role
+  // columns always show the department's current values (identifying context); "after" columns
+  // are left blank unless THIS row's own change touched that specific field.
+  function buildOrgChangeRows(){
+    var rows = [];
+    function pushRow(typeLabel, beforeName, afterName, beforeRoles, afterRoles){
+      rows.push({
+        sortName: afterName || beforeName,
+        cells: [typeLabel, beforeName, beforeRoles.pic||'', beforeRoles.hrbp1||'', beforeRoles.hrbp2||'', beforeRoles.da||'',
+          afterName, afterRoles.pic||'', afterRoles.hrbp1||'', afterRoles.hrbp2||'', afterRoles.da||'']
+      });
+    }
+    log.forEach(function(l){
+      if(l.typeKey==='rename'){
+        var n = getNode(l.key); if(!n) return;
+        var cur = {pic:n.pic, hrbp1:n.hrbp1, hrbp2:n.hrbp2, da:n.da};
+        pushRow(t('logType').rename, pathLabelWithLeaf(n.parentId, l.params.from), pathLabel(n.id), cur, {});
+      } else if(l.typeKey==='move'){
+        var n = getNode(l.key); if(!n) return;
+        var cur = {pic:n.pic, hrbp1:n.hrbp1, hrbp2:n.hrbp2, da:n.da};
+        pushRow(t('logType').move, pathLabelWithLeaf(n.movedFrom, n.name), pathLabel(n.id), cur, {});
+      } else if(l.typeKey==='add'){
+        var n = getNode(l.key); if(!n) return;
+        var cur = {pic:n.pic, hrbp1:n.hrbp1, hrbp2:n.hrbp2, da:n.da};
+        pushRow(t('logType').add, '', pathLabel(n.id), {}, cur);
+      } else if(l.typeKey==='delete'){
+        var n = getNode(l.key); if(!n) return;
+        var cur = {pic:n.pic, hrbp1:n.hrbp1, hrbp2:n.hrbp2, da:n.da};
+        pushRow(t('logType').delete, pathLabel(n.id), '', cur, {});
+      } else if(l.typeKey==='role_change'){
+        var parts = l.key.split('#'); var n = getNode(parts[0]); if(!n) return;
+        var field = parts[1];
+        var before = {pic:n.pic, hrbp1:n.hrbp1, hrbp2:n.hrbp2, da:n.da};
+        before[field] = l.params.from;
+        var after = {}; after[field] = l.params.to;
+        pushRow(t('logType').role_change, pathLabel(n.id), '', before, after);
+      } else if(l.typeKey==='role_cascade'){
+        var applied = l.params.appliedValues || {};
+        (l.params.beforeValues||[]).forEach(function(bv){
+          var n = getNode(bv.id); if(!n) return;
+          var before = {pic:n.pic, hrbp1:bv.hrbp1, hrbp2:bv.hrbp2, da:bv.da};
+          var after = {};
+          if(applied.hrbp1!==bv.hrbp1) after.hrbp1 = applied.hrbp1;
+          if(applied.hrbp2!==bv.hrbp2) after.hrbp2 = applied.hrbp2;
+          if(applied.da!==bv.da) after.da = applied.da;
+          pushRow(t('logType').role_change, pathLabel(n.id), '', before, after);
+        });
+      }
+    });
+    rows.sort(function(a,b){
+      if(a.sortName !== b.sortName) return a.sortName < b.sortName ? -1 : 1;
+      return a.cells[0] < b.cells[0] ? -1 : a.cells[0] > b.cells[0] ? 1 : 0;
+    });
+    return [t('csvOrgChangeHeaders')].concat(rows.map(function(r){ return r.cells; }));
+  }
+
+  // One row per affected employee (same scope as the on-screen "受影响员工" panel). "After"
+  // department/reporting columns blank unless that specific thing changed for this person; the
+  // HRBP columns always show their NEW department's current HRBP contacts (context, not a diff).
+  function buildPersonnelRows(){
+    var rows = computeImpacted().map(function(imp){
+      var e = employees.filter(function(x){ return x.eid===imp.eid; })[0];
+      var hasTransfer = log.some(function(l){ return l.typeKey==='emp_transfer' && l.params.eid===e.eid; });
+      var hasReportChange = log.some(function(l){ return l.typeKey==='report_change' && l.key===e.eid; });
+      var changeType = hasTransfer ? t('empChangeTransfer') : hasReportChange ? t('empChangeReport') : t('empChangeRestructure');
+      var newNode = getNode(e.nodeId);
+      var pathChanged = imp.newPath !== imp.oldPath;
+      var reportChanged = e.reportsTo !== e.origReportsTo;
+      return {
+        sortName: imp.newPath || imp.oldPath,
+        cells: [e.eid, e.name, changeType, imp.oldPath, e.origReportsTo||'',
+          pathChanged ? imp.newPath : '', reportChanged ? (e.reportsTo||'') : '',
+          newNode ? (newNode.hrbp1||'') : '', newNode ? (newNode.hrbp2||'') : '', newNode ? (newNode.hrbpLead||'') : '', '']
+      };
+    });
+    rows.sort(function(a,b){
+      if(a.sortName !== b.sortName) return a.sortName < b.sortName ? -1 : 1;
+      return a.cells[2] < b.cells[2] ? -1 : a.cells[2] > b.cells[2] ? 1 : 0;
+    });
+    return [t('csvPersonnelHeaders')].concat(rows.map(function(r){ return r.cells; }));
+  }
+
   // ---------- wiring ----------
   document.getElementById('copyLogBtn').addEventListener('click', function(){ copyText(logRows().map(function(r){ return r.join('\t'); }).join('\n')); });
-  document.getElementById('downloadLogBtn').addEventListener('click', function(){ downloadCsv(t('csvLogFilename'), logRows()); });
+  document.getElementById('downloadLogBtn').addEventListener('click', function(){ downloadCsv(t('csvOrgChangeFilename'), buildOrgChangeRows()); });
   document.getElementById('copyEmpBtn').addEventListener('click', function(){ copyText(empRows().map(function(r){ return r.join('\t'); }).join('\n')); });
-  document.getElementById('downloadEmpBtn').addEventListener('click', function(){ downloadCsv(t('csvEmpFilename'), empRows()); });
+  document.getElementById('downloadEmpBtn').addEventListener('click', function(){ downloadCsv(t('csvPersonnelFilename'), buildPersonnelRows()); });
   document.getElementById('editCloseBtn').addEventListener('click', closePanel);
   document.getElementById('panelBackdrop').addEventListener('click', closePanel);
   document.addEventListener('keydown', function(ev){ if(ev.key==='Escape' && selectedId) closePanel(); });
@@ -1702,17 +1944,32 @@
     );
   });
 
+  document.getElementById('noAccessLogoutBtn').addEventListener('click', function(){
+    clearSavedState();
+    window.location.href = '/api/auth/logout';
+  });
+
   // ---------- bootstrap: is there already a valid session? ----------
   applyStaticI18n();
   fetch('/api/auth/me', {credentials:'same-origin'})
     .then(function(res){ return res.ok ? res.json() : null; })
     .then(function(me){
       if(!me){ showLoginOverlay(); return; }
-      document.getElementById('loginOverlay').style.display = 'none';
       document.getElementById('userName').textContent = me.name;
-      document.getElementById('app').classList.add('ready');
-      var saved = loadSavedState();
-      if(saved) restoreState(saved); else init();
+      return fetch('/api/permissions/me', {credentials:'same-origin'})
+        .then(function(res){ return res.ok ? res.json() : {role:null}; })
+        .then(function(perm){
+          currentUserRole = perm.role;
+          document.getElementById('loginOverlay').style.display = 'none';
+          if(!currentUserRole){
+            document.getElementById('noAccessOverlay').style.display = 'flex';
+            return;
+          }
+          applyRoleGating();
+          document.getElementById('app').classList.add('ready');
+          var saved = loadSavedState();
+          if(saved) restoreState(saved); else init();
+        });
     })
     .catch(function(){ showLoginOverlay(); });
 })();

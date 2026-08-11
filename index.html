@@ -18,6 +18,15 @@
   </div>
 </div>
 
+<div class="login-overlay" id="noAccessOverlay" style="display:none;">
+  <div class="login-card">
+    <div class="mark" style="background:var(--warn-bg); color:var(--warn-text);">!</div>
+    <h1 data-i18n="noAccessTitle">暂无访问权限</h1>
+    <p data-i18n="noAccessSubtitle">你的飞书账号还没有被授权使用这个工具，请联系管理员开通访问权限。</p>
+    <span class="logout" id="noAccessLogoutBtn" data-i18n="logoutBtn" style="cursor:pointer; font-weight:600; color:var(--accent);">退出</span>
+  </div>
+</div>
+
 <div class="wrap" id="app">
 
   <div class="topbar">
@@ -26,15 +35,12 @@
       <div class="seg view-tabs" id="viewTabs">
         <button data-view="chart" class="active" data-i18n="viewChart">组织架构图</button>
         <button data-view="unassigned" id="viewUnassignedBtn" style="display:none;"><span data-i18n="viewUnassigned">待安置员工</span> (<span id="viewUnassignedCount">0</span>)</button>
+        <button data-view="admin" id="viewAdminBtn" style="display:none;" data-i18n="viewAdmin">管理员</button>
       </div>
       <span class="scope-tag" data-i18n="scopeTag">范围：Central → Investor Relations Corp Comms &amp; Sustainability</span>
     </div>
     <div class="topbar-right">
       <div class="user-chip"><span data-i18n="loggedInAs">已登录：</span><b id="userName">—</b><span class="logout" id="logoutBtn" data-i18n="logoutBtn">退出</span></div>
-      <div class="data-status">
-        <span data-i18n="snapshotLabel">数据快照时间：</span><span class="mono" id="snapshotTime">—</span>
-        <button class="btn ghost" id="refreshBtn" data-i18n="refreshBtn">刷新数据</button>
-      </div>
     </div>
   </div>
 
@@ -155,6 +161,39 @@
             <th style="width:80px;"></th>
           </tr></thead>
           <tbody id="unassignedBody"></tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+
+  <div class="panel" id="adminView" style="display:none;">
+    <div class="panel-head">
+      <h2 data-i18n="adminTitle">管理员</h2>
+      <div class="data-status">
+        <span data-i18n="snapshotLabel">数据快照时间：</span><span class="mono" id="adminSnapshotTime">—</span>
+        <button class="btn ghost" id="refreshBtn" data-i18n="refreshBtn">刷新数据</button>
+      </div>
+    </div>
+    <div class="panel-body">
+      <div class="admin-add-row">
+        <input type="text" id="adminNewEmail" data-i18n-placeholder="adminEmailPh" placeholder="邮箱">
+        <input type="text" id="adminNewName" data-i18n-placeholder="adminNamePh" placeholder="姓名（可选）">
+        <select id="adminNewRole">
+          <option value="Viewer" data-i18n="roleViewer">访问用户</option>
+          <option value="Editor" data-i18n="roleEditor">编辑用户</option>
+          <option value="Senior Admin" data-i18n="roleSeniorAdmin">高级管理员</option>
+        </select>
+        <button class="btn primary" id="adminAddBtn" data-i18n="adminAddBtn">添加</button>
+      </div>
+      <div class="scroll-table" style="max-height:calc(100vh - 320px);">
+        <table class="emptbl">
+          <thead><tr>
+            <th data-i18n="colName">姓名</th>
+            <th data-i18n="adminColEmail">邮箱</th>
+            <th style="width:150px;" data-i18n="adminColRole">角色</th>
+            <th style="width:160px;"></th>
+          </tr></thead>
+          <tbody id="adminBody"></tbody>
         </table>
       </div>
     </div>

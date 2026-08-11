@@ -45,7 +45,7 @@ module.exports = async (req, res) => {
       throw new Error(`user_info failed: ${userJson.code} ${userJson.msg}`);
     }
 
-    const { name, tenant_key: tenantKey } = userJson.data;
+    const { name, tenant_key: tenantKey, open_id: openId, email } = userJson.data;
 
     if (expectedTenantKey && tenantKey !== expectedTenantKey) {
       res.status(403).send(`Access denied: this account (tenant ${tenantKey}) is not part of the authorized organization.`);
@@ -53,7 +53,7 @@ module.exports = async (req, res) => {
     }
 
     const exp = Date.now() + SESSION_DAYS * 24 * 60 * 60 * 1000;
-    const token = await createSessionToken({ name, tenantKey, exp }, process.env.SESSION_SECRET);
+    const token = await createSessionToken({ name, tenantKey, openId, email: email || '', exp }, process.env.SESSION_SECRET);
 
     res.setHeader('Set-Cookie', [
       `${STATE_COOKIE_NAME}=; Path=/; HttpOnly; Secure; SameSite=Lax; Max-Age=0`,

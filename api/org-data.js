@@ -1,10 +1,12 @@
 const { fetchSourceRecords } = require('../lib/fetchLark');
 const { buildOrgData } = require('../lib/buildOrgData');
-const { requireSession } = require('../lib/auth');
+const { requireRole } = require('../lib/permissions');
 
 module.exports = async (req, res) => {
   res.setHeader('Cache-Control', 'no-store');
-  if (!(await requireSession(req, res))) return;
+  // Being in the tenant isn't enough here — being in the tenant is enough for org-chart-live,
+  // but this tool drafts real reorg changes, so it needs its own explicit allowlist.
+  if (!(await requireRole(req, res, 'Viewer'))) return;
 
   try {
     const [structureItems, employeeItems, larkUserItems] = await Promise.all([
