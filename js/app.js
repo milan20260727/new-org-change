@@ -21,6 +21,7 @@
       changeLogTitle:'变更记录', unitRecords:'条', colType:'类型', colDetail:'详情', colAction:'操作', undoBtn:'撤销',
       logEmptyNote:'暂无变更，点一个部门框试试', copyLogBtn:'复制变更（可直接粘贴到 Base）', downloadCsvBtn:'下载 CSV',
       affectedEmpTitle:'受影响员工', unitPeople:'人', colName:'姓名', colPathChange:'原部门 → 新部门', colReportsTo:'汇报对象',
+      colDivision:'Division', colBusinessUnit:'Business Unit', colDepartment:'Department', colTeam:'Team', colSubTeam:'Sub Team', colSection:'Section', colStatus:'Status', colHrbpLead:'HRBP Lead',
       empEmptyNote:'还没有员工受影响', copyEmpBtn:'复制员工变更（可直接粘贴到 Base）',
       unassignedTitle:'待安置员工', unassignedEmptyNote:'暂无待安置员工', unassignedTransferBtn:'转移',
       addChildTitle:'新增子部门', tabStructure:'编辑类型', tabRole:'变更角色', tabRoster:'下辖员工名单',
@@ -107,6 +108,7 @@
       changeLogTitle:'Change log', unitRecords:'', colType:'Type', colDetail:'Detail', colAction:'Action', undoBtn:'Undo',
       logEmptyNote:'No changes yet — try clicking a department box', copyLogBtn:'Copy changes (paste directly into Base)', downloadCsvBtn:'Download CSV',
       affectedEmpTitle:'Affected employees', unitPeople:'', colName:'Name', colPathChange:'Old dept → New dept', colReportsTo:'Reports to',
+      colDivision:'Division', colBusinessUnit:'Business Unit', colDepartment:'Department', colTeam:'Team', colSubTeam:'Sub Team', colSection:'Section', colStatus:'Status', colHrbpLead:'HRBP Lead',
       empEmptyNote:'No employees affected yet', copyEmpBtn:'Copy employee changes (paste directly into Base)',
       unassignedTitle:'Unassigned employees', unassignedEmptyNote:'No unassigned employees', unassignedTransferBtn:'Transfer',
       addChildTitle:'Add sub-department', tabStructure:'Edit type', tabRole:'Roles', tabRoster:'Team roster',
@@ -229,7 +231,11 @@
       .then(function(data){
         rootId = data.rootId || 'root';
         nodes = hydrateNodes(data.nodes);
-        employees = data.employees.map(function(e){ return {eid:e.eid, name:e.name, nodeId:e.nodeId, origPath: pathLabel(e.nodeId), reportsTo:e.reportsTo||'', origReportsTo:e.reportsTo||''}; });
+        employees = data.employees.map(function(e){
+          return {eid:e.eid, name:e.name, nodeId:e.nodeId, origPath: pathLabel(e.nodeId), reportsTo:e.reportsTo||'', origReportsTo:e.reportsTo||'',
+            division:e.division||'', businessUnit:e.businessUnit||'', department:e.department||'', team:e.team||'', subTeam:e.subTeam||'', section:e.section||'',
+            status:e.status||'', hrbp1:e.hrbp1||'', hrbp2:e.hrbp2||'', hrbpLead:e.hrbpLead||''};
+        });
         personPool = data.personPool || [];
         unassignedId = data.unassignedId || null;
         unassignedTargets = {};
@@ -876,19 +882,31 @@
       container.querySelector('.op-change').addEventListener('click', function(){ renderSearch(); });
     }
     function renderSearch(){
-      container.innerHTML = '<input type="text" class="op-input" placeholder="'+escapeHtml(placeholder)+'" autocomplete="off"><div class="op-options"></div>';
-      var input = container.querySelector('.op-input');
-      var opts = container.querySelector('.op-options');
+      container.innerHTML = '<div class="op-wrap"><input type="text" class="op-input" placeholder="'+escapeHtml(placeholder)+'" autocomplete="off"><div class="op-options"></div></div>';
+      var wrap = container.querySelector('.op-wrap');
+      var input = wrap.querySelector('.op-input');
+      var opts = wrap.querySelector('.op-options');
+      var onDoc = null;
+      function closeDropdown(){
+        opts.classList.remove('show');
+        if(onDoc){ document.removeEventListener('click', onDoc); onDoc = null; }
+      }
       function paint(q){
         var list = candidates.filter(function(x){ return pathLabel(x.id).toLowerCase().indexOf((q||'').toLowerCase())>=0; }).slice(0,8);
         opts.innerHTML = list.length ? list.map(function(x){ return '<button type="button" data-id="'+x.id+'">'+escapeHtml(pathLabel(x.id))+'</button>'; }).join('')
           : '<button type="button" disabled style="color:var(--ink-muted);">'+escapeHtml(t('noMatchDept'))+'</button>';
+        opts.classList.add('show');
+        if(!onDoc){
+          onDoc = function(ev){ if(!wrap.contains(ev.target)) closeDropdown(); };
+          document.addEventListener('click', onDoc);
+        }
       }
-      paint('');
+      input.addEventListener('focus', function(){ paint(input.value); });
       input.addEventListener('input', function(){ paint(input.value); });
       opts.addEventListener('click', function(ev){
         var btn = ev.target.closest('button[data-id]'); if(!btn) return;
         var id = btn.getAttribute('data-id');
+        closeDropdown();
         onSelect(id);
         renderPicked(id);
       });
@@ -1172,12 +1190,14 @@
     document.getElementById('viewUnassignedCount').textContent = list.length;
     document.getElementById('unassignedCount').textContent = list.length;
     var body = document.getElementById('unassignedBody');
-    if(!list.length){ body.innerHTML = '<tr><td colspan="5" class="empty-note">'+escapeHtml(t('unassignedEmptyNote'))+'</td></tr>'; return; }
+    if(!list.length){ body.innerHTML = '<tr><td colspan="14" class="empty-note">'+escapeHtml(t('unassignedEmptyNote'))+'</td></tr>'; return; }
     var targets = nodes.filter(function(x){ return x.id!==unassignedId && !x.flags.isDeleted; });
+    function cell(v){ return '<td>'+(v?escapeHtml(v):'')+'</td>'; }
     body.innerHTML = list.map(function(e){
       return '<tr data-eid="'+e.eid+'">'+
         '<td class="mono">'+e.eid+'</td>'+
         '<td>'+escapeHtml(e.name)+'</td>'+
+        cell(e.division)+cell(e.businessUnit)+cell(e.department)+cell(e.team)+cell(e.subTeam)+cell(e.section)+cell(e.status)+cell(e.hrbp1)+cell(e.hrbp2)+cell(e.hrbpLead)+
         '<td>'+(e.reportsTo?escapeHtml(e.reportsTo):escapeHtml(t('notSet')))+'</td>'+
         '<td><div class="reassign-picker" data-eid="'+e.eid+'"></div></td>'+
         '<td><button class="btn" type="button" data-transfer-eid="'+e.eid+'">'+escapeHtml(t('unassignedTransferBtn'))+'</button></td>'+
