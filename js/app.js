@@ -97,12 +97,10 @@
         role_cascade: function(p){ return '将「' + p.name + '」的 HRBP1/HRBP2/Department Assistant 应用到 ' + p.count + ' 个下级部门'; },
         report_change: function(p){ return p.name + '：直属主管 ' + (p.from || STR.zh.empty) + ' → ' + p.to; }
       },
-      csvLogHeaders:['操作类型','详情'], csvEmpHeaders:['EID','姓名','原部门','新部门'],
-      csvLogFilename:'组织架构变更记录.csv', csvEmpFilename:'员工变更清单.csv',
-      csvOrgChangeHeaders:['变更类型','变更前的组织架构名','变更前PIC','变更前HRBP1','变更前HRBP2','变更前Assistant','变更后的组织架构名','变更后PIC','变更后HRBP1','变更后HRBP2','变更后Assistant'],
-      csvPersonnelHeaders:['EID','员工名','变更类型','变更前的组织架构','变更前汇报对象','变更后组织架构','变更后汇报对象','变更后的HRBP1','变更后的HRBP2','变更后的HRBP Lead','备注'],
+      csvOrgChangeHeaders:['变更类型','角色变动','变更前的组织架构名','变更前PIC','变更前HRBP1','变更前HRBP2','变更前HRBP Lead','变更前Assistant','变更后的组织架构名','变更后PIC','变更后HRBP1','变更后HRBP2','变更后HRBP Lead','变更后Assistant'],
+      csvPersonnelHeaders:['EID','员工名','组织变更','角色变更','变更前的组织架构','变更前汇报对象','变更前PIC','变更前HRBP1','变更前HRBP2','变更前HRBP Lead','变更前Assistant','变更后组织架构','变更后汇报对象','变更后PIC','变更后HRBP1','变更后HRBP2','变更后HRBP Lead','变更后Assistant','备注'],
       csvOrgChangeFilename:'组织变更记录.csv', csvPersonnelFilename:'人员变更记录.csv',
-      empChangeTransfer:'员工调动', empChangeReport:'汇报关系变更', empChangeRestructure:'部门调整'
+      orgChangeLabel:'组织架构调整'
     },
     en: {
       loginTitle:'Org Structure Change Tool', loginSubtitle:'Sign in to view the org structure and employee data',
@@ -198,16 +196,16 @@
         role_cascade: function(p){ return 'Applied "' + p.name + '"’s HRBP1/HRBP2/Department Assistant to ' + p.count + ' sub-department(s)'; },
         report_change: function(p){ return p.name + ': direct manager ' + (p.from || STR.en.empty) + ' → ' + p.to; }
       },
-      csvLogHeaders:['Type','Detail'], csvEmpHeaders:['EID','Name','Old department','New department'],
-      csvLogFilename:'org-change-log.csv', csvEmpFilename:'employee-changes.csv',
-      csvOrgChangeHeaders:['Change Type','Org Unit Before','PIC Before','HRBP1 Before','HRBP2 Before','Assistant Before','Org Unit After','PIC After','HRBP1 After','HRBP2 After','Assistant After'],
-      csvPersonnelHeaders:['EID','Name','Change Type','Dept Before','Reports-to Before','Dept After','Reports-to After','HRBP1 After','HRBP2 After','HRBP Lead After','Notes'],
+      csvOrgChangeHeaders:['Change Type','Role Change','Org Unit Before','PIC Before','HRBP1 Before','HRBP2 Before','HRBP Lead Before','Assistant Before','Org Unit After','PIC After','HRBP1 After','HRBP2 After','HRBP Lead After','Assistant After'],
+      csvPersonnelHeaders:['EID','Name','Org Change','Role Change','Dept Before','Reports-to Before','PIC Before','HRBP1 Before','HRBP2 Before','HRBP Lead Before','Assistant Before','Dept After','Reports-to After','PIC After','HRBP1 After','HRBP2 After','HRBP Lead After','Assistant After','Notes'],
       csvOrgChangeFilename:'org-change-record.csv', csvPersonnelFilename:'personnel-change-record.csv',
-      empChangeTransfer:'Transferred', empChangeReport:'Reporting line changed', empChangeRestructure:'Department restructured'
+      orgChangeLabel:'Org structure adjusted'
     }
   };
   function t(key){ var v = STR[LANG][key]; return v===undefined ? key : v; }
   function roleLabelFor(field){ return t('role_' + field); }
+  // CSV exports always ship in English, regardless of the UI language toggle.
+  function ct(key){ var v = STR.en[key]; return v===undefined ? key : v; }
   function applyStaticI18n(){
     document.documentElement.lang = LANG==='zh' ? 'zh-CN' : 'en';
     document.title = t('pageTitle');
@@ -1539,12 +1537,6 @@
     var a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = filename;
     document.body.appendChild(a); a.click(); document.body.removeChild(a); URL.revokeObjectURL(a.href);
   }
-  function logRows(){ return [t('csvLogHeaders')].concat(log.map(function(l){ return [formatLogType(l), formatLogDetail(l)]; })); }
-  function empRows(){
-    return [t('csvEmpHeaders')].concat(computeImpacted().map(function(e){
-      return [e.eid, e.name, e.oldPath, e.newPath];
-    }));
-  }
 
   // pathLabel() always walks the CURRENT tree; this variant substitutes the leaf name so we can
   // reconstruct a "before" path (e.g. the old name under a rename, or the leaf under its old
@@ -1555,52 +1547,57 @@
   }
 
   // ---------- structured CSV exports (distinct from the on-screen copy/paste tables above) ----------
-  // One row per org-structure change: rename/move/add/delete/role adjustment. "Before" role
-  // columns always show the department's current values (identifying context); "after" columns
-  // are left blank unless THIS row's own change touched that specific field.
+  // Shared role-diff helpers: "before" is the department's pre-session values (falls back to
+  // origRoles, which is only set once a role on that node is actually edited); "after" is always
+  // the node's current live values. Both CSVs fill every before/after cell — no conditional blanks.
+  var ROLE_FIELDS = ['pic', 'hrbp1', 'hrbp2', 'hrbpLead', 'da'];
+  function nodeRolesBefore(n){ return n.origRoles || {pic:n.pic, hrbp1:n.hrbp1, hrbp2:n.hrbp2, hrbpLead:n.hrbpLead, da:n.da}; }
+  function nodeRolesAfter(n){ return {pic:n.pic, hrbp1:n.hrbp1, hrbp2:n.hrbp2, hrbpLead:n.hrbpLead, da:n.da}; }
+  function roleChangeSummary(before, after){
+    return ROLE_FIELDS.filter(function(f){ return (before[f]||'') !== (after[f]||''); })
+      .map(function(f){ return ct('role_' + f); })
+      .join(', ');
+  }
+
+  // One row per org-structure change: rename/move/add/delete/role adjustment. Before/after role
+  // columns are always fully populated (identical on both sides when this row didn't touch roles);
+  // "Role Change" lists which specific role field(s) this row changed, comma-separated.
   function buildOrgChangeRows(){
     var rows = [];
-    function pushRow(typeLabel, beforeName, afterName, beforeRoles, afterRoles){
+    function pushRow(typeLabel, roleChangeLabel, beforeName, afterName, beforeRoles, afterRoles){
       rows.push({
         sortName: afterName || beforeName,
-        cells: [typeLabel, beforeName, beforeRoles.pic||'', beforeRoles.hrbp1||'', beforeRoles.hrbp2||'', beforeRoles.da||'',
-          afterName, afterRoles.pic||'', afterRoles.hrbp1||'', afterRoles.hrbp2||'', afterRoles.da||'']
+        cells: [typeLabel, roleChangeLabel, beforeName, beforeRoles.pic||'', beforeRoles.hrbp1||'', beforeRoles.hrbp2||'', beforeRoles.hrbpLead||'', beforeRoles.da||'',
+          afterName, afterRoles.pic||'', afterRoles.hrbp1||'', afterRoles.hrbp2||'', afterRoles.hrbpLead||'', afterRoles.da||'']
       });
     }
     log.forEach(function(l){
       if(l.typeKey==='rename'){
         var n = getNode(l.key); if(!n) return;
-        var cur = {pic:n.pic, hrbp1:n.hrbp1, hrbp2:n.hrbp2, da:n.da};
-        pushRow(t('logType').rename, pathLabelWithLeaf(n.parentId, l.params.from), pathLabel(n.id), cur, {});
+        var cur = nodeRolesAfter(n);
+        pushRow(ct('logType').rename, '', pathLabelWithLeaf(n.parentId, l.params.from), pathLabel(n.id), cur, cur);
       } else if(l.typeKey==='move'){
         var n = getNode(l.key); if(!n) return;
-        var cur = {pic:n.pic, hrbp1:n.hrbp1, hrbp2:n.hrbp2, da:n.da};
-        pushRow(t('logType').move, pathLabelWithLeaf(n.movedFrom, n.name), pathLabel(n.id), cur, {});
+        var cur = nodeRolesAfter(n);
+        pushRow(ct('logType').move, '', pathLabelWithLeaf(n.movedFrom, n.name), pathLabel(n.id), cur, cur);
       } else if(l.typeKey==='add'){
         var n = getNode(l.key); if(!n) return;
-        var cur = {pic:n.pic, hrbp1:n.hrbp1, hrbp2:n.hrbp2, da:n.da};
-        pushRow(t('logType').add, '', pathLabel(n.id), {}, cur);
+        pushRow(ct('logType').add, '', '', pathLabel(n.id), {}, nodeRolesAfter(n));
       } else if(l.typeKey==='delete'){
         var n = getNode(l.key); if(!n) return;
-        var cur = {pic:n.pic, hrbp1:n.hrbp1, hrbp2:n.hrbp2, da:n.da};
-        pushRow(t('logType').delete, pathLabel(n.id), '', cur, {});
+        pushRow(ct('logType').delete, '', pathLabel(n.id), '', nodeRolesAfter(n), {});
       } else if(l.typeKey==='role_change'){
         var parts = l.key.split('#'); var n = getNode(parts[0]); if(!n) return;
-        var field = parts[1];
-        var before = {pic:n.pic, hrbp1:n.hrbp1, hrbp2:n.hrbp2, da:n.da};
-        before[field] = l.params.from;
-        var after = {}; after[field] = l.params.to;
-        pushRow(t('logType').role_change, pathLabel(n.id), '', before, after);
+        var before = nodeRolesBefore(n);
+        var after = nodeRolesAfter(n);
+        pushRow(ct('logType').role_change, roleChangeSummary(before, after), pathLabel(n.id), pathLabel(n.id), before, after);
       } else if(l.typeKey==='role_cascade'){
         var applied = l.params.appliedValues || {};
         (l.params.beforeValues||[]).forEach(function(bv){
           var n = getNode(bv.id); if(!n) return;
-          var before = {pic:n.pic, hrbp1:bv.hrbp1, hrbp2:bv.hrbp2, da:bv.da};
-          var after = {};
-          if(applied.hrbp1!==bv.hrbp1) after.hrbp1 = applied.hrbp1;
-          if(applied.hrbp2!==bv.hrbp2) after.hrbp2 = applied.hrbp2;
-          if(applied.da!==bv.da) after.da = applied.da;
-          pushRow(t('logType').role_change, pathLabel(n.id), '', before, after);
+          var before = {pic:n.pic, hrbp1:bv.hrbp1, hrbp2:bv.hrbp2, hrbpLead:bv.hrbpLead, da:bv.da};
+          var after = {pic:n.pic, hrbp1:applied.hrbp1, hrbp2:applied.hrbp2, hrbpLead:applied.hrbpLead, da:applied.da};
+          pushRow(ct('logType').role_change, roleChangeSummary(before, after), pathLabel(n.id), pathLabel(n.id), before, after);
         });
       }
     });
@@ -1608,40 +1605,50 @@
       if(a.sortName !== b.sortName) return a.sortName < b.sortName ? -1 : 1;
       return a.cells[0] < b.cells[0] ? -1 : a.cells[0] > b.cells[0] ? 1 : 0;
     });
-    return [t('csvOrgChangeHeaders')].concat(rows.map(function(r){ return r.cells; }));
+    return [ct('csvOrgChangeHeaders')].concat(rows.map(function(r){ return r.cells; }));
   }
 
-  // One row per affected employee (same scope as the on-screen "受影响员工" panel). "After"
-  // department/reporting columns blank unless that specific thing changed for this person; the
-  // HRBP columns always show their NEW department's current HRBP contacts (context, not a diff).
+  // The department an employee belonged to before this session's edits — same node if they were
+  // never physically transferred, otherwise the node keyed by their first emp_transfer's fromId.
+  function empOldNode(e){
+    var transfer = log.filter(function(l){ return l.typeKey==='emp_transfer' && l.params.eid===e.eid; })[0];
+    return (transfer && getNode(transfer.params.fromId)) || getNode(e.nodeId);
+  }
+
+  // One row per affected employee (same scope as the on-screen "受影响员工" panel). "Org Change"
+  // flags whether their department path itself differs before/after; "Role Change" lists which
+  // PIC/HRBP/Assistant field(s) differ between their old and new department. Every before/after
+  // column is always filled — identical on both sides when that field wasn't touched.
   function buildPersonnelRows(){
     var rows = computeImpacted().map(function(imp){
       var e = employees.filter(function(x){ return x.eid===imp.eid; })[0];
-      var hasTransfer = log.some(function(l){ return l.typeKey==='emp_transfer' && l.params.eid===e.eid; });
-      var hasReportChange = log.some(function(l){ return l.typeKey==='report_change' && l.key===e.eid; });
-      var changeType = hasTransfer ? t('empChangeTransfer') : hasReportChange ? t('empChangeReport') : t('empChangeRestructure');
+      var oldNode = empOldNode(e);
       var newNode = getNode(e.nodeId);
-      var pathChanged = imp.newPath !== imp.oldPath;
-      var reportChanged = e.reportsTo !== e.origReportsTo;
+      var before = oldNode ? nodeRolesBefore(oldNode) : {};
+      var after = newNode ? nodeRolesAfter(newNode) : {};
+      var orgChangeLabel = imp.newPath !== imp.oldPath ? ct('orgChangeLabel') : '';
+      var roleChangeLabel = roleChangeSummary(before, after);
       return {
         sortName: imp.newPath || imp.oldPath,
-        cells: [e.eid, e.name, changeType, imp.oldPath, e.origReportsTo||'',
-          pathChanged ? imp.newPath : '', reportChanged ? (e.reportsTo||'') : '',
-          newNode ? (newNode.hrbp1||'') : '', newNode ? (newNode.hrbp2||'') : '', newNode ? (newNode.hrbpLead||'') : '', '']
+        cells: [e.eid, e.name, orgChangeLabel, roleChangeLabel,
+          imp.oldPath, e.origReportsTo||'', before.pic||'', before.hrbp1||'', before.hrbp2||'', before.hrbpLead||'', before.da||'',
+          imp.newPath, e.reportsTo||'', after.pic||'', after.hrbp1||'', after.hrbp2||'', after.hrbpLead||'', after.da||'', '']
       };
     });
     rows.sort(function(a,b){
       if(a.sortName !== b.sortName) return a.sortName < b.sortName ? -1 : 1;
-      return a.cells[2] < b.cells[2] ? -1 : a.cells[2] > b.cells[2] ? 1 : 0;
+      return a.cells[1] < b.cells[1] ? -1 : a.cells[1] > b.cells[1] ? 1 : 0;
     });
-    return [t('csvPersonnelHeaders')].concat(rows.map(function(r){ return r.cells; }));
+    return [ct('csvPersonnelHeaders')].concat(rows.map(function(r){ return r.cells; }));
   }
 
   // ---------- wiring ----------
-  document.getElementById('copyLogBtn').addEventListener('click', function(){ copyText(logRows().map(function(r){ return r.join('\t'); }).join('\n')); });
-  document.getElementById('downloadLogBtn').addEventListener('click', function(){ downloadCsv(t('csvOrgChangeFilename'), buildOrgChangeRows()); });
-  document.getElementById('copyEmpBtn').addEventListener('click', function(){ copyText(empRows().map(function(r){ return r.join('\t'); }).join('\n')); });
-  document.getElementById('downloadEmpBtn').addEventListener('click', function(){ downloadCsv(t('csvPersonnelFilename'), buildPersonnelRows()); });
+  // Copy-to-clipboard mirrors the CSV download exactly, minus the header row (Base pastes column
+  // headers itself; only the data rows are needed).
+  document.getElementById('copyLogBtn').addEventListener('click', function(){ copyText(buildOrgChangeRows().slice(1).map(function(r){ return r.join('\t'); }).join('\n')); });
+  document.getElementById('downloadLogBtn').addEventListener('click', function(){ downloadCsv(ct('csvOrgChangeFilename'), buildOrgChangeRows()); });
+  document.getElementById('copyEmpBtn').addEventListener('click', function(){ copyText(buildPersonnelRows().slice(1).map(function(r){ return r.join('\t'); }).join('\n')); });
+  document.getElementById('downloadEmpBtn').addEventListener('click', function(){ downloadCsv(ct('csvPersonnelFilename'), buildPersonnelRows()); });
   document.getElementById('editCloseBtn').addEventListener('click', closePanel);
   document.getElementById('panelBackdrop').addEventListener('click', closePanel);
   document.addEventListener('keydown', function(ev){ if(ev.key==='Escape' && selectedId) closePanel(); });
