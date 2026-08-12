@@ -1368,7 +1368,7 @@
   }
 
   function computeImpacted(){
-    return employees.filter(function(e){ return pathLabel(e.nodeId) !== e.origPath || chainHasChange(e.nodeId); }).map(function(e){
+    return employees.filter(function(e){ return pathLabel(e.nodeId) !== e.origPath || chainHasChange(e.nodeId) || e.reportsTo !== e.origReportsTo; }).map(function(e){
       return {eid:e.eid, name:e.name, oldPath:e.origPath, newPath: pathLabel(e.nodeId)};
     });
   }
@@ -2107,7 +2107,10 @@
             document.getElementById('noAccessOverlay').style.display = 'flex';
             return;
           }
-          return fetchEditWindow().then(function(){
+          // Shared change log is pulled here too (not just via "刷新编辑") so everyone's edits
+          // are visible from the moment they log in — a failure here shouldn't block login, so
+          // it's caught locally rather than tripping the Promise.all.
+          return Promise.all([fetchEditWindow(), fetchRemoteChangeLog().catch(function(){})]).then(function(){
             applyRoleGating();
             document.getElementById('app').classList.add('ready');
             var saved = loadSavedState();
