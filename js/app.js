@@ -483,7 +483,7 @@
   // is an honest full history (including things later reverted), while the local `log` array
   // stays the "current plan" view CSV export reads from.
   function pushRemoteChangeLog(entry){
-    fetch('/api/changelog/add', {method:'POST', credentials:'same-origin', headers:{'Content-Type':'application/json'},
+    fetch('/api/changelog', {method:'POST', credentials:'same-origin', headers:{'Content-Type':'application/json'},
       body:JSON.stringify({typeKey:entry.typeKey, key:entry.key, params:entry.params, by:entry.by, time:entry.time})})
       .then(function(res){ return res.ok ? res.json() : null; })
       .then(function(data){ if(data && data.recordId) entry.recordId = data.recordId; })
@@ -493,7 +493,7 @@
   // org-source refetch (the "刷新数据" admin button), per request: refreshing edits shouldn't
   // also re-pull Structures/Employees/Lark User.
   function fetchRemoteChangeLog(){
-    return fetch('/api/changelog/list', {credentials:'same-origin'})
+    return fetch('/api/changelog', {credentials:'same-origin'})
       .then(function(res){ return res.json().then(function(j){ if(!res.ok) throw new Error(j.error||'error'); return j; }); })
       .then(function(data){ remoteLog = data.entries || []; });
   }
@@ -1489,7 +1489,7 @@
         }).join('');
         body.querySelectorAll('.admin-role-select').forEach(function(sel){
           sel.addEventListener('change', function(){
-            fetch('/api/permissions/update', {method:'POST', credentials:'same-origin', headers:{'Content-Type':'application/json'}, body:JSON.stringify({recordId:sel.getAttribute('data-record-id'), role:sel.value})})
+            fetch('/api/permissions/manage', {method:'POST', credentials:'same-origin', headers:{'Content-Type':'application/json'}, body:JSON.stringify({action:'update', recordId:sel.getAttribute('data-record-id'), role:sel.value})})
               .then(function(res){ return res.json().then(function(j){ if(!res.ok) throw new Error(j.error||'error'); return j; }); })
               .then(function(){ toast(t('adminSaved')); renderAdmin(); })
               .catch(function(err){ toast(err.message); renderAdmin(); });
@@ -1498,7 +1498,7 @@
         body.querySelectorAll('[data-remove-user]').forEach(function(btn){
           btn.addEventListener('click', function(){
             showConfirm(t('adminRemoveBtn'), t('adminRemoveConfirm'), t('adminRemoveBtn'), function(){
-              fetch('/api/permissions/remove', {method:'POST', credentials:'same-origin', headers:{'Content-Type':'application/json'}, body:JSON.stringify({recordId:btn.getAttribute('data-remove-user')})})
+              fetch('/api/permissions/manage', {method:'POST', credentials:'same-origin', headers:{'Content-Type':'application/json'}, body:JSON.stringify({action:'remove', recordId:btn.getAttribute('data-remove-user')})})
                 .then(function(res){ return res.json().then(function(j){ if(!res.ok) throw new Error(j.error||'error'); return j; }); })
                 .then(function(){ toast(t('adminSaved')); renderAdmin(); })
                 .catch(function(err){ toast(err.message); });
@@ -1508,7 +1508,7 @@
         body.querySelectorAll('[data-transfer-owner]').forEach(function(btn){
           btn.addEventListener('click', function(){
             showConfirm(t('adminTransferOwnerBtn'), t('adminTransferOwnerConfirm'), t('adminTransferOwnerBtn'), function(){
-              fetch('/api/permissions/transfer-owner', {method:'POST', credentials:'same-origin', headers:{'Content-Type':'application/json'}, body:JSON.stringify({recordId:btn.getAttribute('data-transfer-owner')})})
+              fetch('/api/permissions/manage', {method:'POST', credentials:'same-origin', headers:{'Content-Type':'application/json'}, body:JSON.stringify({action:'transfer-owner', recordId:btn.getAttribute('data-transfer-owner')})})
                 .then(function(res){ return res.json().then(function(j){ if(!res.ok) throw new Error(j.error||'error'); return j; }); })
                 .then(function(){ toast(t('adminSaved')); currentUserRole='Senior Admin'; applyRoleGating(); renderAdmin(); })
                 .catch(function(err){ toast(err.message); });
@@ -1516,7 +1516,7 @@
           });
         });
       })
-      .catch(function(err){ body.innerHTML = '<tr><td colspan="4" class="empty-note">'+escapeHtml(err.message)+'</td></tr>'; });
+      .catch(function(err){ body.innerHTML = '<tr><td colspan="5" class="empty-note">'+escapeHtml(err.message)+'</td></tr>'; });
   }
   document.getElementById('adminAddBtn').addEventListener('click', function(){
     var email = (document.getElementById('adminNewEmail').value||'').trim();
@@ -1524,7 +1524,7 @@
     var role = document.getElementById('adminNewRole').value;
     if(!email){ toast(t('adminNeedEmail')); return; }
     if(role==='Senior Admin' && currentUserRole!=='Owner'){ toast(t('adminOnlyOwnerGrantsSenior')); return; }
-    fetch('/api/permissions/update', {method:'POST', credentials:'same-origin', headers:{'Content-Type':'application/json'}, body:JSON.stringify({email:email, name:name, role:role})})
+    fetch('/api/permissions/manage', {method:'POST', credentials:'same-origin', headers:{'Content-Type':'application/json'}, body:JSON.stringify({action:'update', email:email, name:name, role:role})})
       .then(function(res){ return res.json().then(function(j){ if(!res.ok) throw new Error(j.error||'error'); return j; }); })
       .then(function(){
         document.getElementById('adminNewEmail').value = '';
