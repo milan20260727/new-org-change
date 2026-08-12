@@ -475,15 +475,6 @@
     while(n){ names.unshift(n.name); n = n.parentId ? getNode(n.parentId) : null; }
     return names.join(' / ');
   }
-  function chainHasChange(nodeId){
-    var n = getNode(nodeId);
-    while(n){
-      if(n.flags.isNew || n.flags.isDeleted || n.flags.isRenamed || n.movedFrom!==null) return true;
-      n = n.parentId ? getNode(n.parentId) : null;
-    }
-    return false;
-  }
-
   function roleInconsistency(id){
     var branch = [getNode(id)].concat(getDescendants(id));
     function check(field){
@@ -1272,7 +1263,7 @@
     var btn = document.getElementById('refreshEditsBtn');
     btn.disabled = true; btn.textContent = t('refreshEditsBtnLoading');
     fetchRemoteChangeLog()
-      .then(function(){ renderLog(); toast(t('toastEditsRefreshed')); })
+      .then(function(){ renderLog(); renderEmployees(); toast(t('toastEditsRefreshed')); })
       .catch(function(){ toast(t('toastEditsRefreshFailed')); })
       .then(function(){ btn.disabled = false; btn.textContent = t('refreshEditsBtn'); });
   });
@@ -1471,21 +1462,42 @@
     renderLogInto('changelogBody', merged);
   }
 
+  // Combined view, same approach as the CSV builders: replay everyone's shared history (plus
+  // this session's own not-yet-synced edits) onto the pristine baseline and diff, rather than
+  // comparing only this session's own live-mutated nodes/employees against their session-original
+  // values. Uses whatever `remoteLog` is already cached — no network call here; "刷新编辑" is what
+  // refreshes that cache.
   function computeImpacted(){
-    return employees.filter(function(e){ return pathLabel(e.nodeId) !== e.origPath || chainHasChange(e.nodeId) || e.reportsTo !== e.origReportsTo; }).map(function(e){
-      return {eid:e.eid, name:e.name, oldPath:e.origPath, newPath: pathLabel(e.nodeId)};
-    });
+    var entries = mergedLogForDisplay();
+    var replayed = replayAll(entries, pristineNodes, pristineEmployees);
+    var pristineEmpById = {}; pristineEmployees.forEach(function(e){ pristineEmpById[e.eid] = e; });
+    return replayed.employees.map(function(e){
+      var pe = pristineEmpById[e.eid];
+      if(!pe) return null;
+      var oldPath = pathLabelIn(pristineNodes, pe.nodeId);
+      var newPath = pathLabelIn(replayed.nodes, e.nodeId);
+      if(oldPath===newPath && e.reportsTo===pe.reportsTo) return null;
+      return {eid:e.eid, name:e.name, oldPath:oldPath, newPath:newPath};
+    }).filter(Boolean);
   }
 
-  function renderEmployees(){
-    var impacted = computeImpacted();
-    document.getElementById('empCount').textContent = impacted.length + (t('unitPeople') ? ' ' + t('unitPeople') : '');
-    var body = document.getElementById('empBody');
+  // Same combined list rendered into both the chart view's compact panel and the full-page
+  // "变更记录" tab's side-by-side panel, mirroring how renderLogInto covers both change-log spots.
+  function renderEmployeesInto(bodyId, impacted){
+    var body = document.getElementById(bodyId);
     if(!impacted.length){ body.innerHTML = '<tr><td colspan="3" class="empty-note">'+escapeHtml(t('empEmptyNote'))+'</td></tr>'; return; }
     body.innerHTML = impacted.map(function(e){
       var right = '<div class="path-old">'+escapeHtml(e.oldPath)+'</div><div class="path-new">'+escapeHtml(e.newPath)+'</div>';
       return '<tr><td class="mono">'+e.eid+'</td><td>'+escapeHtml(e.name)+'</td><td>'+right+'</td></tr>';
     }).join('');
+  }
+  function renderEmployees(){
+    var impacted = computeImpacted();
+    var countText = impacted.length + (t('unitPeople') ? ' ' + t('unitPeople') : '');
+    document.getElementById('empCount').textContent = countText;
+    document.getElementById('changelogEmpCount').textContent = countText;
+    renderEmployeesInto('empBody', impacted);
+    renderEmployeesInto('changelogEmpBody', impacted);
   }
 
   function renderUnassigned(){
@@ -1904,6 +1916,16 @@
     }).catch(function(err){ toast(err.message); });
   });
   document.getElementById('downloadEmpBtn').addEventListener('click', function(){
+    getCombinedReplayState().then(function(s){
+      downloadCsv(ct('csvPersonnelFilename'), buildCombinedPersonnelRows(pristineNodes, pristineEmployees, s.finalNodes, s.finalEmployees, s.entries));
+    }).catch(function(err){ toast(err.message); });
+  });
+  document.getElementById('copyChangelogEmpBtn').addEventListener('click', function(){
+    getCombinedReplayState().then(function(s){
+      copyText(buildCombinedPersonnelRows(pristineNodes, pristineEmployees, s.finalNodes, s.finalEmployees, s.entries).slice(1).map(function(r){ return r.join('\t'); }).join('\n'));
+    }).catch(function(err){ toast(err.message); });
+  });
+  document.getElementById('downloadChangelogEmpBtn').addEventListener('click', function(){
     getCombinedReplayState().then(function(s){
       downloadCsv(ct('csvPersonnelFilename'), buildCombinedPersonnelRows(pristineNodes, pristineEmployees, s.finalNodes, s.finalEmployees, s.entries));
     }).catch(function(err){ toast(err.message); });
