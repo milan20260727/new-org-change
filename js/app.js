@@ -1261,12 +1261,52 @@
     collapsed = new Set(nodes.filter(function(n){ return getChildren(n.id).length>0; }).map(function(n){ return n.id; }));
     renderTree();
   });
+  // Re-reads the current snapshot (not a "刷新数据" rewrite — just whatever /api/org-data holds
+  // right now) plus the shared change log, then rebuilds the live tree by replaying everyone's
+  // combined history (this session's own not-yet-synced edits included) onto that fresh baseline.
+  // Unlike init()/"刷新数据", this never discards local edits — they're part of the replay input.
   document.getElementById('refreshEditsBtn').addEventListener('click', function(){
     var btn = document.getElementById('refreshEditsBtn');
     btn.disabled = true; btn.textContent = t('refreshEditsBtnLoading');
-    fetchRemoteChangeLog()
-      .then(function(){ renderLog(); renderEmployees(); toast(t('toastEditsRefreshed')); })
-      .catch(function(){ toast(t('toastEditsRefreshFailed')); })
+    fetch('/api/org-data', {credentials:'same-origin'})
+      .then(function(res){
+        if(res.status===401){ showLoginOverlay(); throw new Error('not-authenticated'); }
+        if(!res.ok) return res.json().then(function(j){ throw new Error(j.error||('HTTP '+res.status)); });
+        return res.json();
+      })
+      .then(function(data){
+        var freshPristineNodes = hydrateNodes(data.nodes);
+        var freshPristineEmployees = data.employees.map(function(e){ return {eid:e.eid, name:e.name, nodeId:e.nodeId, reportsTo:e.reportsTo||''}; });
+        var freshFullEmployees = data.employees.map(function(e){
+          return {eid:e.eid, name:e.name, nodeId:e.nodeId, origPath: pathLabelIn(freshPristineNodes, e.nodeId), reportsTo:e.reportsTo||'', origReportsTo:e.reportsTo||'',
+            division:e.division||'', businessUnit:e.businessUnit||'', department:e.department||'', team:e.team||'', subTeam:e.subTeam||'', section:e.section||'',
+            status:e.status||'', hrbp1:e.hrbp1||'', hrbp2:e.hrbp2||'', hrbpLead:e.hrbpLead||''};
+        });
+        return fetchRemoteChangeLog().then(function(){
+          var entries = mergedLogForDisplay();
+          var replayed = replayAll(entries, freshPristineNodes, freshPristineEmployees);
+          var replayedByEid = {}; replayed.employees.forEach(function(e){ replayedByEid[e.eid] = e; });
+          freshFullEmployees.forEach(function(e){
+            var re = replayedByEid[e.eid];
+            if(re){ e.nodeId = re.nodeId; e.reportsTo = re.reportsTo; }
+          });
+
+          pristineNodes = freshPristineNodes;
+          pristineEmployees = freshPristineEmployees;
+          nodes = replayed.nodes;
+          employees = freshFullEmployees;
+          unassignedId = data.unassignedId || null;
+          snapshotAt = new Date(data.generatedAt);
+          document.getElementById('adminSnapshotTime').textContent = formatSnapshotTime(snapshotAt);
+          if(!getNode(viewRootId) || getNode(viewRootId).flags.isDeleted) viewRootId = rootId;
+          // Only close the edit panel if its node is genuinely gone — otherwise leave an
+          // in-progress draft (rename text, role picker selection, etc.) untouched.
+          if(selectedId && !getNode(selectedId)) closePanel();
+          render();
+          toast(t('toastEditsRefreshed'));
+        });
+      })
+      .catch(function(err){ if(err.message!=='not-authenticated') toast(t('toastEditsRefreshFailed')); })
       .then(function(){ btn.disabled = false; btn.textContent = t('refreshEditsBtn'); });
   });
 
@@ -1421,10 +1461,19 @@
     entries.forEach(function(l){
       var p = l.params || {};
       if(l.typeKey==='rename'){
-        var n = wGetNode(l.key); if(n) n.name = p.to;
+        var n = wGetNode(l.key);
+        if(n){
+          if(!n.flags.isRenamed){ n.origName = n.name; n.flags.isRenamed = true; }
+          n.name = p.to;
+          if(n.name === n.origName) n.flags.isRenamed = false;
+        }
       } else if(l.typeKey==='move'){
         var n = wGetNode(l.key); var target = n && wGetNodeByName(p.to);
-        if(target) n.parentId = target.id;
+        if(n && target){
+          if(n.movedFrom===null || n.movedFrom===undefined) n.movedFrom = n.parentId;
+          n.parentId = target.id;
+          if(n.parentId === n.movedFrom) n.movedFrom = null;
+        }
       } else if(l.typeKey==='add'){
         if(!wGetNode(l.key)){
           var parent = wGetNodeByName(p.parent);
