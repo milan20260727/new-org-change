@@ -28,6 +28,7 @@
       searchPlaceholder:'搜索组织架构名称…', searchEmpNamePlaceholder:'搜索员工姓名…', focusPrefix:'聚焦于「', focusSuffix:'」',
       globalTransferBtn:'转移员工', addOrgBtn:'新增组织架构', viewChart:'组织架构图', viewUnassigned:'待安置员工',
       expandAllBtn:'全部展开', collapseAllBtn:'全部折叠', expandTitle:'展开', collapseTitle:'折叠',
+      refreshEditsBtn:'刷新编辑', refreshEditsBtnLoading:'刷新中…', toastEditsRefreshed:'已拉取最新的变更记录', toastEditsRefreshFailed:'拉取变更记录失败',
       zoomInTitle:'放大', zoomOutTitle:'缩小',
       orientLabel:'查看方向', orientVertical:'纵向', orientHorizontal:'横向',
       langLabel:'语言', downloadPngBtn:'下载组织架构图（PNG）',
@@ -106,8 +107,8 @@
         role_cascade: function(p){ return '将「' + p.name + '」的 HRBP1/HRBP2/Department Assistant 应用到 ' + p.count + ' 个下级部门'; },
         report_change: function(p){ return p.name + '：直属主管 ' + (p.from || STR.zh.empty) + ' → ' + p.to; }
       },
-      csvOrgChangeHeaders:['变更类型','角色变动','变更前的组织架构名','变更前PIC','变更前HRBP1','变更前HRBP2','变更前HRBP Lead','变更前Assistant','变更后的组织架构名','变更后PIC','变更后HRBP1','变更后HRBP2','变更后HRBP Lead','变更后Assistant'],
-      csvPersonnelHeaders:['EID','员工名','组织变更','角色变更','变更前的组织架构','变更前汇报对象','变更前HRBP1','变更前HRBP2','变更前HRBP Lead','变更前Assistant','变更后组织架构','变更后汇报对象','变更后HRBP1','变更后HRBP2','变更后HRBP Lead','变更后Assistant','备注'],
+      csvOrgChangeHeaders:['变更类型','角色变动','变更前的组织架构名','变更前PIC','变更前HRBP1','变更前HRBP2','变更前HRBP Lead','变更前Assistant','变更后的组织架构名','变更后PIC','变更后HRBP1','变更后HRBP2','变更后HRBP Lead','变更后Assistant','编辑时间'],
+      csvPersonnelHeaders:['EID','员工名','组织变更','角色变更','变更前的组织架构','变更前汇报对象','变更前HRBP1','变更前HRBP2','变更前HRBP Lead','变更前Assistant','变更后组织架构','变更后汇报对象','变更后HRBP1','变更后HRBP2','变更后HRBP Lead','变更后Assistant','备注','编辑时间'],
       csvOrgChangeFilename:'组织变更记录.csv', csvPersonnelFilename:'人员变更记录.csv',
       orgChangeLabel:'是'
     },
@@ -136,6 +137,7 @@
       searchPlaceholder:'Search org unit name…', searchEmpNamePlaceholder:'Search employee name…', focusPrefix:'Focused on "', focusSuffix:'"',
       globalTransferBtn:'Transfer employee', addOrgBtn:'Add org unit', viewChart:'Org Chart', viewUnassigned:'Unassigned',
       expandAllBtn:'Expand All', collapseAllBtn:'Collapse All', expandTitle:'Expand', collapseTitle:'Collapse',
+      refreshEditsBtn:'Refresh edits', refreshEditsBtnLoading:'Refreshing…', toastEditsRefreshed:'Pulled the latest change log', toastEditsRefreshFailed:'Failed to pull the change log',
       zoomInTitle:'Zoom in', zoomOutTitle:'Zoom out',
       orientLabel:'Layout', orientVertical:'Vertical', orientHorizontal:'Horizontal',
       langLabel:'Language', downloadPngBtn:'Download chart (PNG)',
@@ -214,8 +216,8 @@
         role_cascade: function(p){ return 'Applied "' + p.name + '"’s HRBP1/HRBP2/Department Assistant to ' + p.count + ' sub-department(s)'; },
         report_change: function(p){ return p.name + ': direct manager ' + (p.from || STR.en.empty) + ' → ' + p.to; }
       },
-      csvOrgChangeHeaders:['Change Type','Role Change','Org Unit Before','PIC Before','HRBP1 Before','HRBP2 Before','HRBP Lead Before','Assistant Before','Org Unit After','PIC After','HRBP1 After','HRBP2 After','HRBP Lead After','Assistant After'],
-      csvPersonnelHeaders:['EID','Name','Org Change','Role Change','Org Before','Reports-to Before','HRBP1 Before','HRBP2 Before','HRBP Lead Before','Assistant Before','Org After','Reports-to After','HRBP1 After','HRBP2 After','HRBP Lead After','Assistant After','Notes'],
+      csvOrgChangeHeaders:['Change Type','Role Change','Org Unit Before','PIC Before','HRBP1 Before','HRBP2 Before','HRBP Lead Before','Assistant Before','Org Unit After','PIC After','HRBP1 After','HRBP2 After','HRBP Lead After','Assistant After','Edit Time'],
+      csvPersonnelHeaders:['EID','Name','Org Change','Role Change','Org Before','Reports-to Before','HRBP1 Before','HRBP2 Before','HRBP Lead Before','Assistant Before','Org After','Reports-to After','HRBP1 After','HRBP2 After','HRBP Lead After','Assistant After','Notes','Edit Time'],
       csvOrgChangeFilename:'org-change-record.csv', csvPersonnelFilename:'personnel-change-record.csv',
       orgChangeLabel:'Yes'
     }
@@ -268,6 +270,10 @@
   var rootId = 'root';
 
   var nodes, employees, log, selectedId, viewRootId, orientation, logSeq, tempCounter, dragSrcId, pendingEdit, activeTab, createDraft, rosterSelected, rosterBulkTarget, gmodalEmp, gmodalOrg, pendingReportPrompt, snapshotAt, unassignedId, unassignedTargets, collapsed, zoomPct;
+  // Other users' edits, pulled on demand from the shared "Change Log" Base table (never touched
+  // by init()/the "刷新数据" refresh, which only re-reads the 3 org-source tables). Display-only —
+  // CSV export still reads `log` alone, since it needs live local node state to build correct diffs.
+  var remoteLog = [];
 
   // ---------- local persistence ----------
   // Edits live only in this browser until exported — but a stray refresh (or closing the tab)
@@ -471,17 +477,41 @@
     return r.hrbp1.bad || r.hrbp2.bad || r.hrbpLead.bad || r.da.bad;
   }
 
+  // Mirrors a local log entry to the shared "Change Log" Base table (best-effort, fire-and-forget
+  // — a network/API failure here must never block or interrupt local editing). Append-only: an
+  // upsertLog update pushes a new remote row rather than editing a prior one, so the shared feed
+  // is an honest full history (including things later reverted), while the local `log` array
+  // stays the "current plan" view CSV export reads from.
+  function pushRemoteChangeLog(entry){
+    fetch('/api/changelog/add', {method:'POST', credentials:'same-origin', headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({typeKey:entry.typeKey, key:entry.key, params:entry.params, by:entry.by, time:entry.time})})
+      .then(function(res){ return res.ok ? res.json() : null; })
+      .then(function(data){ if(data && data.recordId) entry.recordId = data.recordId; })
+      .catch(function(){});
+  }
+  // Pulls other sessions' actions from the shared table — deliberately independent of init()'s
+  // org-source refetch (the "刷新数据" admin button), per request: refreshing edits shouldn't
+  // also re-pull Structures/Employees/Lark User.
+  function fetchRemoteChangeLog(){
+    return fetch('/api/changelog/list', {credentials:'same-origin'})
+      .then(function(res){ return res.json().then(function(j){ if(!res.ok) throw new Error(j.error||'error'); return j; }); })
+      .then(function(data){ remoteLog = data.entries || []; });
+  }
   // Log entries store a typeKey + structured params, formatted into display text at render
   // time via STR[LANG] — this is what lets the language toggle re-render existing history
   // correctly, instead of freezing whatever language was active when each entry was created.
-  function addLog(typeKey, params, key){ log.push({seq:logSeq++, typeKey:typeKey, params:params||{}, key:key||null, by:currentUserName, time:Date.now()}); }
+  function addLog(typeKey, params, key){
+    var entry = {seq:logSeq++, typeKey:typeKey, params:params||{}, key:key||null, by:currentUserName, time:Date.now()};
+    log.push(entry);
+    pushRemoteChangeLog(entry);
+  }
   // Rename / move / role-change are reversible within a session — upsertLog keeps exactly ONE
   // entry per (typeKey, key), always describing session-original → current, so undoing an edit
   // (or moving a department out and back) removes the noise instead of leaving a "process" trail.
   function upsertLog(typeKey, key, params){
     var existing = log.filter(function(l){ return l.typeKey===typeKey && l.key===key; })[0];
-    if(existing){ existing.params = params; existing.by = currentUserName; existing.time = Date.now(); }
-    else log.push({seq:logSeq++, typeKey:typeKey, params:params, key:key, by:currentUserName, time:Date.now()});
+    if(existing){ existing.params = params; existing.by = currentUserName; existing.time = Date.now(); pushRemoteChangeLog(existing); }
+    else { var entry = {seq:logSeq++, typeKey:typeKey, params:params, key:key, by:currentUserName, time:Date.now()}; log.push(entry); pushRemoteChangeLog(entry); }
   }
   function removeLog(typeKey, key){ log = log.filter(function(l){ return !(l.typeKey===typeKey && l.key===key); }); }
   function removeAllLogsForNode(nodeId){
@@ -1207,6 +1237,14 @@
     collapsed = new Set(nodes.filter(function(n){ return getChildren(n.id).length>0; }).map(function(n){ return n.id; }));
     renderTree();
   });
+  document.getElementById('refreshEditsBtn').addEventListener('click', function(){
+    var btn = document.getElementById('refreshEditsBtn');
+    btn.disabled = true; btn.textContent = t('refreshEditsBtnLoading');
+    fetchRemoteChangeLog()
+      .then(function(){ renderLog(); toast(t('toastEditsRefreshed')); })
+      .catch(function(){ toast(t('toastEditsRefreshFailed')); })
+      .then(function(){ btn.disabled = false; btn.textContent = t('refreshEditsBtn'); });
+  });
 
   // ---------- connector geometry (shared by the on-screen SVG and the PNG canvas export) ----------
   var CONNECTOR_GAP = 17;   // half of the children-wrap padding, i.e. the trunk's offset from the parent edge
@@ -1300,23 +1338,33 @@
   }
 
   // The compact panel (inside the chart view) and the full-page "变更记录" tab show the exact
-  // same log — rendered into both tbodies so neither ever falls out of sync with the other.
-  function renderLogInto(bodyId){
+  // same merged list — rendered into both tbodies so neither ever falls out of sync with the other.
+  function renderLogInto(bodyId, entries){
     var body = document.getElementById(bodyId);
-    if(!log.length){ body.innerHTML = '<tr><td colspan="5" class="empty-note">'+escapeHtml(t('logEmptyNote'))+'</td></tr>'; return; }
-    body.innerHTML = log.map(function(l){
+    if(!entries.length){ body.innerHTML = '<tr><td colspan="5" class="empty-note">'+escapeHtml(t('logEmptyNote'))+'</td></tr>'; return; }
+    body.innerHTML = entries.map(function(l, i){
       var timeText = l.time ? formatSnapshotTime(new Date(l.time)) : '';
-      return '<tr><td class="mono">'+l.seq+'</td><td>'+escapeHtml(formatLogType(l))+'</td><td>'+escapeHtml(formatLogDetail(l))+'</td><td>'+escapeHtml(l.by||'')+'</td><td class="mono">'+escapeHtml(timeText)+'</td></tr>';
+      return '<tr><td class="mono">'+(i+1)+'</td><td>'+escapeHtml(formatLogType(l))+'</td><td>'+escapeHtml(formatLogDetail(l))+'</td><td>'+escapeHtml(l.by||'')+'</td><td class="mono">'+escapeHtml(timeText)+'</td></tr>';
     }).join('');
   }
+  // Local `log` (this session's own plan — what CSV export reads) unioned with `remoteLog`
+  // (other sessions' actions, pulled via "刷新编辑"), deduped by the shared table's record id
+  // so a synced-then-refetched local entry doesn't render twice.
+  function mergedLogForDisplay(){
+    var seen = new Set();
+    log.forEach(function(l){ if(l.recordId) seen.add(l.recordId); });
+    var extra = remoteLog.filter(function(r){ return !seen.has(r.recordId); });
+    return log.concat(extra).sort(function(a,b){ return (a.time||0) - (b.time||0); });
+  }
   function renderLog(){
-    var countText = log.length + (t('unitRecords') ? ' ' + t('unitRecords') : '');
+    var merged = mergedLogForDisplay();
+    var countText = merged.length + (t('unitRecords') ? ' ' + t('unitRecords') : '');
     document.getElementById('logCount').textContent = countText;
     document.getElementById('changelogCount').textContent = countText;
-    document.getElementById('viewChangelogCount').textContent = log.length;
+    document.getElementById('viewChangelogCount').textContent = merged.length;
     saveState();
-    renderLogInto('logBody');
-    renderLogInto('changelogBody');
+    renderLogInto('logBody', merged);
+    renderLogInto('changelogBody', merged);
   }
 
   function computeImpacted(){
@@ -1627,42 +1675,44 @@
   // One row per org-structure change: rename/move/add/delete/role adjustment. Before/after role
   // columns are always fully populated (identical on both sides when this row didn't touch roles);
   // "Role Change" lists which specific role field(s) this row changed, comma-separated.
+  function formatLogTime(l){ return l && l.time ? formatSnapshotTime(new Date(l.time)) : ''; }
   function buildOrgChangeRows(){
     var rows = [];
-    function pushRow(typeLabel, roleChangeLabel, beforeName, afterName, beforeRoles, afterRoles){
+    function pushRow(typeLabel, roleChangeLabel, beforeName, afterName, beforeRoles, afterRoles, editTime){
       rows.push({
         sortName: afterName || beforeName,
         cells: [typeLabel, roleChangeLabel, beforeName, beforeRoles.pic||'', beforeRoles.hrbp1||'', beforeRoles.hrbp2||'', beforeRoles.hrbpLead||'', beforeRoles.da||'',
-          afterName, afterRoles.pic||'', afterRoles.hrbp1||'', afterRoles.hrbp2||'', afterRoles.hrbpLead||'', afterRoles.da||'']
+          afterName, afterRoles.pic||'', afterRoles.hrbp1||'', afterRoles.hrbp2||'', afterRoles.hrbpLead||'', afterRoles.da||'', editTime||'']
       });
     }
     log.forEach(function(l){
+      var editTime = formatLogTime(l);
       if(l.typeKey==='rename'){
         var n = getNode(l.key); if(!n) return;
         var cur = nodeRolesAfter(n);
-        pushRow(ct('logType').rename, '', pathLabelWithLeaf(n.parentId, l.params.from), pathLabel(n.id), cur, cur);
+        pushRow(ct('logType').rename, '', pathLabelWithLeaf(n.parentId, l.params.from), pathLabel(n.id), cur, cur, editTime);
       } else if(l.typeKey==='move'){
         var n = getNode(l.key); if(!n) return;
         var cur = nodeRolesAfter(n);
-        pushRow(ct('logType').move, '', pathLabelWithLeaf(n.movedFrom, n.name), pathLabel(n.id), cur, cur);
+        pushRow(ct('logType').move, '', pathLabelWithLeaf(n.movedFrom, n.name), pathLabel(n.id), cur, cur, editTime);
       } else if(l.typeKey==='add'){
         var n = getNode(l.key); if(!n) return;
-        pushRow(ct('logType').add, '', '', pathLabel(n.id), {}, nodeRolesAfter(n));
+        pushRow(ct('logType').add, '', '', pathLabel(n.id), {}, nodeRolesAfter(n), editTime);
       } else if(l.typeKey==='delete'){
         var n = getNode(l.key); if(!n) return;
-        pushRow(ct('logType').delete, '', pathLabel(n.id), '', nodeRolesAfter(n), {});
+        pushRow(ct('logType').delete, '', pathLabel(n.id), '', nodeRolesAfter(n), {}, editTime);
       } else if(l.typeKey==='role_change'){
         var parts = l.key.split('#'); var n = getNode(parts[0]); if(!n) return;
         var before = nodeRolesBefore(n);
         var after = nodeRolesAfter(n);
-        pushRow(ct('logType').role_change, roleChangeSummary(before, after), pathLabel(n.id), pathLabel(n.id), before, after);
+        pushRow(ct('logType').role_change, roleChangeSummary(before, after), pathLabel(n.id), pathLabel(n.id), before, after, editTime);
       } else if(l.typeKey==='role_cascade'){
         var applied = l.params.appliedValues || {};
         (l.params.beforeValues||[]).forEach(function(bv){
           var n = getNode(bv.id); if(!n) return;
           var before = {pic:n.pic, hrbp1:bv.hrbp1, hrbp2:bv.hrbp2, hrbpLead:bv.hrbpLead, da:bv.da};
           var after = {pic:n.pic, hrbp1:applied.hrbp1, hrbp2:applied.hrbp2, hrbpLead:applied.hrbpLead, da:applied.da};
-          pushRow(ct('logType').role_change, roleChangeSummary(before, after), pathLabel(n.id), pathLabel(n.id), before, after);
+          pushRow(ct('logType').role_change, roleChangeSummary(before, after), pathLabel(n.id), pathLabel(n.id), before, after, editTime);
         });
       }
     });
@@ -1678,6 +1728,18 @@
   function empOldNode(e){
     var transfer = log.filter(function(l){ return l.typeKey==='emp_transfer' && l.params.eid===e.eid; })[0];
     return (transfer && getNode(transfer.params.fromId)) || getNode(e.nodeId);
+  }
+  // Latest direct action on this employee (transfer or reporting-line change). Employees who
+  // only show up here because an ancestor department was renamed/moved/deleted have no such
+  // entry — there's no single action to point at, so this is left blank for them.
+  function empEditTime(eid){
+    var latest = null;
+    log.forEach(function(l){
+      // emp_transfer keys by a temp id and carries eid in params; report_change keys by eid directly.
+      var matches = (l.typeKey==='emp_transfer' && l.params.eid===eid) || (l.typeKey==='report_change' && l.key===eid);
+      if(matches && l.time && (!latest || l.time>latest)) latest = l.time;
+    });
+    return latest ? formatSnapshotTime(new Date(latest)) : '';
   }
 
   // One row per affected employee (same scope as the on-screen "受影响员工" panel). "Org Change"
@@ -1698,7 +1760,7 @@
         sortName: imp.newPath || imp.oldPath,
         cells: [e.eid, e.name, orgChangeLabel, roleChangeLabel,
           imp.oldPath, e.origReportsTo||'', before.hrbp1||'', before.hrbp2||'', before.hrbpLead||'', before.da||'',
-          imp.newPath, e.reportsTo||'', after.hrbp1||'', after.hrbp2||'', after.hrbpLead||'', after.da||'', '']
+          imp.newPath, e.reportsTo||'', after.hrbp1||'', after.hrbp2||'', after.hrbpLead||'', after.da||'', '', empEditTime(e.eid)]
       };
     });
     rows.sort(function(a,b){
