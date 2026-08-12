@@ -208,6 +208,9 @@
   .tag.ren{background:var(--accent-soft); color:var(--accent); border:1px solid var(--accent);}
   .tag.off{background:var(--del-bg); color:var(--del-text); border:1px solid var(--del-border);}
 
+  @keyframes search-hit-pulse{ 0%,100%{box-shadow:0 0 0 0 transparent;} 30%{box-shadow:0 0 0 5px var(--accent-soft);} }
+  .node.search-hit{animation:search-hit-pulse 1.1s ease-in-out 2; border-color:var(--accent) !important;}
+
   .node.st-new{background:var(--new-bg); border-color:var(--new-border);}
   .node.st-moved{background:var(--mov-bg); border-color:var(--mov-border);}
   .node.st-renamed{background:var(--accent-soft); border-color:var(--accent);}

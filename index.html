@@ -1,9 +1,9 @@
 <!doctype html>
-<html lang="zh-CN">
+<html lang="en">
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>组织架构调整工具</title>
+<title>Org Structure Change Tool</title>
 <link rel="stylesheet" href="css/style.css">
 </head>
 <body>
@@ -11,9 +11,9 @@
 <div class="login-overlay" id="loginOverlay">
   <div class="login-card" id="loginCard">
     <div class="mark">组</div>
-    <h1 data-i18n="loginTitle">组织架构调整工具</h1>
-    <p data-i18n="loginSubtitle">需要登录后才能查看组织架构与员工数据</p>
-    <button class="login-btn" id="loginBtn"><span class="dot"></span><span id="loginBtnText" data-i18n="loginBtnText">使用飞书账号登录</span></button>
+    <h1 data-i18n="loginTitle">Org Structure Change Tool</h1>
+    <p data-i18n="loginSubtitle">Sign in to view the org structure and employee data</p>
+    <button class="login-btn" id="loginBtn"><span class="dot"></span><span id="loginBtnText" data-i18n="loginBtnText">Sign in with Lark</span></button>
     <div class="login-note" id="loginError" style="display:none;"></div>
   </div>
 </div>
@@ -21,9 +21,9 @@
 <div class="login-overlay" id="noAccessOverlay" style="display:none;">
   <div class="login-card">
     <div class="mark" style="background:var(--warn-bg); color:var(--warn-text);">!</div>
-    <h1 data-i18n="noAccessTitle">暂无访问权限</h1>
-    <p data-i18n="noAccessSubtitle">你的飞书账号还没有被授权使用这个工具，请联系管理员开通访问权限。</p>
-    <span class="logout" id="noAccessLogoutBtn" data-i18n="logoutBtn" style="cursor:pointer; font-weight:600; color:var(--accent);">退出</span>
+    <h1 data-i18n="noAccessTitle">No access yet</h1>
+    <p data-i18n="noAccessSubtitle">Your Lark account hasn't been granted access to this tool yet — ask an admin to add you.</p>
+    <span class="logout" id="noAccessLogoutBtn" data-i18n="logoutBtn" style="cursor:pointer; font-weight:600; color:var(--accent);">Sign out</span>
   </div>
 </div>
 
@@ -52,6 +52,10 @@
       <input type="text" id="searchInput" data-i18n-placeholder="searchPlaceholder" placeholder="搜索组织架构名称…" autocomplete="off">
       <div class="search-results" id="searchResults"></div>
     </div>
+    <div class="search-box">
+      <input type="text" id="empSearchInput" data-i18n-placeholder="searchEmpNamePlaceholder" placeholder="搜索员工姓名…" autocomplete="off">
+      <div class="search-results" id="empSearchResults"></div>
+    </div>
     <span class="focus-pill" id="focusPill"><span id="focusPillText"></span><button id="clearFocus">×</button></span>
     <button class="btn" id="globalTransferBtn" data-i18n="globalTransferBtn">转移员工</button>
     <button class="btn" id="addOrgBtn" data-i18n="addOrgBtn">新增组织架构</button>
@@ -70,8 +74,8 @@
     </div>
     <span class="ctrl-label" data-i18n="langLabel">语言</span>
     <div class="seg" id="langSeg">
-      <button data-lang="zh" class="active">中文</button>
-      <button data-lang="en">EN</button>
+      <button data-lang="zh">中文</button>
+      <button data-lang="en" class="active">EN</button>
     </div>
     <button class="btn ghost" id="downloadPngBtn" data-i18n="downloadPngBtn">下载组织架构图（PNG）</button>
   </div>
