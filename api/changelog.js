@@ -1,9 +1,10 @@
 const { requireSession } = require('../lib/auth');
 const { requireRole } = require('../lib/permissions');
-const { listChangeLog, appendChangeLogEntry } = require('../lib/changelog');
+const { listChangeLog, appendChangeLogEntry, clearChangeLog } = require('../lib/changelog');
 
 // GET (any signed-in user): read the shared change feed. POST (Editor+): append an entry.
-// Combined into one function — the Hobby plan caps deployments at 12 serverless functions.
+// DELETE (Senior Admin+): wipe the whole shared feed. Combined into one function — the Hobby
+// plan caps deployments at 12 serverless functions.
 module.exports = async (req, res) => {
   res.setHeader('Cache-Control', 'no-store');
   if (req.method === 'GET') {
@@ -25,6 +26,17 @@ module.exports = async (req, res) => {
     try {
       const recordId = await appendChangeLogEntry({ typeKey, key, params, by, time });
       res.status(200).json({ ok: true, recordId });
+    } catch (err) {
+      res.status(502).json({ error: err.message });
+    }
+    return;
+  }
+  if (req.method === 'DELETE') {
+    const ctx = await requireRole(req, res, 'Senior Admin');
+    if (!ctx) return;
+    try {
+      const removed = await clearChangeLog();
+      res.status(200).json({ ok: true, removed });
     } catch (err) {
       res.status(502).json({ error: err.message });
     }

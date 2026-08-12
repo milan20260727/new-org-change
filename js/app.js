@@ -20,6 +20,11 @@
       editWindowStartLabel:'开始时间', editWindowEndLabel:'结束时间', editWindowClearBtn:'清除限制',
       editWindowInvalidRange:'开始时间必须早于结束时间',
       editWindowLockedBanner:function(range){ return '当前不在允许编辑的时间段内' + (range?'（'+range+'）':'') + '，编辑功能已暂时隐藏。'; },
+      clearChangelogTitle:'清空共享变更记录',
+      clearChangelogHint:'移除所有用户共享的变更历史（不可恢复）。不会影响任何人本地尚未导出的编辑草稿。',
+      clearChangelogBtn:'清空共享变更记录',
+      clearChangelogConfirm:'确定要清空所有人共享的变更记录吗？此操作不可恢复。',
+      toastChangelogCleared:'已清空共享变更记录',
       pageTitle:'组织架构调整工具',
       scopeTag:'正在加载组织数据…',
       scopeTagLoaded:function(p){ return '共 ' + p.nodeCount + ' 个组织节点 · ' + p.empCount + ' 名在职员工 · 数据来自 Lark Base'; },
@@ -129,6 +134,11 @@
       editWindowStartLabel:'Start time', editWindowEndLabel:'End time', editWindowClearBtn:'Clear restriction',
       editWindowInvalidRange:'Start time must be before end time',
       editWindowLockedBanner:function(range){ return "You're outside the allowed editing window" + (range?' ('+range+')':'') + ' — editing controls are hidden for now.'; },
+      clearChangelogTitle:'Clear shared change log',
+      clearChangelogHint:"Removes everyone's shared change history (cannot be undone). Does not affect anyone's local, not-yet-exported drafts.",
+      clearChangelogBtn:'Clear shared change log',
+      clearChangelogConfirm:"Clear everyone's shared change log? This cannot be undone.",
+      toastChangelogCleared:'Shared change log cleared',
       pageTitle:'Org Structure Change Tool',
       scopeTag:'Loading org data…',
       scopeTagLoaded:function(p){ return p.nodeCount + ' org units · ' + p.empCount + ' active employees · live from Lark Base'; },
@@ -274,6 +284,10 @@
   // by init()/the "刷新数据" refresh, which only re-reads the 3 org-source tables). Display-only —
   // CSV export still reads `log` alone, since it needs live local node state to build correct diffs.
   var remoteLog = [];
+  // Untouched copy of nodes/employees exactly as loaded, before this session's own edits mutate
+  // the live `nodes`/`employees` in place. This is the baseline the cross-user combined CSV
+  // replays everyone's shared history onto — never mutated after being set in init()/restoreState().
+  var pristineNodes, pristineEmployees;
 
   // ---------- local persistence ----------
   // Edits live only in this browser until exported — but a stray refresh (or closing the tab)
@@ -286,7 +300,8 @@
         rootId:rootId, nodes:nodes, employees:employees, log:log, logSeq:logSeq, tempCounter:tempCounter,
         viewRootId:viewRootId, orientation:orientation, unassignedId:unassignedId, personPool:personPool,
         snapshotAt: snapshotAt ? snapshotAt.toISOString() : null,
-        collapsed: collapsed ? Array.from(collapsed) : [], zoomPct: zoomPct
+        collapsed: collapsed ? Array.from(collapsed) : [], zoomPct: zoomPct,
+        pristineNodes:pristineNodes, pristineEmployees:pristineEmployees
       }));
     }catch(e){ /* storage unavailable/full — editing still works, just won't survive a refresh */ }
   }
@@ -340,6 +355,10 @@
             division:e.division||'', businessUnit:e.businessUnit||'', department:e.department||'', team:e.team||'', subTeam:e.subTeam||'', section:e.section||'',
             status:e.status||'', hrbp1:e.hrbp1||'', hrbp2:e.hrbp2||'', hrbpLead:e.hrbpLead||''};
         });
+        // Independent copies (hydrateNodes/.map build fresh objects each call) — this session's
+        // own edits mutate `nodes`/`employees` in place, but must never touch these.
+        pristineNodes = hydrateNodes(data.nodes);
+        pristineEmployees = data.employees.map(function(e){ return {eid:e.eid, name:e.name, nodeId:e.nodeId, reportsTo:e.reportsTo||''}; });
         personPool = data.personPool || [];
         unassignedId = data.unassignedId || null;
         unassignedTargets = {};
@@ -402,6 +421,11 @@
     zoomPct = saved.zoomPct || 100;
     applyZoom();
     snapshotAt = saved.snapshotAt ? new Date(saved.snapshotAt) : new Date();
+    // Falls back to a clone of the resumed (already-live) nodes/employees for sessions saved
+    // before this field existed — an imprecise baseline only if that old session had also made
+    // edits before this update shipped, and it self-heals on the next real data refresh.
+    pristineNodes = saved.pristineNodes || JSON.parse(JSON.stringify(nodes));
+    pristineEmployees = saved.pristineEmployees || JSON.parse(JSON.stringify(employees));
     log = saved.log || [];
     logSeq = saved.logSeq || 1;
     tempCounter = saved.tempCounter || 1;
@@ -577,7 +601,11 @@
   function commitAddChild(parentNode, draft){
     var val = (draft.name||'').trim();
     if(!val) return null;
-    var id = 'new-' + (tempCounter++);
+    // Includes a timestamp+random component, not just a per-session counter — two different
+    // people's sessions both start tempCounter at 1, so a plain 'new-1' would collide once their
+    // actions land in the same shared table, wrongly conflating two unrelated new departments
+    // when the combined cross-user report replays it.
+    var id = 'new-' + Date.now() + '-' + Math.floor(Math.random()*1e6) + '-' + (tempCounter++);
     var newNode = {id:id, name:val, origName:val, parentId:parentNode.id, inactive:false, movedFrom:null, restoreLog:null,
       pic:draft.pic||'', hrbp1:draft.hrbp1||'', hrbp2:draft.hrbp2||'', hrbpLead:draft.hrbpLead||'', da:draft.da||'', origRoles:null,
       flags:{isNew:true, isDeleted:false, isRenamed:false}};
@@ -588,7 +616,10 @@
     if(newNode.hrbp2) roleBits.push(roleLabelFor('hrbp2')+'：'+newNode.hrbp2);
     if(newNode.hrbpLead) roleBits.push(roleLabelFor('hrbpLead')+'：'+newNode.hrbpLead);
     if(newNode.da) roleBits.push(roleLabelFor('da')+'：'+newNode.da);
-    addLog('add', {name:val, parent:parentNode.name, roleBits:roleBits}, id);
+    // roleBits stays for the existing on-screen log text (language-formatted at commit time);
+    // the raw fields are what the cross-user replay engine actually consumes.
+    addLog('add', {name:val, parent:parentNode.name, roleBits:roleBits,
+      pic:newNode.pic, hrbp1:newNode.hrbp1, hrbp2:newNode.hrbp2, hrbpLead:newNode.hrbpLead, da:newNode.da}, id);
     return newNode;
   }
   function commitEmployeeTransfer(emp, targetId, silent){
@@ -643,7 +674,7 @@
       });
       n.restoreLog = null;
     }
-    addLog('undo_delete', {name:n.name, restored:restored});
+    addLog('undo_delete', {name:n.name, restored:restored}, n.id);
   }
   function commitRoleChange(n, field, val){
     if(val===n[field]) return;
@@ -1356,6 +1387,79 @@
     var extra = remoteLog.filter(function(r){ return !seen.has(r.recordId); });
     return log.concat(extra).sort(function(a,b){ return (a.time||0) - (b.time||0); });
   }
+
+  // ---------- cross-user replay (combined "final result" view for CSV export) ----------
+  // pathLabel() walks the live global `nodes`; this variant walks an arbitrary node array, so it
+  // works against the pristine baseline or a replayed working copy just the same.
+  function pathLabelIn(nodeSet, nodeId){
+    var byId = {}; nodeSet.forEach(function(n){ byId[n.id] = n; });
+    var names = [], n = byId[nodeId];
+    while(n){ names.unshift(n.name); n = n.parentId ? byId[n.parentId] : null; }
+    return names.join(' / ');
+  }
+  // Latest time any entry touched a given node/employee — used as the combined row's "Edit
+  // Time" (there's no single edit event anymore once cross-user chains are collapsed to one row).
+  function computeLastTouched(entries){
+    var nodeTime = {}, empTime = {};
+    function bumpNode(id, time){ if(id && time && (!nodeTime[id] || time>nodeTime[id])) nodeTime[id] = time; }
+    function bumpEmp(eid, time){ if(eid && time && (!empTime[eid] || time>empTime[eid])) empTime[eid] = time; }
+    entries.forEach(function(l){
+      var p = l.params || {};
+      if(l.typeKey==='rename' || l.typeKey==='move' || l.typeKey==='add' || l.typeKey==='delete' || l.typeKey==='undo_delete') bumpNode(l.key, l.time);
+      else if(l.typeKey==='role_change'){ bumpNode((l.key||'').split('#')[0], l.time); }
+      else if(l.typeKey==='role_cascade'){ (p.beforeValues||[]).forEach(function(bv){ bumpNode(bv.id, l.time); }); }
+      else if(l.typeKey==='emp_transfer'){ bumpEmp(p.eid, l.time); }
+      else if(l.typeKey==='report_change'){ bumpEmp(l.key, l.time); }
+    });
+    return {nodeTime:nodeTime, empTime:empTime};
+  }
+  // Replays every entry's own embedded params (never a live getNode() lookup — a foreign
+  // session's edits were never applied to any node object we have) onto a deep-cloned copy of
+  // the pristine baseline, in chronological order, to reconstruct everyone's combined final
+  // state. This is what makes "1 person, 3 steps" and "3 people, 1 step each" produce the exact
+  // same result: only the final before/after matters, not how many entries got there.
+  function replayAll(entries, baseNodes, baseEmployees){
+    var workNodes = JSON.parse(JSON.stringify(baseNodes));
+    var workEmployees = JSON.parse(JSON.stringify(baseEmployees));
+    function wGetNode(id){ for(var i=0;i<workNodes.length;i++) if(workNodes[i].id===id) return workNodes[i]; return null; }
+    function wGetNodeByName(name){ for(var i=0;i<workNodes.length;i++) if(!workNodes[i].flags.isDeleted && workNodes[i].name===name) return workNodes[i]; return null; }
+    function wGetEmp(eid){ for(var i=0;i<workEmployees.length;i++) if(workEmployees[i].eid===eid) return workEmployees[i]; return null; }
+
+    entries.forEach(function(l){
+      var p = l.params || {};
+      if(l.typeKey==='rename'){
+        var n = wGetNode(l.key); if(n) n.name = p.to;
+      } else if(l.typeKey==='move'){
+        var n = wGetNode(l.key); var target = n && wGetNodeByName(p.to);
+        if(target) n.parentId = target.id;
+      } else if(l.typeKey==='add'){
+        if(!wGetNode(l.key)){
+          var parent = wGetNodeByName(p.parent);
+          workNodes.push({id:l.key, name:p.name||'', parentId: parent?parent.id:null,
+            pic:p.pic||'', hrbp1:p.hrbp1||'', hrbp2:p.hrbp2||'', hrbpLead:p.hrbpLead||'', da:p.da||'',
+            inactive:false, flags:{isNew:true, isDeleted:false, isRenamed:false}});
+        }
+      } else if(l.typeKey==='delete'){
+        var n = wGetNode(l.key); if(n) n.flags.isDeleted = true;
+      } else if(l.typeKey==='undo_delete'){
+        var n = wGetNode(l.key); if(n) n.flags.isDeleted = false;
+      } else if(l.typeKey==='role_change'){
+        var parts = (l.key||'').split('#'); var n = wGetNode(parts[0]);
+        if(n && parts[1]) n[parts[1]] = p.to;
+      } else if(l.typeKey==='role_cascade'){
+        var applied = p.appliedValues || {};
+        (p.beforeValues||[]).forEach(function(bv){
+          var n = wGetNode(bv.id);
+          if(n){ n.hrbp1=applied.hrbp1; n.hrbp2=applied.hrbp2; n.hrbpLead=applied.hrbpLead; n.da=applied.da; }
+        });
+      } else if(l.typeKey==='emp_transfer'){
+        var e = wGetEmp(p.eid); if(e && p.toId) e.nodeId = p.toId;
+      } else if(l.typeKey==='report_change'){
+        var e = wGetEmp(l.key); if(e) e.reportsTo = p.to;
+      }
+    });
+    return {nodes:workNodes, employees:workEmployees};
+  }
   function renderLog(){
     var merged = mergedLogForDisplay();
     var countText = merged.length + (t('unitRecords') ? ' ' + t('unitRecords') : '');
@@ -1560,6 +1664,14 @@
   document.getElementById('editWindowClearBtn').addEventListener('click', function(){
     saveEditWindow(null, null);
   });
+  document.getElementById('clearChangelogBtn').addEventListener('click', function(){
+    showConfirm(t('clearChangelogBtn'), t('clearChangelogConfirm'), t('clearChangelogBtn'), function(){
+      fetch('/api/changelog', {method:'DELETE', credentials:'same-origin'})
+        .then(function(res){ return res.json().then(function(j){ if(!res.ok) throw new Error(j.error||'error'); return j; }); })
+        .then(function(){ remoteLog = []; renderLog(); toast(t('toastChangelogCleared')); })
+        .catch(function(err){ toast(err.message); });
+    });
+  });
 
   function render(){
     renderTree();
@@ -1648,23 +1760,12 @@
     document.body.appendChild(a); a.click(); document.body.removeChild(a); URL.revokeObjectURL(a.href);
   }
 
-  // pathLabel() always walks the CURRENT tree; this variant substitutes the leaf name so we can
-  // reconstruct a "before" path (e.g. the old name under a rename, or the leaf under its old
-  // parent for a move) without needing a snapshot of the whole tree at that point in time.
-  function pathLabelWithLeaf(parentId, leafName){
-    var parentPath = parentId ? pathLabel(parentId) : '';
-    return parentPath ? parentPath + ' / ' + leafName : leafName;
-  }
-
   // ---------- structured CSV exports (distinct from the on-screen copy/paste tables above) ----------
-  // Shared role-diff helpers: "before" is the department's pre-session values (falls back to
-  // origRoles, which is only set once a role on that node is actually edited); "after" is always
-  // the node's current live values. Both CSVs fill every before/after cell — no conditional blanks.
+  // Shared role-diff helpers. Both CSVs fill every before/after cell — no conditional blanks.
   var ROLE_FIELDS = ['pic', 'hrbp1', 'hrbp2', 'hrbpLead', 'da'];
   // PIC is an org-structure attribute, not a personnel one — personnel rows compare everything
   // except it.
   var PERSONNEL_ROLE_FIELDS = ROLE_FIELDS.filter(function(f){ return f!=='pic'; });
-  function nodeRolesBefore(n){ return n.origRoles || {pic:n.pic, hrbp1:n.hrbp1, hrbp2:n.hrbp2, hrbpLead:n.hrbpLead, da:n.da}; }
   function nodeRolesAfter(n){ return {pic:n.pic, hrbp1:n.hrbp1, hrbp2:n.hrbp2, hrbpLead:n.hrbpLead, da:n.da}; }
   function roleChangeSummary(before, after, fields){
     return (fields || ROLE_FIELDS).filter(function(f){ return (before[f]||'') !== (after[f]||''); })
@@ -1672,49 +1773,51 @@
       .join(', ');
   }
 
-  // One row per org-structure change: rename/move/add/delete/role adjustment. Before/after role
-  // columns are always fully populated (identical on both sides when this row didn't touch roles);
-  // "Role Change" lists which specific role field(s) this row changed, comma-separated.
-  function formatLogTime(l){ return l && l.time ? formatSnapshotTime(new Date(l.time)) : ''; }
-  function buildOrgChangeRows(){
+  // One row per org-structure change, computed as a straight diff between the pristine baseline
+  // and the fully-replayed combined state — not per log entry. This is what makes "1 person, 3
+  // steps" and "3 people, 1 step each" collapse to the exact same row: a chain that nets to no
+  // difference (e.g. renamed X→Y→X by two different people) produces no row at all.
+  function buildCombinedOrgChangeRows(pristineNodes, finalNodes, entries){
+    var pristineById = {}; pristineNodes.forEach(function(n){ pristineById[n.id] = n; });
+    var nodeTime = computeLastTouched(entries).nodeTime;
     var rows = [];
-    function pushRow(typeLabel, roleChangeLabel, beforeName, afterName, beforeRoles, afterRoles, editTime){
+    finalNodes.forEach(function(fn){
+      var pn = pristineById[fn.id];
+      var wasNew = !pn;
+      var isDeletedNow = !!fn.flags.isDeleted;
+      var wasDeletedBefore = pn ? !!pn.flags.isDeleted : false;
+      if(wasDeletedBefore) return; // already gone before this combined window — nothing changed here
+      if(wasNew && isDeletedNow) return; // added then deleted — nets to nothing, like the single-session case
+
+      var typeLabels = [], roleChangeLabel = '', beforeName, afterName, beforeRoles, afterRoles;
+      if(wasNew){
+        typeLabels.push(ct('logType').add);
+        beforeName = ''; beforeRoles = {};
+        afterName = pathLabelIn(finalNodes, fn.id);
+        afterRoles = nodeRolesAfter(fn);
+      } else if(isDeletedNow){
+        typeLabels.push(ct('logType').delete);
+        beforeName = pathLabelIn(pristineNodes, fn.id);
+        beforeRoles = nodeRolesAfter(pn);
+        afterName = ''; afterRoles = {};
+      } else {
+        if(fn.name !== pn.name) typeLabels.push(ct('logType').rename);
+        if(fn.parentId !== pn.parentId) typeLabels.push(ct('logType').move);
+        beforeName = pathLabelIn(pristineNodes, fn.id);
+        afterName = pathLabelIn(finalNodes, fn.id);
+        beforeRoles = nodeRolesAfter(pn);
+        afterRoles = nodeRolesAfter(fn);
+        roleChangeLabel = roleChangeSummary(beforeRoles, afterRoles);
+        if(roleChangeLabel) typeLabels.push(ct('logType').role_change);
+      }
+      if(!typeLabels.length) return; // no net difference from baseline
+
+      var editTime = nodeTime[fn.id] ? formatSnapshotTime(new Date(nodeTime[fn.id])) : '';
       rows.push({
         sortName: afterName || beforeName,
-        cells: [typeLabel, roleChangeLabel, beforeName, beforeRoles.pic||'', beforeRoles.hrbp1||'', beforeRoles.hrbp2||'', beforeRoles.hrbpLead||'', beforeRoles.da||'',
-          afterName, afterRoles.pic||'', afterRoles.hrbp1||'', afterRoles.hrbp2||'', afterRoles.hrbpLead||'', afterRoles.da||'', editTime||'']
+        cells: [typeLabels.join(', '), roleChangeLabel, beforeName, beforeRoles.pic||'', beforeRoles.hrbp1||'', beforeRoles.hrbp2||'', beforeRoles.hrbpLead||'', beforeRoles.da||'',
+          afterName, afterRoles.pic||'', afterRoles.hrbp1||'', afterRoles.hrbp2||'', afterRoles.hrbpLead||'', afterRoles.da||'', editTime]
       });
-    }
-    log.forEach(function(l){
-      var editTime = formatLogTime(l);
-      if(l.typeKey==='rename'){
-        var n = getNode(l.key); if(!n) return;
-        var cur = nodeRolesAfter(n);
-        pushRow(ct('logType').rename, '', pathLabelWithLeaf(n.parentId, l.params.from), pathLabel(n.id), cur, cur, editTime);
-      } else if(l.typeKey==='move'){
-        var n = getNode(l.key); if(!n) return;
-        var cur = nodeRolesAfter(n);
-        pushRow(ct('logType').move, '', pathLabelWithLeaf(n.movedFrom, n.name), pathLabel(n.id), cur, cur, editTime);
-      } else if(l.typeKey==='add'){
-        var n = getNode(l.key); if(!n) return;
-        pushRow(ct('logType').add, '', '', pathLabel(n.id), {}, nodeRolesAfter(n), editTime);
-      } else if(l.typeKey==='delete'){
-        var n = getNode(l.key); if(!n) return;
-        pushRow(ct('logType').delete, '', pathLabel(n.id), '', nodeRolesAfter(n), {}, editTime);
-      } else if(l.typeKey==='role_change'){
-        var parts = l.key.split('#'); var n = getNode(parts[0]); if(!n) return;
-        var before = nodeRolesBefore(n);
-        var after = nodeRolesAfter(n);
-        pushRow(ct('logType').role_change, roleChangeSummary(before, after), pathLabel(n.id), pathLabel(n.id), before, after, editTime);
-      } else if(l.typeKey==='role_cascade'){
-        var applied = l.params.appliedValues || {};
-        (l.params.beforeValues||[]).forEach(function(bv){
-          var n = getNode(bv.id); if(!n) return;
-          var before = {pic:n.pic, hrbp1:bv.hrbp1, hrbp2:bv.hrbp2, hrbpLead:bv.hrbpLead, da:bv.da};
-          var after = {pic:n.pic, hrbp1:applied.hrbp1, hrbp2:applied.hrbp2, hrbpLead:applied.hrbpLead, da:applied.da};
-          pushRow(ct('logType').role_change, roleChangeSummary(before, after), pathLabel(n.id), pathLabel(n.id), before, after, editTime);
-        });
-      }
     });
     rows.sort(function(a,b){
       if(a.sortName !== b.sortName) return a.sortName < b.sortName ? -1 : 1;
@@ -1723,46 +1826,37 @@
     return [ct('csvOrgChangeHeaders')].concat(rows.map(function(r){ return r.cells; }));
   }
 
-  // The department an employee belonged to before this session's edits — same node if they were
-  // never physically transferred, otherwise the node keyed by their first emp_transfer's fromId.
-  function empOldNode(e){
-    var transfer = log.filter(function(l){ return l.typeKey==='emp_transfer' && l.params.eid===e.eid; })[0];
-    return (transfer && getNode(transfer.params.fromId)) || getNode(e.nodeId);
-  }
-  // Latest direct action on this employee (transfer or reporting-line change). Employees who
-  // only show up here because an ancestor department was renamed/moved/deleted have no such
-  // entry — there's no single action to point at, so this is left blank for them.
-  function empEditTime(eid){
-    var latest = null;
-    log.forEach(function(l){
-      // emp_transfer keys by a temp id and carries eid in params; report_change keys by eid directly.
-      var matches = (l.typeKey==='emp_transfer' && l.params.eid===eid) || (l.typeKey==='report_change' && l.key===eid);
-      if(matches && l.time && (!latest || l.time>latest)) latest = l.time;
-    });
-    return latest ? formatSnapshotTime(new Date(latest)) : '';
-  }
+  // Same diff-based approach for personnel: an employee's own department-role context is
+  // resolved against whichever node they were in at each end (pristine vs replayed final), which
+  // also naturally covers "never moved, but their department's HRBP changed" — no separate
+  // ancestor-chain tracking needed, it falls out of comparing the two node states directly.
+  function buildCombinedPersonnelRows(pristineNodes, pristineEmployees, finalNodes, finalEmployees, entries){
+    var pristineNodeById = {}; pristineNodes.forEach(function(n){ pristineNodeById[n.id] = n; });
+    var finalNodeById = {}; finalNodes.forEach(function(n){ finalNodeById[n.id] = n; });
+    var pristineEmpById = {}; pristineEmployees.forEach(function(e){ pristineEmpById[e.eid] = e; });
+    var empTime = computeLastTouched(entries).empTime;
 
-  // One row per affected employee (same scope as the on-screen "受影响员工" panel). "Org Change"
-  // flags whether their department path itself differs before/after; "Role Change" lists which
-  // HRBP/Assistant field(s) differ between their old and new department (PIC excluded — that's
-  // an org-structure attribute, not a personnel one). Every before/after column is always
-  // filled — identical on both sides when that field wasn't touched.
-  function buildPersonnelRows(){
-    var rows = computeImpacted().map(function(imp){
-      var e = employees.filter(function(x){ return x.eid===imp.eid; })[0];
-      var oldNode = empOldNode(e);
-      var newNode = getNode(e.nodeId);
-      var before = oldNode ? nodeRolesBefore(oldNode) : {};
-      var after = newNode ? nodeRolesAfter(newNode) : {};
-      var orgChangeLabel = imp.newPath !== imp.oldPath ? ct('orgChangeLabel') : '';
+    var rows = finalEmployees.map(function(fe){
+      var pe = pristineEmpById[fe.eid];
+      if(!pe) return null;
+      var oldPath = pathLabelIn(pristineNodes, pe.nodeId);
+      var newPath = pathLabelIn(finalNodes, fe.nodeId);
+      var pathChanged = oldPath !== newPath;
+      var reportsChanged = fe.reportsTo !== pe.reportsTo;
+      var before = pristineNodeById[pe.nodeId] ? nodeRolesAfter(pristineNodeById[pe.nodeId]) : {};
+      var after = finalNodeById[fe.nodeId] ? nodeRolesAfter(finalNodeById[fe.nodeId]) : {};
       var roleChangeLabel = roleChangeSummary(before, after, PERSONNEL_ROLE_FIELDS);
+      if(!pathChanged && !reportsChanged && !roleChangeLabel) return null;
+      var orgChangeLabel = pathChanged ? ct('orgChangeLabel') : '';
+      var editTime = empTime[fe.eid] ? formatSnapshotTime(new Date(empTime[fe.eid])) : '';
       return {
-        sortName: imp.newPath || imp.oldPath,
-        cells: [e.eid, e.name, orgChangeLabel, roleChangeLabel,
-          imp.oldPath, e.origReportsTo||'', before.hrbp1||'', before.hrbp2||'', before.hrbpLead||'', before.da||'',
-          imp.newPath, e.reportsTo||'', after.hrbp1||'', after.hrbp2||'', after.hrbpLead||'', after.da||'', '', empEditTime(e.eid)]
+        sortName: newPath || oldPath,
+        cells: [fe.eid, fe.name, orgChangeLabel, roleChangeLabel,
+          oldPath, pe.reportsTo||'', before.hrbp1||'', before.hrbp2||'', before.hrbpLead||'', before.da||'',
+          newPath, fe.reportsTo||'', after.hrbp1||'', after.hrbp2||'', after.hrbpLead||'', after.da||'', '', editTime]
       };
-    });
+    }).filter(Boolean);
+
     rows.sort(function(a,b){
       if(a.sortName !== b.sortName) return a.sortName < b.sortName ? -1 : 1;
       return a.cells[1] < b.cells[1] ? -1 : a.cells[1] > b.cells[1] ? 1 : 0;
@@ -1770,15 +1864,50 @@
     return [ct('csvPersonnelHeaders')].concat(rows.map(function(r){ return r.cells; }));
   }
 
+  // Pulls the full shared history fresh (not whatever's already cached in remoteLog) and replays
+  // it onto the pristine baseline — the one place all 6 export buttons below funnel through, so
+  // everyone's CSV/copy reflects the same combined final result, not just their own session.
+  function getCombinedReplayState(){
+    return fetchRemoteChangeLog().then(function(){
+      var entries = mergedLogForDisplay();
+      var replayed = replayAll(entries, pristineNodes, pristineEmployees);
+      return {entries:entries, finalNodes:replayed.nodes, finalEmployees:replayed.employees};
+    });
+  }
+
   // ---------- wiring ----------
   // Copy-to-clipboard mirrors the CSV download exactly, minus the header row (Base pastes column
   // headers itself; only the data rows are needed).
-  document.getElementById('copyLogBtn').addEventListener('click', function(){ copyText(buildOrgChangeRows().slice(1).map(function(r){ return r.join('\t'); }).join('\n')); });
-  document.getElementById('downloadLogBtn').addEventListener('click', function(){ downloadCsv(ct('csvOrgChangeFilename'), buildOrgChangeRows()); });
-  document.getElementById('copyChangelogBtn').addEventListener('click', function(){ copyText(buildOrgChangeRows().slice(1).map(function(r){ return r.join('\t'); }).join('\n')); });
-  document.getElementById('downloadChangelogBtn').addEventListener('click', function(){ downloadCsv(ct('csvOrgChangeFilename'), buildOrgChangeRows()); });
-  document.getElementById('copyEmpBtn').addEventListener('click', function(){ copyText(buildPersonnelRows().slice(1).map(function(r){ return r.join('\t'); }).join('\n')); });
-  document.getElementById('downloadEmpBtn').addEventListener('click', function(){ downloadCsv(ct('csvPersonnelFilename'), buildPersonnelRows()); });
+  document.getElementById('copyLogBtn').addEventListener('click', function(){
+    getCombinedReplayState().then(function(s){
+      copyText(buildCombinedOrgChangeRows(pristineNodes, s.finalNodes, s.entries).slice(1).map(function(r){ return r.join('\t'); }).join('\n'));
+    }).catch(function(err){ toast(err.message); });
+  });
+  document.getElementById('downloadLogBtn').addEventListener('click', function(){
+    getCombinedReplayState().then(function(s){
+      downloadCsv(ct('csvOrgChangeFilename'), buildCombinedOrgChangeRows(pristineNodes, s.finalNodes, s.entries));
+    }).catch(function(err){ toast(err.message); });
+  });
+  document.getElementById('copyChangelogBtn').addEventListener('click', function(){
+    getCombinedReplayState().then(function(s){
+      copyText(buildCombinedOrgChangeRows(pristineNodes, s.finalNodes, s.entries).slice(1).map(function(r){ return r.join('\t'); }).join('\n'));
+    }).catch(function(err){ toast(err.message); });
+  });
+  document.getElementById('downloadChangelogBtn').addEventListener('click', function(){
+    getCombinedReplayState().then(function(s){
+      downloadCsv(ct('csvOrgChangeFilename'), buildCombinedOrgChangeRows(pristineNodes, s.finalNodes, s.entries));
+    }).catch(function(err){ toast(err.message); });
+  });
+  document.getElementById('copyEmpBtn').addEventListener('click', function(){
+    getCombinedReplayState().then(function(s){
+      copyText(buildCombinedPersonnelRows(pristineNodes, pristineEmployees, s.finalNodes, s.finalEmployees, s.entries).slice(1).map(function(r){ return r.join('\t'); }).join('\n'));
+    }).catch(function(err){ toast(err.message); });
+  });
+  document.getElementById('downloadEmpBtn').addEventListener('click', function(){
+    getCombinedReplayState().then(function(s){
+      downloadCsv(ct('csvPersonnelFilename'), buildCombinedPersonnelRows(pristineNodes, pristineEmployees, s.finalNodes, s.finalEmployees, s.entries));
+    }).catch(function(err){ toast(err.message); });
+  });
   document.getElementById('editCloseBtn').addEventListener('click', closePanel);
   document.getElementById('panelBackdrop').addEventListener('click', closePanel);
   document.addEventListener('keydown', function(ev){ if(ev.key==='Escape' && selectedId) closePanel(); });
