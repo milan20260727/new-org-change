@@ -335,13 +335,15 @@
     toast(msg);
   }
 
-  // Fetches live data from Base. Resets any in-progress local edits (matches
-  // the earlier "reset demo" behavior) — this now pulls real data each call,
-  // it's not just re-stamping a frozen snapshot.
-  function init(){
+  // Reads the frozen snapshot by default — resets any in-progress local edits (matches the
+  // earlier "reset demo" behavior). Pass forceRefresh (only from the admin "刷新数据" button) to
+  // have the server rewrite the snapshot from the live source tables first; a plain load/restore
+  // always gets whatever the snapshot last held, however stale, per the "only refresh on demand"
+  // design — this can take a while server-side, see vercel.json's extended timeout for this route.
+  function init(forceRefresh){
     var wrap = document.getElementById('treeWrap');
     wrap.style.opacity = '.4';
-    return fetch('/api/org-data', {credentials:'same-origin'})
+    return fetch('/api/org-data' + (forceRefresh ? '?refresh=1' : ''), {credentials:'same-origin'})
       .then(function(res){
         if(res.status===401){ showLoginOverlay(); throw new Error('not-authenticated'); }
         if(!res.ok) return res.json().then(function(j){ throw new Error(j.error||('HTTP '+res.status)); });
@@ -2222,13 +2224,13 @@
   document.getElementById('refreshBtn').addEventListener('click', function(){
     showConfirm(
       t('refreshBtn'),
-      LANG==='zh' ? '会重新从 Base 拉取最新数据，当前未导出的本地编辑（重命名、移动、角色变更等）会被放弃，确定继续？' : 'This re-fetches the latest data from Base. Any unexported local edits (renames, moves, role changes, etc.) will be discarded. Continue?',
+      LANG==='zh' ? '会重新从 Base 拉取最新数据并更新快照，当前未导出的本地编辑（重命名、移动、角色变更等）会被放弃。数据量大时可能需要几十秒，确定继续？' : 'This rewrites the snapshot from Base and re-fetches it. Any unexported local edits (renames, moves, role changes, etc.) will be discarded. Can take up to a minute for a large org — continue?',
       LANG==='zh' ? '确认刷新' : 'Refresh',
       function(){
         var btn = document.getElementById('refreshBtn');
         btn.disabled = true;
         btn.textContent = t('refreshBtnLoading');
-        init().then(function(){
+        init(true).then(function(){
           btn.disabled = false;
           btn.textContent = t('refreshBtn');
         });

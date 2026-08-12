@@ -1,0 +1,7 @@
+{
+  "functions": {
+    "api/org-data.js": {
+      "maxDuration": 60
+    }
+  }
+}
