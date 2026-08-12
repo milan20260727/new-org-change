@@ -15,6 +15,10 @@ module.exports = async (req, res) => {
   authorizeUrl.searchParams.set('app_id', appId);
   authorizeUrl.searchParams.set('redirect_uri', redirectUri);
   authorizeUrl.searchParams.set('state', state);
+  // Without an explicit scope, Lark's user_info response omits email even when the app has
+  // the permission granted — and resolveRole's first-time bootstrap (matching a pre-seeded
+  // permissions row by email, before an OpenID exists) silently fails without it.
+  authorizeUrl.searchParams.set('scope', 'contact:user.email:readonly');
 
   res.setHeader(
     'Set-Cookie',
