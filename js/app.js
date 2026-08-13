@@ -2282,28 +2282,34 @@
       var border = isDeleted ? C.warnBorder : isNew ? C.newBorder : isMoved ? C.movBorder : isRenamed ? C.accent : C.line;
       var textColor = isDeleted ? C.warnText : C.ink;
 
-      roundRectPath(ctx, x, y, r.width, r.height, 9);
+      var padX = 12;
+      var nameEl = el.querySelector('.name');
+      ctx.font = '700 12.5px -apple-system, "Segoe UI", sans-serif';
+      var nameLines = wrapLines(ctx, nameEl ? nameEl.textContent : '', r.width - padX*2, Infinity);
+      var metaLines = el.querySelectorAll('.meta-line');
+      var tags = el.querySelectorAll('.tag');
+
+      // Sized from what's actually drawn below, not the live box's real height — canvas text
+      // metrics don't perfectly match the CSS line-height the real box was sized around, so
+      // using that height left a visible gap under a wrapped multi-line name.
+      var boxHeight = 11 + nameLines.length*15 + (metaLines.length ? 2 + metaLines.length*13 : 0) + (tags.length ? 3 + 14 : 0) + 10;
+
+      roundRectPath(ctx, x, y, r.width, boxHeight, 9);
       ctx.fillStyle = bg; ctx.fill();
       ctx.strokeStyle = border; ctx.lineWidth = 1.5; ctx.stroke();
 
-      var padX = 12, cy = y + 11;
-      var nameEl = el.querySelector('.name');
+      var cy = y + 11;
       ctx.fillStyle = textColor;
-      ctx.font = '700 12.5px -apple-system, "Segoe UI", sans-serif';
       ctx.textBaseline = 'top';
-      // No line cap — the box itself is already drawn at its real on-screen height (which the
-      // live DOM already grew to fit the fully-wrapped name), so truncating the text here would
-      // just lose words the box has visible room for.
-      var nameLines = wrapLines(ctx, nameEl ? nameEl.textContent : '', r.width - padX*2, Infinity);
       nameLines.forEach(function(line){ ctx.fillText(line, x+padX, cy); cy += 15; });
 
       cy += 2;
       ctx.font = '10.5px -apple-system, "Segoe UI", sans-serif';
       ctx.fillStyle = C.inkMuted;
-      el.querySelectorAll('.meta-line').forEach(function(m){ ctx.fillText(m.textContent, x+padX, cy); cy += 13; });
+      metaLines.forEach(function(m){ ctx.fillText(m.textContent, x+padX, cy); cy += 13; });
       var tagY = cy + 3;
       var tagX = x + padX;
-      el.querySelectorAll('.tag').forEach(function(tag){
+      tags.forEach(function(tag){
         ctx.font = '700 9.5px -apple-system, "Segoe UI", sans-serif';
         var tw = ctx.measureText(tag.textContent).width + 10;
         ctx.fillStyle = C.bg;
