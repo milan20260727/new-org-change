@@ -2051,15 +2051,16 @@
   }
 
   // ---------- wiring ----------
-  // Inserted before the .csv extension so repeated downloads on different days don't overwrite
-  // each other and it's obvious at a glance which day's export a file is.
-  function todayDateStamp(){
+  // Inserted before the file extension so repeated downloads within the same day (or even the
+  // same minute) don't overwrite each other, and it's obvious at a glance when an export was made.
+  function nowStamp(){
     var d = new Date();
     function pad(n){ return n<10 ? '0'+n : ''+n; }
-    return d.getFullYear()+'-'+pad(d.getMonth()+1)+'-'+pad(d.getDate());
+    return d.getFullYear()+'-'+pad(d.getMonth()+1)+'-'+pad(d.getDate())+'-'+pad(d.getHours())+pad(d.getMinutes());
   }
   function dateStampedFilename(name){
-    return name.replace(/\.csv$/i, '-' + todayDateStamp() + '.csv');
+    var m = name.match(/^(.*)(\.[^.]+)$/);
+    return m ? (m[1] + '-' + nowStamp() + m[2]) : (name + '-' + nowStamp());
   }
 
   // The "archive changes to Base" admin button replaced these as the supported way to get
@@ -2332,7 +2333,7 @@
         if(!blob){ toast(t('toastPngFailed')); return; }
         var a = document.createElement('a');
         a.href = URL.createObjectURL(blob);
-        a.download = LANG==='zh' ? '组织架构图.png' : 'org-chart.png';
+        a.download = dateStampedFilename(LANG==='zh' ? '组织架构图.png' : 'org-chart.png');
         document.body.appendChild(a); a.click(); document.body.removeChild(a);
         toast(scaledDown ? t('toastPngTooLarge') : t('toastPngDone'));
       }, 'image/png');
