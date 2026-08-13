@@ -44,6 +44,7 @@
       globalTransferBtn:'转移员工', addOrgBtn:'新增组织架构', viewChart:'组织架构图', viewUnassigned:'待安置员工',
       expandAllBtn:'全部展开', collapseAllBtn:'全部折叠', expandTitle:'展开', collapseTitle:'折叠',
       refreshEditsBtn:'刷新编辑', refreshEditsBtnLoading:'刷新中…', toastEditsRefreshed:'已拉取最新的变更记录', toastEditsRefreshFailed:'拉取变更记录失败',
+      refreshEditsConfirmDiscard:'你还有尚未同步的本地编辑草稿，刷新会丢弃这些草稿（已同步的变更不受影响）。确定继续吗？',
       zoomInTitle:'放大', zoomOutTitle:'缩小',
       orientLabel:'查看方向', orientVertical:'纵向', orientHorizontal:'横向',
       langLabel:'语言', downloadPngBtn:'下载组织架构图（PNG）',
@@ -166,6 +167,7 @@
       globalTransferBtn:'Transfer employee', addOrgBtn:'Add org unit', viewChart:'Org Chart', viewUnassigned:'Unassigned',
       expandAllBtn:'Expand All', collapseAllBtn:'Collapse All', expandTitle:'Expand', collapseTitle:'Collapse',
       refreshEditsBtn:'Refresh edits', refreshEditsBtnLoading:'Refreshing…', toastEditsRefreshed:'Pulled the latest change log', toastEditsRefreshFailed:'Failed to pull the change log',
+      refreshEditsConfirmDiscard:"You have local edits that haven't been synced yet — refreshing will discard them (already-synced changes are unaffected). Continue?",
       zoomInTitle:'Zoom in', zoomOutTitle:'Zoom out',
       orientLabel:'Layout', orientVertical:'Vertical', orientHorizontal:'Horizontal',
       langLabel:'Language', downloadPngBtn:'Download chart (PNG)',
@@ -302,34 +304,13 @@
   var remoteLog = [];
   // Untouched copy of nodes/employees exactly as loaded, before this session's own edits mutate
   // the live `nodes`/`employees` in place. This is the baseline the cross-user combined CSV
-  // replays everyone's shared history onto — never mutated after being set in init()/restoreState().
+  // replays everyone's shared history onto — never mutated after being set in init()/applyCombinedReplay().
   var pristineNodes, pristineEmployees;
 
   // ---------- local persistence ----------
-  // Edits live only in this browser until exported — but a stray refresh (or closing the tab)
-  // shouldn't discard them. Everything needed to resume is mirrored to localStorage after every
-  // logged change; a real refetch (the "刷新数据" button) is the only thing that overwrites it.
-  var STORAGE_KEY = 'orgChangeToolState_v1';
-  function saveState(){
-    try{
-      localStorage.setItem(STORAGE_KEY, JSON.stringify({
-        rootId:rootId, nodes:nodes, employees:employees, log:log, logSeq:logSeq, tempCounter:tempCounter,
-        viewRootId:viewRootId, orientation:orientation, unassignedId:unassignedId, personPool:personPool,
-        snapshotAt: snapshotAt ? snapshotAt.toISOString() : null,
-        collapsed: collapsed ? Array.from(collapsed) : [], zoomPct: zoomPct,
-        pristineNodes:pristineNodes, pristineEmployees:pristineEmployees
-      }));
-    }catch(e){ /* storage unavailable/full — editing still works, just won't survive a refresh */ }
-  }
-  function loadSavedState(){
-    try{
-      var raw = localStorage.getItem(STORAGE_KEY);
-      return raw ? JSON.parse(raw) : null;
-    }catch(e){ return null; }
-  }
-  function clearSavedState(){
-    try{ localStorage.removeItem(STORAGE_KEY); }catch(e){}
-  }
+  // Deliberately no localStorage persistence: a browser refresh or a "刷新编辑" click always
+  // starts from the current shared state, discarding this session's own not-yet-synced drafts
+  // too — otherwise a stale reopened tab makes it easy to redo an edit someone already made.
 
   function hydrateNodes(rawNodes){
     return rawNodes.map(function(n){
@@ -425,48 +406,6 @@
       });
   }
 
-  // Resumes exactly where a previous session left off — everything here was written by
-  // saveState() after the last logged change, so no network round-trip is needed. Only a real
-  // refetch (the "刷新数据" button, which calls init() instead) discards this and starts clean.
-  function restoreState(saved){
-    rootId = saved.rootId || 'root';
-    nodes = saved.nodes || [];
-    employees = saved.employees || [];
-    personPool = saved.personPool || [];
-    unassignedId = saved.unassignedId || null;
-    unassignedTargets = {};
-    collapsed = new Set(saved.collapsed || []);
-    zoomPct = saved.zoomPct || 100;
-    applyZoom();
-    snapshotAt = saved.snapshotAt ? new Date(saved.snapshotAt) : new Date();
-    // Falls back to a clone of the resumed (already-live) nodes/employees for sessions saved
-    // before this field existed — an imprecise baseline only if that old session had also made
-    // edits before this update shipped, and it self-heals on the next real data refresh.
-    pristineNodes = saved.pristineNodes || JSON.parse(JSON.stringify(nodes));
-    pristineEmployees = saved.pristineEmployees || JSON.parse(JSON.stringify(employees));
-    log = saved.log || [];
-    logSeq = saved.logSeq || 1;
-    tempCounter = saved.tempCounter || 1;
-    selectedId = null;
-    viewRootId = saved.viewRootId || rootId;
-    orientation = saved.orientation || 'vertical';
-    dragSrcId = null;
-    pendingEdit = null;
-    createDraft = null;
-    rosterSelected = {};
-    rosterBulkTarget = '';
-    pendingReportPrompt = null;
-    activeTab = 'structure';
-    document.getElementById('adminSnapshotTime').textContent = formatSnapshotTime(snapshotAt);
-    document.getElementById('searchInput').value = '';
-    document.getElementById('reportPromptOverlay').classList.remove('show');
-    document.getElementById('orientSeg').querySelectorAll('button').forEach(function(b){ b.classList.toggle('active', b.getAttribute('data-orient')===orientation); });
-    switchView('chart');
-    closePanel();
-    closeGlobalTransfer();
-    document.querySelector('.scope-tag').textContent = t('scopeTagLoaded')({nodeCount:nodes.length, empCount:employees.length});
-    render();
-  }
 
   function getNode(id){ for(var i=0;i<nodes.length;i++) if(nodes[i].id===id) return nodes[i]; return null; }
   function getChildren(id){ return nodes.filter(function(n){ return n.parentId===id; }); }
@@ -1305,38 +1244,48 @@
 
   // Re-reads the current snapshot (not a "刷新数据" rewrite — just whatever /api/org-data holds
   // right now) plus the shared change log, then rebuilds the live tree via applyCombinedReplay().
-  // Unlike init()/"刷新数据", this never discards local edits — they're part of the replay input.
+  // Also discards this session's own not-yet-synced local drafts (log=[]) — only already-synced
+  // (shared-table) history survives, same policy as a browser refresh; warns first if there's
+  // actually a draft to lose, so a routine "any updates?" click isn't interrupted for nothing.
   document.getElementById('refreshEditsBtn').addEventListener('click', function(){
-    var btn = document.getElementById('refreshEditsBtn');
-    btn.disabled = true; btn.textContent = t('refreshEditsBtnLoading');
-    fetch('/api/org-data', {credentials:'same-origin'})
-      .then(function(res){
-        if(res.status===401){ showLoginOverlay(); throw new Error('not-authenticated'); }
-        if(!res.ok) return res.json().then(function(j){ throw new Error(j.error||('HTTP '+res.status)); });
-        return res.json();
-      })
-      .then(function(data){
-        var freshPristineNodes = hydrateNodes(data.nodes);
-        var freshPristineEmployees = data.employees.map(function(e){ return {eid:e.eid, name:e.name, nodeId:e.nodeId, reportsTo:e.reportsTo||''}; });
-        var freshFullEmployees = data.employees.map(function(e){
-          return {eid:e.eid, name:e.name, nodeId:e.nodeId, origPath: pathLabelIn(freshPristineNodes, e.nodeId), reportsTo:e.reportsTo||'', origReportsTo:e.reportsTo||'',
-            division:e.division||'', businessUnit:e.businessUnit||'', department:e.department||'', team:e.team||'', subTeam:e.subTeam||'', section:e.section||'',
-            status:e.status||'', hrbp1:e.hrbp1||'', hrbp2:e.hrbp2||'', hrbpLead:e.hrbpLead||''};
-        });
-        return fetchRemoteChangeLog().then(function(){
-          pristineNodes = freshPristineNodes;
-          pristineEmployees = freshPristineEmployees;
-          employees = freshFullEmployees;
-          applyCombinedReplay();
-          unassignedId = data.unassignedId || null;
-          snapshotAt = new Date(data.generatedAt);
-          document.getElementById('adminSnapshotTime').textContent = formatSnapshotTime(snapshotAt);
-          render();
-          toast(t('toastEditsRefreshed'));
-        });
-      })
-      .catch(function(err){ if(err.message!=='not-authenticated') toast(t('toastEditsRefreshFailed')); })
-      .then(function(){ btn.disabled = false; btn.textContent = t('refreshEditsBtn'); });
+    function doRefresh(){
+      var btn = document.getElementById('refreshEditsBtn');
+      btn.disabled = true; btn.textContent = t('refreshEditsBtnLoading');
+      log = [];
+      fetch('/api/org-data', {credentials:'same-origin'})
+        .then(function(res){
+          if(res.status===401){ showLoginOverlay(); throw new Error('not-authenticated'); }
+          if(!res.ok) return res.json().then(function(j){ throw new Error(j.error||('HTTP '+res.status)); });
+          return res.json();
+        })
+        .then(function(data){
+          var freshPristineNodes = hydrateNodes(data.nodes);
+          var freshPristineEmployees = data.employees.map(function(e){ return {eid:e.eid, name:e.name, nodeId:e.nodeId, reportsTo:e.reportsTo||''}; });
+          var freshFullEmployees = data.employees.map(function(e){
+            return {eid:e.eid, name:e.name, nodeId:e.nodeId, origPath: pathLabelIn(freshPristineNodes, e.nodeId), reportsTo:e.reportsTo||'', origReportsTo:e.reportsTo||'',
+              division:e.division||'', businessUnit:e.businessUnit||'', department:e.department||'', team:e.team||'', subTeam:e.subTeam||'', section:e.section||'',
+              status:e.status||'', hrbp1:e.hrbp1||'', hrbp2:e.hrbp2||'', hrbpLead:e.hrbpLead||''};
+          });
+          return fetchRemoteChangeLog().then(function(){
+            pristineNodes = freshPristineNodes;
+            pristineEmployees = freshPristineEmployees;
+            employees = freshFullEmployees;
+            applyCombinedReplay();
+            unassignedId = data.unassignedId || null;
+            snapshotAt = new Date(data.generatedAt);
+            document.getElementById('adminSnapshotTime').textContent = formatSnapshotTime(snapshotAt);
+            render();
+            toast(t('toastEditsRefreshed'));
+          });
+        })
+        .catch(function(err){ if(err.message!=='not-authenticated') toast(t('toastEditsRefreshFailed')); })
+        .then(function(){ btn.disabled = false; btn.textContent = t('refreshEditsBtn'); });
+    }
+    if(log.length){
+      showConfirm(t('refreshEditsBtn'), t('refreshEditsConfirmDiscard'), t('refreshEditsBtn'), doRefresh);
+    } else {
+      doRefresh();
+    }
   });
 
   // ---------- connector geometry (shared by the on-screen SVG and the PNG canvas export) ----------
@@ -1538,7 +1487,6 @@
     document.getElementById('logCount').textContent = countText;
     document.getElementById('changelogCount').textContent = countText;
     document.getElementById('viewChangelogCount').textContent = merged.length;
-    saveState();
     // mergedLogForDisplay() stays chronological (oldest first) for replayAll() elsewhere — only
     // the on-screen table shows newest first, which is what people actually want to scan.
     var newestFirst = merged.slice().reverse();
@@ -2416,7 +2364,6 @@
     window.location.href = '/api/auth/login';
   });
   document.getElementById('logoutBtn').addEventListener('click', function(){
-    clearSavedState();
     window.location.href = '/api/auth/logout';
   });
   document.getElementById('refreshBtn').addEventListener('click', function(){
@@ -2437,7 +2384,6 @@
   });
 
   document.getElementById('noAccessLogoutBtn').addEventListener('click', function(){
-    clearSavedState();
     window.location.href = '/api/auth/logout';
   });
 
@@ -2464,11 +2410,10 @@
           return Promise.all([fetchEditWindow(), fetchRemoteChangeLog().catch(function(){})]).then(function(){
             applyRoleGating();
             document.getElementById('app').classList.add('ready');
-            var saved = loadSavedState();
-            var loaded = saved ? Promise.resolve(restoreState(saved)) : init();
-            // Apply everyone's combined history right away too — otherwise the tree only shows
-            // this session's own edits until someone thinks to click "刷新编辑".
-            return loaded.then(function(){ applyCombinedReplay(); render(); });
+            // Always a fresh init() — no restoring a stale local draft, per design: a reopened
+            // tab with a leftover unsynced edit is exactly what causes an already-made change to
+            // look "not applied yet" and get redone by mistake.
+            return init().then(function(){ applyCombinedReplay(); render(); });
           });
         });
     })
