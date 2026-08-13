@@ -8,6 +8,9 @@ const { getLastChangeLogExportAt, setLastChangeLogExportAt } = require('../lib/s
 // shaped to match orgChangeLog/employeeChangeLog's real field names) plus the new watermark to
 // save. This route just writes them and advances the marker — all the diffing/replay logic that
 // decided what's "new" already ran client-side, same as the CSV export it's built on.
+// The admin's manual "set watermark" control reuses this same POST with empty row arrays — it
+// just moves the marker without writing anything, which is why newWatermark is checked by type
+// (0 is a legitimate value there, e.g. resetting to "nothing archived yet") rather than truthiness.
 module.exports = async (req, res) => {
   res.setHeader('Cache-Control', 'no-store');
 
@@ -27,7 +30,7 @@ module.exports = async (req, res) => {
     const ctx = await requireRole(req, res, 'Senior Admin');
     if (!ctx) return;
     const { orgRows, employeeRows, newWatermark } = req.body || {};
-    if (!Array.isArray(orgRows) || !Array.isArray(employeeRows) || !newWatermark) {
+    if (!Array.isArray(orgRows) || !Array.isArray(employeeRows) || typeof newWatermark !== 'number') {
       res.status(400).json({ error: 'orgRows, employeeRows, and newWatermark are required' });
       return;
     }

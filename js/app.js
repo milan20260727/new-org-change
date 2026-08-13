@@ -7,7 +7,7 @@
       loginTitle:'组织架构调整工具', loginSubtitle:'需要登录后才能查看组织架构与员工数据',
       loginBtnText:'使用飞书账号登录', loginBtnTextLoading:'登录中…',
       noAccessTitle:'暂无访问权限', noAccessSubtitle:'你的飞书账号还没有被授权使用这个工具，请联系管理员开通访问权限。',
-      viewAdmin:'管理员', adminTitle:'管理员',
+      viewAdmin:'权限设置', adminTitle:'权限设置',
       adminEmailPh:'邮箱', adminNamePh:'姓名（可选）', adminAddBtn:'添加',
       adminColEmail:'邮箱', adminColRole:'角色',
       roleOwner:'最高管理员', roleSeniorAdmin:'高级管理员', roleEditor:'编辑用户', roleViewer:'访问用户',
@@ -32,6 +32,9 @@
       toastExportChangeLogNone:'没有新的变更需要写入',
       toastExportChangeLogDone:function(p){ return '已写入 ' + p.orgCount + ' 条组织变更、' + p.empCount + ' 条人员变更'; },
       toastExportChangeLogFailed:'写入失败，请稍后重试',
+      exportWatermarkLabel:'已归档到（水位线）',
+      exportWatermarkInvalid:'时间格式无效',
+      toastWatermarkSaved:'水位线已更新',
       pageTitle:'组织架构调整工具',
       scopeTag:'正在加载组织数据…',
       scopeTagLoaded:function(p){ return '共 ' + p.nodeCount + ' 个组织节点 · ' + p.empCount + ' 名在职员工 · 数据来自 Lark Base'; },
@@ -126,7 +129,7 @@
       loginTitle:'Org Structure Change Tool', loginSubtitle:'Sign in to view the org structure and employee data',
       loginBtnText:'Sign in with Lark', loginBtnTextLoading:'Signing in…',
       noAccessTitle:'No access yet', noAccessSubtitle:"Your Lark account hasn't been granted access to this tool yet — ask an admin to add you.",
-      viewAdmin:'Admin', adminTitle:'Admin',
+      viewAdmin:'Permission Setting', adminTitle:'Permission Setting',
       adminEmailPh:'Email', adminNamePh:'Name (optional)', adminAddBtn:'Add',
       adminColEmail:'Email', adminColRole:'Role',
       roleOwner:'Owner', roleSeniorAdmin:'Senior Admin', roleEditor:'Editor', roleViewer:'Viewer',
@@ -151,6 +154,9 @@
       toastExportChangeLogNone:'No new changes to archive',
       toastExportChangeLogDone:function(p){ return 'Archived ' + p.orgCount + ' org change(s), ' + p.empCount + ' personnel change(s)'; },
       toastExportChangeLogFailed:'Archive failed, please try again',
+      exportWatermarkLabel:'Archived up to (watermark)',
+      exportWatermarkInvalid:'Invalid date/time',
+      toastWatermarkSaved:'Watermark updated',
       pageTitle:'Org Structure Change Tool',
       scopeTag:'Loading org data…',
       scopeTagLoaded:function(p){ return p.nodeCount + ' org units · ' + p.empCount + ' active employees · live from Lark Base'; },
@@ -1611,7 +1617,7 @@
     document.getElementById('unassignedView').style.display = view==='unassigned' ? '' : 'none';
     document.getElementById('changelogView').style.display = view==='changelog' ? '' : 'none';
     document.getElementById('adminView').style.display = view==='admin' ? '' : 'none';
-    if(view==='admin'){ renderAdmin(); renderEditWindowSettings(); }
+    if(view==='admin'){ renderAdmin(); renderEditWindowSettings(); fetchExportWatermark().then(renderExportWatermark); }
   }
   document.getElementById('viewTabs').addEventListener('click', function(ev){
     var btn = ev.target.closest('button[data-view]'); if(!btn) return;
@@ -1717,6 +1723,38 @@
     document.getElementById('editWindowEnd').value = editWindow.end || '';
     document.getElementById('editWindowStatus').textContent = '';
   }
+
+  // ---------- archive watermark (shown/editable so an admin can see or roll back what's
+  // already been archived to Base, without asking someone to poke at Tool Settings directly) ----------
+  var exportWatermark = 0;
+  function fetchExportWatermark(){
+    return fetch('/api/changelog-export', {credentials:'same-origin'})
+      .then(function(res){ return res.ok ? res.json() : {lastExportAt:0}; })
+      .then(function(data){ exportWatermark = data.lastExportAt || 0; })
+      .catch(function(){});
+  }
+  // datetime-local inputs are timezone-naive strings interpreted in the browser's own local
+  // time — same "no server-timezone conversion" approach as the edit window fields.
+  function epochToDatetimeLocal(epochMs){
+    if(!epochMs) return '';
+    var d = new Date(epochMs);
+    function pad(n){ return n<10 ? '0'+n : ''+n; }
+    return d.getFullYear()+'-'+pad(d.getMonth()+1)+'-'+pad(d.getDate())+'T'+pad(d.getHours())+':'+pad(d.getMinutes());
+  }
+  function renderExportWatermark(){
+    document.getElementById('exportWatermarkInput').value = epochToDatetimeLocal(exportWatermark);
+    document.getElementById('exportWatermarkStatus').textContent = '';
+  }
+  document.getElementById('exportWatermarkSaveBtn').addEventListener('click', function(){
+    var val = document.getElementById('exportWatermarkInput').value;
+    var epoch = val ? new Date(val).getTime() : 0;
+    if(val && isNaN(epoch)){ toast(t('exportWatermarkInvalid')); return; }
+    fetch('/api/changelog-export', {method:'POST', credentials:'same-origin', headers:{'Content-Type':'application/json'},
+      body: JSON.stringify({orgRows:[], employeeRows:[], newWatermark: epoch})})
+      .then(function(res){ return res.json().then(function(j){ if(!res.ok) throw new Error(j.error||'error'); return j; }); })
+      .then(function(){ exportWatermark = epoch; toast(t('toastWatermarkSaved')); renderExportWatermark(); })
+      .catch(function(err){ toast(err.message); });
+  });
   function saveEditWindow(start, end){
     fetch('/api/settings/edit-window', {method:'POST', credentials:'same-origin', headers:{'Content-Type':'application/json'}, body:JSON.stringify({start:start, end:end})})
       .then(function(res){ return res.json().then(function(j){ if(!res.ok) throw new Error(j.error||'error'); return j; }); })
@@ -1786,7 +1824,10 @@
             method:'POST', credentials:'same-origin', headers:{'Content-Type':'application/json'},
             body: JSON.stringify({orgRows: orgFieldsRows, employeeRows: empFieldsRows, newWatermark: newWatermark})
           }).then(function(res){ return res.json().then(function(j){ if(!res.ok) throw new Error(j.error||'error'); return j; }); })
-            .then(function(result){ toast(t('toastExportChangeLogDone')({orgCount:result.orgCount, empCount:result.employeeCount})); });
+            .then(function(result){
+              exportWatermark = newWatermark; renderExportWatermark();
+              toast(t('toastExportChangeLogDone')({orgCount:result.orgCount, empCount:result.employeeCount}));
+            });
         });
       })
       .catch(function(err){ statusEl.textContent = t('toastExportChangeLogFailed') + (err && err.message ? ' (' + err.message + ')' : ''); toast(t('toastExportChangeLogFailed')); })
