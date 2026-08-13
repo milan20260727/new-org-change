@@ -424,23 +424,12 @@
 
 
   function getNode(id){ for(var i=0;i<nodes.length;i++) if(nodes[i].id===id) return nodes[i]; return null; }
-  // Default sibling order: 0-headcount departments sink to the end, everything else keeps
-  // whatever relative order it arrived in (Base row order) — stable partition, not a full sort.
-  function defaultOrder(kids){
-    var nonZero = [], zero = [];
-    kids.forEach(function(n){ (rollupHeadcount(n.id)===0 ? zero : nonZero).push(n); });
-    return nonZero.concat(zero);
-  }
-  function getChildren(id){
-    var kids = nodes.filter(function(n){ return n.parentId===id; });
-    var order = manualOrder[id];
-    if(!order || !order.length) return defaultOrder(kids);
-    var byId = {}; kids.forEach(function(n){ byId[n.id] = n; });
-    var used = {}; var ordered = [];
-    order.forEach(function(cid){ if(byId[cid] && !used[cid]){ ordered.push(byId[cid]); used[cid] = true; } });
-    var rest = kids.filter(function(n){ return !used[n.id]; });
-    return ordered.concat(defaultOrder(rest));
-  }
+  // Plain, unsorted parent->children lookup — used internally by the descendant/headcount walk
+  // so it never has to go back through the sorted getChildren() below. rollupHeadcount only
+  // needs the *set* of descendants, not their display order, and routing it through getChildren
+  // would make every sort re-trigger a rollup which re-triggers a sort on every node beneath it —
+  // an accidental exponential blowup that made every render (not just drag) crawl.
+  function rawChildren(id){ return nodes.filter(function(n){ return n.parentId===id; }); }
   function isDescendant(ancestorId, id){
     var n = getNode(id);
     while(n && n.parentId){
@@ -451,13 +440,56 @@
   }
   function getDescendants(id){
     var out = [];
-    getChildren(id).forEach(function(c){ out.push(c); out = out.concat(getDescendants(c.id)); });
+    rawChildren(id).forEach(function(c){ out.push(c); out = out.concat(getDescendants(c.id)); });
     return out;
   }
   function directHeadcount(id){ return employees.filter(function(e){ return e.nodeId===id; }).length; }
+  // Memoized per render pass (invalidated in renderTree()): computed bottom-up over a plain
+  // parent->children index in one O(nodes+employees) sweep, instead of every rollupHeadcount
+  // call re-walking its whole subtree — which, at ~1000 org units, was the actual source of the
+  // "everything got slower" regression (every sort comparison during a render did a full
+  // subtree walk AND a full employees scan).
+  var headcountCache = null;
+  function computeHeadcountCache(){
+    var direct = {};
+    employees.forEach(function(e){ direct[e.nodeId] = (direct[e.nodeId]||0) + 1; });
+    var childrenIndex = {};
+    nodes.forEach(function(n){
+      if(n.parentId===null) return;
+      if(!childrenIndex[n.parentId]) childrenIndex[n.parentId] = [];
+      childrenIndex[n.parentId].push(n.id);
+    });
+    var cache = {};
+    function sum(id){
+      if(cache[id]!==undefined) return cache[id];
+      var total = direct[id] || 0;
+      (childrenIndex[id]||[]).forEach(function(cid){ total += sum(cid); });
+      cache[id] = total;
+      return total;
+    }
+    nodes.forEach(function(n){ sum(n.id); });
+    return cache;
+  }
   function rollupHeadcount(id){
-    var ids = [id].concat(getDescendants(id).map(function(n){ return n.id; }));
-    return employees.filter(function(e){ return ids.indexOf(e.nodeId)>=0; }).length;
+    if(!headcountCache) headcountCache = computeHeadcountCache();
+    return headcountCache[id] || 0;
+  }
+  // Default sibling order: 0-headcount departments sink to the end, everything else keeps
+  // whatever relative order it arrived in (Base row order) — stable partition, not a full sort.
+  function defaultOrder(kids){
+    var nonZero = [], zero = [];
+    kids.forEach(function(n){ (rollupHeadcount(n.id)===0 ? zero : nonZero).push(n); });
+    return nonZero.concat(zero);
+  }
+  function getChildren(id){
+    var kids = rawChildren(id);
+    var order = manualOrder[id];
+    if(!order || !order.length) return defaultOrder(kids);
+    var byId = {}; kids.forEach(function(n){ byId[n.id] = n; });
+    var used = {}; var ordered = [];
+    order.forEach(function(cid){ if(byId[cid] && !used[cid]){ ordered.push(byId[cid]); used[cid] = true; } });
+    var rest = kids.filter(function(n){ return !used[n.id]; });
+    return ordered.concat(defaultOrder(rest));
   }
   function pathLabel(nodeId){
     var names = [], n = getNode(nodeId);
@@ -1231,6 +1263,7 @@
   function escapeHtml(s){ return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
 
   function renderTree(){
+    headcountCache = null; // rebuild once for this pass, not once per node/comparison
     var root = document.getElementById('treeRoot');
     root.setAttribute('data-orient', orientation);
     root.innerHTML = '<ul class="tlevel">'+renderSubtree(viewRootId, true)+'</ul>';
