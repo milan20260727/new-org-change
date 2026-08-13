@@ -1282,9 +1282,29 @@
     collapsed = new Set(nodes.filter(function(n){ return getChildren(n.id).length>0; }).map(function(n){ return n.id; }));
     renderTree();
   });
+  // Replays the merged (local + remote) change history onto the CURRENT pristineNodes/
+  // pristineEmployees, updating the live `nodes` wholesale and each employee's nodeId/reportsTo
+  // in place (every other field on the employee objects — division, HRBP, etc. — is left alone,
+  // since the replay engine can't touch those). Shared by the initial page load (so everyone's
+  // changes are visible from first paint, not just after "刷新编辑") and "刷新编辑" itself (which
+  // also re-fetches a fresher pristine baseline first).
+  function applyCombinedReplay(){
+    var entries = mergedLogForDisplay();
+    var replayed = replayAll(entries, pristineNodes, pristineEmployees);
+    var replayedByEid = {}; replayed.employees.forEach(function(e){ replayedByEid[e.eid] = e; });
+    employees.forEach(function(e){
+      var re = replayedByEid[e.eid];
+      if(re){ e.nodeId = re.nodeId; e.reportsTo = re.reportsTo; }
+    });
+    nodes = replayed.nodes;
+    if(!getNode(viewRootId) || getNode(viewRootId).flags.isDeleted) viewRootId = rootId;
+    // Only close the edit panel if its node is genuinely gone — otherwise leave an in-progress
+    // draft (rename text, role picker selection, etc.) untouched.
+    if(selectedId && !getNode(selectedId)) closePanel();
+  }
+
   // Re-reads the current snapshot (not a "刷新数据" rewrite — just whatever /api/org-data holds
-  // right now) plus the shared change log, then rebuilds the live tree by replaying everyone's
-  // combined history (this session's own not-yet-synced edits included) onto that fresh baseline.
+  // right now) plus the shared change log, then rebuilds the live tree via applyCombinedReplay().
   // Unlike init()/"刷新数据", this never discards local edits — they're part of the replay input.
   document.getElementById('refreshEditsBtn').addEventListener('click', function(){
     var btn = document.getElementById('refreshEditsBtn');
@@ -1304,25 +1324,13 @@
             status:e.status||'', hrbp1:e.hrbp1||'', hrbp2:e.hrbp2||'', hrbpLead:e.hrbpLead||''};
         });
         return fetchRemoteChangeLog().then(function(){
-          var entries = mergedLogForDisplay();
-          var replayed = replayAll(entries, freshPristineNodes, freshPristineEmployees);
-          var replayedByEid = {}; replayed.employees.forEach(function(e){ replayedByEid[e.eid] = e; });
-          freshFullEmployees.forEach(function(e){
-            var re = replayedByEid[e.eid];
-            if(re){ e.nodeId = re.nodeId; e.reportsTo = re.reportsTo; }
-          });
-
           pristineNodes = freshPristineNodes;
           pristineEmployees = freshPristineEmployees;
-          nodes = replayed.nodes;
           employees = freshFullEmployees;
+          applyCombinedReplay();
           unassignedId = data.unassignedId || null;
           snapshotAt = new Date(data.generatedAt);
           document.getElementById('adminSnapshotTime').textContent = formatSnapshotTime(snapshotAt);
-          if(!getNode(viewRootId) || getNode(viewRootId).flags.isDeleted) viewRootId = rootId;
-          // Only close the edit panel if its node is genuinely gone — otherwise leave an
-          // in-progress draft (rename text, role picker selection, etc.) untouched.
-          if(selectedId && !getNode(selectedId)) closePanel();
           render();
           toast(t('toastEditsRefreshed'));
         });
@@ -1824,7 +1832,10 @@
           var empRows = buildCombinedPersonnelRows(pristineNodes, pristineEmployees, state.finalNodes, state.finalEmployees, state.entries, sinceTime).slice(1);
           if(!orgRows.length && !empRows.length){ toast(t('toastExportChangeLogNone')); return null; }
           var orgFieldsRows = rowsToBaseFields(orgHeaders, orgRows, {'Edit Time':'Edit Date'});
-          var empFieldsRows = rowsToBaseFields(empHeaders, empRows, {'Edit Time':'Edit Date'}, ['EID']);
+          // The Base table's real field names are still "Reports-to Before/After" — only the
+          // CSV's display header text changed to "Direct Manager", so this rename map bridges
+          // that gap (getting it wrong throws FieldNameNotFound on the whole employeeRows batch).
+          var empFieldsRows = rowsToBaseFields(empHeaders, empRows, {'Edit Time':'Edit Date', 'Direct Manager Before':'Reports-to Before', 'Direct Manager After':'Reports-to After'}, ['EID']);
           var newWatermark = state.entries.reduce(function(max, e){ return Math.max(max, e.time||0); }, sinceTime);
           return fetch('/api/changelog-export', {
             method:'POST', credentials:'same-origin', headers:{'Content-Type':'application/json'},
@@ -2451,7 +2462,10 @@
             applyRoleGating();
             document.getElementById('app').classList.add('ready');
             var saved = loadSavedState();
-            if(saved) restoreState(saved); else init();
+            var loaded = saved ? Promise.resolve(restoreState(saved)) : init();
+            // Apply everyone's combined history right away too — otherwise the tree only shows
+            // this session's own edits until someone thinks to click "刷新编辑".
+            return loaded.then(function(){ applyCombinedReplay(); render(); });
           });
         });
     })
