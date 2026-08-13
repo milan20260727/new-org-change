@@ -198,6 +198,10 @@
   .node-add-btn:hover{border-color:var(--accent); background:var(--accent-soft);}
   .node-toggle-btn{position:absolute; bottom:-8px; left:-8px; width:19px; height:19px; border-radius:50%; border:1px solid var(--line); background:var(--surface); color:var(--ink-muted); font-size:10px; font-weight:700; line-height:1; display:flex; align-items:center; justify-content:center; cursor:pointer; z-index:2; box-shadow:var(--shadow);}
   .node-toggle-btn:hover{border-color:var(--accent); color:var(--accent);}
+  .node-reorder-handle{position:absolute; bottom:-8px; right:-8px; width:19px; height:19px; border-radius:50%; border:1px solid var(--line); background:var(--surface); color:var(--ink-muted); font-size:11px; line-height:1; display:flex; align-items:center; justify-content:center; cursor:grab; z-index:2; box-shadow:var(--shadow); opacity:0; transition:opacity .12s, border-color .12s;}
+  .node:hover .node-reorder-handle{opacity:1;}
+  .node-reorder-handle:hover{border-color:var(--accent); color:var(--accent);}
+  .node-reorder-handle:active{cursor:grabbing;}
   .node.selected{border-color:var(--accent); box-shadow:0 0 0 3px var(--accent-soft);}
   .node.dragging{opacity:.4;}
   .node.drop-ok{border-color:var(--mov-border); border-style:dashed; background:var(--mov-bg);}

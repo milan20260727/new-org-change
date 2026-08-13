@@ -55,7 +55,7 @@
       colDivision:'Division', colBusinessUnit:'Business Unit', colDepartment:'Department', colTeam:'Team', colSubTeam:'Sub Team', colSection:'Section', colStatus:'Status', colHrbpLead:'HRBP Lead',
       empEmptyNote:'还没有员工受影响',
       unassignedTitle:'待安置员工', unassignedEmptyNote:'暂无待安置员工', unassignedTransferBtn:'转移',
-      addChildTitle:'新增子部门', tabStructure:'编辑类型', tabRole:'变更角色', tabRoster:'下辖员工名单',
+      addChildTitle:'新增子部门', reorderHandleTitle:'按住拖动可调整同级部门的显示顺序', tabStructure:'编辑类型', tabRole:'变更角色', tabRoster:'下辖员工名单',
       transferModalTitle:'转移员工', fieldEmployee:'员工', searchEmpPlaceholder:'搜索姓名或 EID…',
       fieldTargetOrg:'目标组织架构', searchOrgPlaceholder:'搜索目标部门…', cancelBtn:'取消', confirmTransferBtn:'确认转移',
       reportPromptTitle:'是否同步更新汇报关系？', skipBtn:'保持不变', applyReportBtn:'更新汇报对象',
@@ -72,7 +72,7 @@
       nowAtPrefix:' — 现在：',
       matchLabel:function(eid){ return eid; },
 
-      dragHint:function(name){ return '提示：也可以直接在图上把「' + name + '」拖到目标部门上完成移动；拖到同级部门上则只调整显示顺序（仅保存在本地浏览器）。'; },
+      dragHint:function(name){ return '提示：也可以直接在图上把「' + name + '」拖到目标部门上完成移动；卡片右下角的 ⠿ 图标可以拖动调整同级部门的显示顺序（仅保存在本地浏览器）。'; },
       renameLbl:'重命名', renameInputPh:'新名称',
       moveLbl:'移动', movePlaceholder:'选择目标上级部门…', moveHint:'下拉列表已排除自身及其所有子部门，避免循环嵌套。',
       deleteLbl:'删除该部门',
@@ -179,7 +179,7 @@
       colDivision:'Division', colBusinessUnit:'Business Unit', colDepartment:'Department', colTeam:'Team', colSubTeam:'Sub Team', colSection:'Section', colStatus:'Status', colHrbpLead:'HRBP Lead',
       empEmptyNote:'No employees affected yet',
       unassignedTitle:'Unassigned employees', unassignedEmptyNote:'No unassigned employees', unassignedTransferBtn:'Transfer',
-      addChildTitle:'Add sub-department', tabStructure:'Edit type', tabRole:'Roles', tabRoster:'Team roster',
+      addChildTitle:'Add sub-department', reorderHandleTitle:'Drag to reorder among sibling departments', tabStructure:'Edit type', tabRole:'Roles', tabRoster:'Team roster',
       transferModalTitle:'Transfer employee', fieldEmployee:'Employee', searchEmpPlaceholder:'Search by name or EID…',
       fieldTargetOrg:'Target org unit', searchOrgPlaceholder:'Search target department…', cancelBtn:'Cancel', confirmTransferBtn:'Confirm transfer',
       reportPromptTitle:'Sync the reporting line too?', skipBtn:'Leave as is', applyReportBtn:'Update reporting line',
@@ -196,7 +196,7 @@
       nowAtPrefix:' — currently: ',
       matchLabel:function(eid){ return eid; },
 
-      dragHint:function(name){ return 'Tip: you can also drag "' + name + '" onto a target department on the chart to move it; dropping it on a sibling department just reorders the display (saved to this browser only).'; },
+      dragHint:function(name){ return 'Tip: you can also drag "' + name + '" onto a target department on the chart to move it; drag the ⠿ handle in a card\'s bottom-right corner to reorder among sibling departments (saved to this browser only).'; },
       renameLbl:'Rename', renameInputPh:'New name',
       moveLbl:'Move', movePlaceholder:'Choose a target parent department…', moveHint:'The list excludes this department and all of its sub-departments to avoid circular nesting.',
       deleteLbl:'Delete this department',
@@ -299,7 +299,7 @@
   var personPool = [];
   var rootId = 'root';
 
-  var nodes, employees, log, selectedId, viewRootId, orientation, logSeq, tempCounter, dragSrcId, pendingEdit, activeTab, createDraft, rosterSelected, rosterBulkTarget, gmodalEmp, gmodalOrg, pendingReportPrompt, snapshotAt, unassignedId, unassignedTargets, collapsed, zoomPct;
+  var nodes, employees, log, selectedId, viewRootId, orientation, logSeq, tempCounter, dragSrcId, dragMode, pendingEdit, activeTab, createDraft, rosterSelected, rosterBulkTarget, gmodalEmp, gmodalOrg, pendingReportPrompt, snapshotAt, unassignedId, unassignedTargets, collapsed, zoomPct;
   // Other users' edits, pulled on demand from the shared "Change Log" Base table (never touched
   // by init()/the "刷新数据" refresh, which only re-reads the 3 org-source tables). Display-only —
   // CSV export still reads `log` alone, since it needs live local node state to build correct diffs.
@@ -390,6 +390,7 @@
         logSeq = 1;
         tempCounter = 1;
         dragSrcId = null;
+        dragMode = null;
         pendingEdit = null;
         createDraft = null;
         rosterSelected = {};
@@ -1153,36 +1154,66 @@
   }
 
   // ---------- drag & drop ----------
+  // Two independent gestures share the drop targets but not the drag source: dragging the card
+  // body always means "move under whatever you drop it on" (original behavior, unconditional —
+  // even between siblings); dragging the small handle icon always means "reorder relative to
+  // whatever sibling you drop it on", and does nothing if dropped somewhere that isn't a
+  // sibling. dragMode tracks which one is in flight.
   function onDragStart(ev, id){
     var n = getNode(id);
     if(n.flags.isDeleted || !canEdit()) { ev.preventDefault(); return; }
-    dragSrcId = id;
+    dragSrcId = id; dragMode = 'move';
     ev.dataTransfer.effectAllowed = 'move';
     ev.target.classList.add('dragging');
   }
-  function onDragEnd(ev){ ev.target.classList.remove('dragging'); dragSrcId = null; renderTree(); }
-  // Dropping onto a sibling (same parent) reorders it there instead of re-parenting — reuses
-  // the existing move-by-drag gesture rather than adding a separate reorder handle.
+  function onDragEnd(ev){ ev.target.classList.remove('dragging'); dragSrcId = null; dragMode = null; renderTree(); }
+  function setCardDragging(id, on){
+    var el = document.querySelector('.node[data-id="'+id+'"]');
+    if(el) el.classList.toggle('dragging', on);
+  }
+  function onReorderDragStart(ev, id){
+    var n = getNode(id);
+    if(n.flags.isDeleted || !canEdit()) { ev.preventDefault(); return; }
+    ev.stopPropagation();
+    dragSrcId = id; dragMode = 'reorder';
+    ev.dataTransfer.effectAllowed = 'move';
+    setCardDragging(id, true);
+  }
+  function onReorderDragEnd(ev){
+    ev.stopPropagation();
+    if(dragSrcId) setCardDragging(dragSrcId, false);
+    dragSrcId = null; dragMode = null;
+    renderTree();
+  }
   function isSiblingDrop(srcId, id){
     var src = getNode(srcId), target = getNode(id);
     return !!(src && target && src.parentId === target.parentId);
   }
   function onDragOver(ev, id){
-    if(!dragSrcId || dragSrcId===id || isDescendant(dragSrcId, id)) return;
+    if(!dragSrcId || dragSrcId===id) return;
+    if(dragMode==='reorder'){
+      if(!isSiblingDrop(dragSrcId, id)) return;
+      ev.preventDefault();
+      ev.currentTarget.classList.add('drop-sibling');
+      return;
+    }
+    if(isDescendant(dragSrcId, id)) return;
     ev.preventDefault();
-    ev.currentTarget.classList.add(isSiblingDrop(dragSrcId, id) ? 'drop-sibling' : 'drop-ok');
+    ev.currentTarget.classList.add('drop-ok');
   }
   function onDragLeave(ev){ ev.currentTarget.classList.remove('drop-ok'); ev.currentTarget.classList.remove('drop-sibling'); }
   function onDrop(ev, id){
     ev.preventDefault();
     ev.currentTarget.classList.remove('drop-ok');
     ev.currentTarget.classList.remove('drop-sibling');
-    if(!dragSrcId || dragSrcId===id || isDescendant(dragSrcId, id)) return;
-    var srcId = dragSrcId; dragSrcId = null;
-    if(isSiblingDrop(srcId, id)){
-      reorderSibling(ev, srcId, id);
+    if(!dragSrcId || dragSrcId===id) return;
+    if(dragMode==='reorder'){
+      var reorderSrc = dragSrcId; dragSrcId = null; dragMode = null;
+      if(isSiblingDrop(reorderSrc, id)) reorderSibling(ev, reorderSrc, id);
       return;
     }
+    if(isDescendant(dragSrcId, id)) return;
+    var srcId = dragSrcId; dragSrcId = null; dragMode = null;
     openPanel(srcId);
     pendingEdit.move.on = true;
     pendingEdit.move.target = id;
@@ -1228,13 +1259,15 @@
     var titleAttr = n.name + (n.flags.isRenamed ? ' ｜ ' + t('renamedTooltipPrefix') + n.origName : '');
     var addBtn = (n.flags.isDeleted || !canEdit()) ? '' : '<button type="button" class="node-add-btn" data-add-child="'+n.id+'" title="'+escapeHtml(t('addChildTitle'))+'">+</button>';
     var toggleBtn = hasKids ? '<button type="button" class="node-toggle-btn" data-toggle-collapse="'+n.id+'" title="'+escapeHtml(isCollapsed ? t('expandTitle') : t('collapseTitle'))+'">'+(isCollapsed?'▸':'▾')+'</button>' : '';
+    // Root has no siblings to reorder against, so it gets no handle.
+    var reorderHandle = (n.flags.isDeleted || !canEdit() || n.parentId===null) ? '' : '<span class="node-reorder-handle" draggable="true" data-reorder-handle="'+n.id+'" title="'+escapeHtml(t('reorderHandleTitle'))+'">⠿</span>';
     var movedFromNode = n.movedFrom!==null ? getNode(n.movedFrom) : null;
     // If that previous parent has itself since been renamed, show what it was called at the
     // time — its current (renamed) name would misleadingly suggest the move landed somewhere
     // it never actually was.
     var movedFromName = movedFromNode ? (movedFromNode.flags.isRenamed ? movedFromNode.origName : movedFromNode.name) : null;
     return '<div class="'+nodeClasses(n)+'" draggable="'+draggable+'" data-id="'+n.id+'" title="'+escapeHtml(titleAttr)+'">'+
-      addBtn+toggleBtn+
+      addBtn+toggleBtn+reorderHandle+
       '<div class="name-row"><span class="name">'+escapeHtml(n.name)+'</span>'+warnIco+'</div>'+
       '<div class="meta-line">'+escapeHtml(t('picPrefix'))+(n.pic?escapeHtml(n.pic):escapeHtml(t('notSet')))+'</div>'+
       '<div class="meta-line">'+escapeHtml(t('headcountLabel')(rollupHeadcount(n.id)))+'</div>'+
@@ -1281,6 +1314,12 @@
         ev.stopPropagation();
         openCreateChild(btn.getAttribute('data-add-child'));
       });
+    });
+    root.querySelectorAll('.node-reorder-handle').forEach(function(handle){
+      var id = handle.getAttribute('data-reorder-handle');
+      handle.addEventListener('click', function(ev){ ev.stopPropagation(); });
+      handle.addEventListener('dragstart', function(ev){ onReorderDragStart(ev, id); });
+      handle.addEventListener('dragend', onReorderDragEnd);
     });
     root.querySelectorAll('.node-toggle-btn').forEach(function(btn){
       btn.addEventListener('click', function(ev){
