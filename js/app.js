@@ -172,7 +172,7 @@
       legendNew:'New', legendDelete:'Deleted', legendMoved:'Moved', legendRenamed:'Renamed', legendRoleWarn:'⚠ Role inconsistent',
       changeLogTitle:'Change log', unitRecords:'', colType:'Type', colDetail:'Detail', colEditor:'Editor', colEditTime:'Edit time',
       logEmptyNote:'No changes yet — try clicking a department box', downloadCsvBtn:'Download CSV',
-      affectedEmpTitle:'Affected employees', unitPeople:'', colName:'Name', colPathChange:'Old org → New org', colReportsTo:'Reports to',
+      affectedEmpTitle:'Affected employees', unitPeople:'', colName:'Name', colPathChange:'Old org → New org', colReportsTo:'Direct Manager',
       colDivision:'Division', colBusinessUnit:'Business Unit', colDepartment:'Department', colTeam:'Team', colSubTeam:'Sub Team', colSection:'Section', colStatus:'Status', colHrbpLead:'HRBP Lead',
       empEmptyNote:'No employees affected yet',
       unassignedTitle:'Unassigned employees', unassignedEmptyNote:'No unassigned employees', unassignedTransferBtn:'Transfer',
@@ -189,7 +189,7 @@
       focusLabel:function(name){ return 'Focused on "' + name + '"'; },
       selectAllLabel:function(n){ return 'Select all (' + n + ')'; },
       transferSelectedBtn:function(n){ return 'Transfer selected (' + n + ')'; },
-      reportsToPrefix:' · Reports to: ',
+      reportsToPrefix:' · Direct Manager: ',
       nowAtPrefix:' — currently: ',
       matchLabel:function(eid){ return eid; },
 
@@ -229,9 +229,9 @@
 
       reportPromptText:function(p){ return '"' + p.dept + '" moved under "' + p.parent + '". Update the reporting line for its PIC "' + p.pic + '" from "' + (p.from||STR.en.empty) + '" to "' + p.to + '"?'; },
 
-      role_pic:'PIC', role_hrbp1:'HRBP1', role_hrbp2:'HRBP2', role_hrbpLead:'HRBP Lead', role_da:'Department Assistant', role_reportsTo:'Reports-to',
+      role_pic:'PIC', role_hrbp1:'HRBP1', role_hrbp2:'HRBP2', role_hrbpLead:'HRBP Lead', role_da:'Department Assistant', role_reportsTo:'Direct Manager',
 
-      logType:{ rename:'Rename', move:'Move', add:'Add', emp_transfer:'Transfer', delete:'Delete', undo_delete:'Undo delete', role_change:'Role change', role_cascade:'Role cascade', report_change:'Reporting line' },
+      logType:{ rename:'Rename', move:'Transfer Org', add:'Add', emp_transfer:'Transfer Emp', delete:'Delete', undo_delete:'Undo delete', role_change:'Role change', role_cascade:'Role cascade', report_change:'Reporting line' },
       logDetail:{
         rename: function(p){ return '"' + p.from + '" → "' + p.to + '"'; },
         move: function(p){ return p.name + ': "' + p.from + '" → "' + p.to + '"'; },
@@ -244,7 +244,7 @@
         report_change: function(p){ return p.name + ': direct manager ' + (p.from || STR.en.empty) + ' → ' + p.to; }
       },
       csvOrgChangeHeaders:['Change Type','Role Change','Org Unit Before','PIC Before','HRBP1 Before','HRBP2 Before','HRBP Lead Before','Assistant Before','Org Unit After','PIC After','HRBP1 After','HRBP2 After','HRBP Lead After','Assistant After','Edit Time'],
-      csvPersonnelHeaders:['EID','Name','Org Change','Role Change','Org Before','Reports-to Before','HRBP1 Before','HRBP2 Before','HRBP Lead Before','Assistant Before','Org After','Reports-to After','HRBP1 After','HRBP2 After','HRBP Lead After','Assistant After','Notes','Edit Time'],
+      csvPersonnelHeaders:['EID','Name','Org Change','Role Change','Org Before','Direct Manager Before','HRBP1 Before','HRBP2 Before','HRBP Lead Before','Assistant Before','Org After','Direct Manager After','HRBP1 After','HRBP2 After','HRBP Lead After','Assistant After','Notes','Edit Time'],
       csvOrgChangeFilename:'org-change-record.csv', csvPersonnelFilename:'personnel-change-record.csv'
     }
   };
@@ -1963,10 +1963,12 @@
         afterName = pathLabelIn(finalNodes, fn.id);
         beforeRoles = nodeRolesAfter(pn);
         afterRoles = nodeRolesAfter(fn);
+        // Role change is never added to typeLabels — Change Type reflects the tree itself
+        // (rename/move), while a pure role reassignment (e.g. only the HRBP changed) leaves it
+        // blank and shows up purely via the Role Change column instead.
         roleChangeLabel = roleChangeSummary(beforeRoles, afterRoles);
-        if(roleChangeLabel) typeLabels.push(ct('logType').role_change);
       }
-      if(!typeLabels.length) return; // no net difference from baseline
+      if(!typeLabels.length && !roleChangeLabel) return; // no net difference from baseline at all
 
       var editTime = rawEditTime ? (nodeTime[fn.id] || null) : (nodeTime[fn.id] ? formatSnapshotTime(new Date(nodeTime[fn.id])) : '');
       rows.push({
