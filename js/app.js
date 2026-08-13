@@ -1493,9 +1493,10 @@
       } else if(l.typeKey==='add'){
         if(!wGetNode(l.key)){
           var parent = wGetNodeByName(p.parent);
-          workNodes.push({id:l.key, name:p.name||'', parentId: parent?parent.id:null,
+          workNodes.push({id:l.key, name:p.name||'', origName:p.name||'', parentId: parent?parent.id:null,
             pic:p.pic||'', hrbp1:p.hrbp1||'', hrbp2:p.hrbp2||'', hrbpLead:p.hrbpLead||'', da:p.da||'',
-            inactive:false, flags:{isNew:true, isDeleted:false, isRenamed:false}});
+            inactive:false, movedFrom:null, restoreLog:null, origRoles:null,
+            flags:{isNew:true, isDeleted:false, isRenamed:false}});
         }
       } else if(l.typeKey==='delete'){
         var n = wGetNode(l.key); if(n) n.flags.isDeleted = true;
