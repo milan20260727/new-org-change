@@ -1941,13 +1941,16 @@
       var editTime = rawEditTime ? (nodeTime[fn.id] || null) : (nodeTime[fn.id] ? formatSnapshotTime(new Date(nodeTime[fn.id])) : '');
       rows.push({
         sortName: afterName || beforeName,
+        sortTime: nodeTime[fn.id] || 0,
         cells: [typeLabels.join(', '), roleChangeLabel, beforeName, beforeRoles.pic||'', beforeRoles.hrbp1||'', beforeRoles.hrbp2||'', beforeRoles.hrbpLead||'', beforeRoles.da||'',
           afterName, afterRoles.pic||'', afterRoles.hrbp1||'', afterRoles.hrbp2||'', afterRoles.hrbpLead||'', afterRoles.da||'', editTime]
       });
     });
+    // Department first, then chronologically within that department — easier to follow a
+    // department's own history than grouping by change type.
     rows.sort(function(a,b){
       if(a.sortName !== b.sortName) return a.sortName < b.sortName ? -1 : 1;
-      return a.cells[0] < b.cells[0] ? -1 : a.cells[0] > b.cells[0] ? 1 : 0;
+      return a.sortTime - b.sortTime;
     });
     return [ct('csvOrgChangeHeaders')].concat(rows.map(function(r){ return r.cells; }));
   }
@@ -2020,15 +2023,18 @@
       var editTime = rawEditTime ? (effectiveTime || null) : (effectiveTime ? formatSnapshotTime(new Date(effectiveTime)) : '');
       return {
         sortName: newPath || oldPath,
+        sortTime: effectiveTime || 0,
         cells: [fe.eid, fe.name, orgChangeLabel, roleChangeLabel,
           oldPath, pe.reportsTo||'', before.hrbp1||'', before.hrbp2||'', before.hrbpLead||'', before.da||'',
           newPath, fe.reportsTo||'', after.hrbp1||'', after.hrbp2||'', after.hrbpLead||'', after.da||'', '', editTime]
       };
     }).filter(Boolean);
 
+    // Department first, then chronologically within that department — same ordering as the
+    // org-change CSV, so cross-referencing the two is straightforward.
     rows.sort(function(a,b){
       if(a.sortName !== b.sortName) return a.sortName < b.sortName ? -1 : 1;
-      return a.cells[1] < b.cells[1] ? -1 : a.cells[1] > b.cells[1] ? 1 : 0;
+      return a.sortTime - b.sortTime;
     });
     return [ct('csvPersonnelHeaders')].concat(rows.map(function(r){ return r.cells; }));
   }
