@@ -1959,12 +1959,23 @@
     var pristineNodeById = {}; pristineNodes.forEach(function(n){ pristineNodeById[n.id] = n; });
     var finalNodeById = {}; finalNodes.forEach(function(n){ finalNodeById[n.id] = n; });
     var pristineEmpById = {}; pristineEmployees.forEach(function(e){ pristineEmpById[e.eid] = e; });
-    var empTime = computeLastTouched(entries).empTime;
+    var lastTouched = computeLastTouched(entries);
+    var empTime = lastTouched.empTime, nodeTime = lastTouched.nodeTime;
 
     var rows = finalEmployees.map(function(fe){
-      if(sinceTime && !(empTime[fe.eid] > sinceTime)) return null;
       var pe = pristineEmpById[fe.eid];
       if(!pe) return null;
+
+      // An employee's row can appear purely because their department's roles/name/parent
+      // changed, without the employee ever being the direct subject of an entry — computeLastTouched
+      // only tracks that against the NODE id, so empTime alone would miss it (leaving Edit Time
+      // blank, and worse, wrongly excluding the row from a sinceTime-filtered archive forever).
+      // Walk the employee's current department chain and fold in whichever entry touched it last.
+      var chain = ancestorChainIds(finalNodeById, fe.nodeId);
+      var effectiveTime = empTime[fe.eid] || 0;
+      chain.forEach(function(id){ if(nodeTime[id] && nodeTime[id]>effectiveTime) effectiveTime = nodeTime[id]; });
+      if(sinceTime && !(effectiveTime > sinceTime)) return null;
+
       var oldPath = pathLabelIn(pristineNodes, pe.nodeId);
       var newPath = pathLabelIn(finalNodes, fe.nodeId);
       var pathChanged = oldPath !== newPath;
@@ -1987,16 +1998,15 @@
           orgChangeTypeLabels.push(ct('logType').emp_transfer);
         } else {
           var oldChain = ancestorChainIds(pristineNodeById, pe.nodeId);
-          var newChain = ancestorChainIds(finalNodeById, fe.nodeId);
-          if(oldChain.join('>') !== newChain.join('>')) orgChangeTypeLabels.push(ct('logType').move);
+          if(oldChain.join('>') !== chain.join('>')) orgChangeTypeLabels.push(ct('logType').move);
           var renamedInChain = oldChain.some(function(id){
-            return newChain.indexOf(id)!==-1 && pristineNodeById[id].name !== finalNodeById[id].name;
+            return chain.indexOf(id)!==-1 && pristineNodeById[id].name !== finalNodeById[id].name;
           });
           if(renamedInChain) orgChangeTypeLabels.push(ct('logType').rename);
         }
       }
       var orgChangeLabel = orgChangeTypeLabels.join(', ');
-      var editTime = rawEditTime ? (empTime[fe.eid] || null) : (empTime[fe.eid] ? formatSnapshotTime(new Date(empTime[fe.eid])) : '');
+      var editTime = rawEditTime ? (effectiveTime || null) : (effectiveTime ? formatSnapshotTime(new Date(effectiveTime)) : '');
       return {
         sortName: newPath || oldPath,
         cells: [fe.eid, fe.name, orgChangeLabel, roleChangeLabel,
