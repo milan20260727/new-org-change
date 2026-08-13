@@ -1539,8 +1539,11 @@
     document.getElementById('changelogCount').textContent = countText;
     document.getElementById('viewChangelogCount').textContent = merged.length;
     saveState();
-    renderLogInto('logBody', merged);
-    renderLogInto('changelogBody', merged);
+    // mergedLogForDisplay() stays chronological (oldest first) for replayAll() elsewhere — only
+    // the on-screen table shows newest first, which is what people actually want to scan.
+    var newestFirst = merged.slice().reverse();
+    renderLogInto('logBody', newestFirst);
+    renderLogInto('changelogBody', newestFirst);
   }
 
   // Combined view, same approach as the CSV builders: replay everyone's shared history (plus
