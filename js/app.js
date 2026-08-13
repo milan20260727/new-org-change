@@ -72,7 +72,7 @@
       nowAtPrefix:' — 现在：',
       matchLabel:function(eid){ return eid; },
 
-      dragHint:function(name){ return '提示：也可以直接在图上把「' + name + '」拖到目标部门上完成移动。'; },
+      dragHint:function(name){ return '提示：也可以直接在图上把「' + name + '」拖到目标部门上完成移动；拖到同级部门上则只调整显示顺序（仅保存在本地浏览器）。'; },
       renameLbl:'重命名', renameInputPh:'新名称',
       moveLbl:'移动', movePlaceholder:'选择目标上级部门…', moveHint:'下拉列表已排除自身及其所有子部门，避免循环嵌套。',
       deleteLbl:'删除该部门',
@@ -99,6 +99,7 @@
       toastPickBulkTarget:'请先选择批量目标部门', toastCascaded:'已应用到所有下级部门',
       toastPickTransferTarget:'请先选择转移目标部门', toastTransferredN:function(n){ return '已转移 ' + n + ' 名员工'; },
       toastUndoDeleted:'已撤销删除', toastMovePending:'已选定目标，点击"保存"确认这次移动',
+      toastReorderDone:'已调整排序（仅保存在本地浏览器）',
       toastReportUpdated:'已更新汇报对象', toastTransferredName:function(name){ return '已转移 ' + name; },
       toastPngFailed:'导出失败，请改用浏览器自带的截图功能', toastPngDone:'已下载 PNG',
       toastPngError:function(msg){ return '导出失败：' + msg; },
@@ -195,7 +196,7 @@
       nowAtPrefix:' — currently: ',
       matchLabel:function(eid){ return eid; },
 
-      dragHint:function(name){ return 'Tip: you can also drag "' + name + '" onto a target department on the chart to move it.'; },
+      dragHint:function(name){ return 'Tip: you can also drag "' + name + '" onto a target department on the chart to move it; dropping it on a sibling department just reorders the display (saved to this browser only).'; },
       renameLbl:'Rename', renameInputPh:'New name',
       moveLbl:'Move', movePlaceholder:'Choose a target parent department…', moveHint:'The list excludes this department and all of its sub-departments to avoid circular nesting.',
       deleteLbl:'Delete this department',
@@ -222,6 +223,7 @@
       toastPickBulkTarget:'Choose a bulk target department first', toastCascaded:'Applied to all sub-departments',
       toastPickTransferTarget:'Choose a transfer target department first', toastTransferredN:function(n){ return 'Transferred ' + n + ' employee(s)'; },
       toastUndoDeleted:'Deletion undone', toastMovePending:'Target selected — click "Save" to confirm the move',
+      toastReorderDone:'Order updated (saved to this browser only)',
       toastReportUpdated:'Reporting line updated', toastTransferredName:function(name){ return 'Transferred ' + name; },
       toastPngFailed:'Export failed — please use your browser’s screenshot tool instead', toastPngDone:'PNG downloaded',
       toastPngError:function(msg){ return 'Export failed: ' + msg; },
@@ -311,6 +313,20 @@
   // Deliberately no localStorage persistence: a browser refresh or a "刷新编辑" click always
   // starts from the current shared state, discarding this session's own not-yet-synced drafts
   // too — otherwise a stale reopened tab makes it easy to redo an edit someone already made.
+  //
+  // Sibling display order is the one exception: it's never written to Base, never appears in
+  // the change log/export, and carries no org-structure meaning — purely "which order this
+  // browser draws siblings in" — so there's no shared state for it to go stale against, and it
+  // survives a refresh (and forceRefresh) on purpose so an admin's manual arrangement sticks.
+  var SIBLING_ORDER_KEY = 'newOrgChange.siblingOrder.v1';
+  function loadManualOrder(){
+    try { return JSON.parse(localStorage.getItem(SIBLING_ORDER_KEY)) || {}; }
+    catch(e){ return {}; }
+  }
+  function saveManualOrder(){
+    try { localStorage.setItem(SIBLING_ORDER_KEY, JSON.stringify(manualOrder)); } catch(e){}
+  }
+  var manualOrder = loadManualOrder();
 
   function hydrateNodes(rawNodes){
     return rawNodes.map(function(n){
@@ -408,7 +424,23 @@
 
 
   function getNode(id){ for(var i=0;i<nodes.length;i++) if(nodes[i].id===id) return nodes[i]; return null; }
-  function getChildren(id){ return nodes.filter(function(n){ return n.parentId===id; }); }
+  // Default sibling order: 0-headcount departments sink to the end, everything else keeps
+  // whatever relative order it arrived in (Base row order) — stable partition, not a full sort.
+  function defaultOrder(kids){
+    var nonZero = [], zero = [];
+    kids.forEach(function(n){ (rollupHeadcount(n.id)===0 ? zero : nonZero).push(n); });
+    return nonZero.concat(zero);
+  }
+  function getChildren(id){
+    var kids = nodes.filter(function(n){ return n.parentId===id; });
+    var order = manualOrder[id];
+    if(!order || !order.length) return defaultOrder(kids);
+    var byId = {}; kids.forEach(function(n){ byId[n.id] = n; });
+    var used = {}; var ordered = [];
+    order.forEach(function(cid){ if(byId[cid] && !used[cid]){ ordered.push(byId[cid]); used[cid] = true; } });
+    var rest = kids.filter(function(n){ return !used[n.id]; });
+    return ordered.concat(defaultOrder(rest));
+  }
   function isDescendant(ancestorId, id){
     var n = getNode(id);
     while(n && n.parentId){
@@ -1097,22 +1129,49 @@
     ev.target.classList.add('dragging');
   }
   function onDragEnd(ev){ ev.target.classList.remove('dragging'); dragSrcId = null; renderTree(); }
+  // Dropping onto a sibling (same parent) reorders it there instead of re-parenting — reuses
+  // the existing move-by-drag gesture rather than adding a separate reorder handle.
+  function isSiblingDrop(srcId, id){
+    var src = getNode(srcId), target = getNode(id);
+    return !!(src && target && src.parentId === target.parentId);
+  }
   function onDragOver(ev, id){
     if(!dragSrcId || dragSrcId===id || isDescendant(dragSrcId, id)) return;
     ev.preventDefault();
-    ev.currentTarget.classList.add('drop-ok');
+    ev.currentTarget.classList.add(isSiblingDrop(dragSrcId, id) ? 'drop-sibling' : 'drop-ok');
   }
-  function onDragLeave(ev){ ev.currentTarget.classList.remove('drop-ok'); }
+  function onDragLeave(ev){ ev.currentTarget.classList.remove('drop-ok'); ev.currentTarget.classList.remove('drop-sibling'); }
   function onDrop(ev, id){
     ev.preventDefault();
     ev.currentTarget.classList.remove('drop-ok');
+    ev.currentTarget.classList.remove('drop-sibling');
     if(!dragSrcId || dragSrcId===id || isDescendant(dragSrcId, id)) return;
     var srcId = dragSrcId; dragSrcId = null;
+    if(isSiblingDrop(srcId, id)){
+      reorderSibling(ev, srcId, id);
+      return;
+    }
     openPanel(srcId);
     pendingEdit.move.on = true;
     pendingEdit.move.target = id;
     render();
     toast(t('toastMovePending'));
+  }
+  function reorderSibling(ev, srcId, targetId){
+    var parentId = getNode(targetId).parentId;
+    var rect = ev.currentTarget.getBoundingClientRect();
+    // Siblings lay out left-to-right in vertical mode (tree grows downward), top-to-bottom in
+    // horizontal mode (tree grows sideways) — see .tlevel flex-direction in style.css.
+    var after = orientation==='vertical'
+      ? (ev.clientX - rect.left) > rect.width/2
+      : (ev.clientY - rect.top) > rect.height/2;
+    var order = getChildren(parentId).map(function(n){ return n.id; }).filter(function(cid){ return cid!==srcId; });
+    var idx = order.indexOf(targetId);
+    order.splice(after ? idx+1 : idx, 0, srcId);
+    manualOrder[parentId] = order;
+    saveManualOrder();
+    render();
+    toast(t('toastReorderDone'));
   }
 
   // ---------- rendering ----------
