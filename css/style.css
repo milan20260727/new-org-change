@@ -221,6 +221,7 @@
   .node.st-deleted{background:var(--warn-bg); border-color:var(--warn-border); cursor:default;}
   .node.st-deleted .name{color:var(--warn-text); text-decoration:line-through;}
   .node .meta-line.moved-from{color:var(--mov-text);}
+  .node .meta-line.renamed-from{color:var(--accent);}
 
   .empty-note{color:var(--ink-muted); font-size:12px; padding:2px 0;}
 

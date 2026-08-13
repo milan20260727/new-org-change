@@ -1199,12 +1199,17 @@
     var addBtn = (n.flags.isDeleted || !canEdit()) ? '' : '<button type="button" class="node-add-btn" data-add-child="'+n.id+'" title="'+escapeHtml(t('addChildTitle'))+'">+</button>';
     var toggleBtn = hasKids ? '<button type="button" class="node-toggle-btn" data-toggle-collapse="'+n.id+'" title="'+escapeHtml(isCollapsed ? t('expandTitle') : t('collapseTitle'))+'">'+(isCollapsed?'▸':'▾')+'</button>' : '';
     var movedFromNode = n.movedFrom!==null ? getNode(n.movedFrom) : null;
+    // If that previous parent has itself since been renamed, show what it was called at the
+    // time — its current (renamed) name would misleadingly suggest the move landed somewhere
+    // it never actually was.
+    var movedFromName = movedFromNode ? (movedFromNode.flags.isRenamed ? movedFromNode.origName : movedFromNode.name) : null;
     return '<div class="'+nodeClasses(n)+'" draggable="'+draggable+'" data-id="'+n.id+'" title="'+escapeHtml(titleAttr)+'">'+
       addBtn+toggleBtn+
       '<div class="name-row"><span class="name">'+escapeHtml(n.name)+'</span>'+warnIco+'</div>'+
       '<div class="meta-line">'+escapeHtml(t('picPrefix'))+(n.pic?escapeHtml(n.pic):escapeHtml(t('notSet')))+'</div>'+
       '<div class="meta-line">'+escapeHtml(t('headcountLabel')(rollupHeadcount(n.id)))+'</div>'+
-      (movedFromNode ? '<div class="meta-line moved-from">'+escapeHtml(t('movedFromLabel')(movedFromNode.name))+'</div>' : '')+
+      (n.flags.isRenamed ? '<div class="meta-line renamed-from">'+escapeHtml(t('renamedTooltipPrefix')+n.origName)+'</div>' : '')+
+      (movedFromNode ? '<div class="meta-line moved-from">'+escapeHtml(t('movedFromLabel')(movedFromName))+'</div>' : '')+
       (tags? '<div class="tags">'+tags+'</div>' : '')+
       '</div>';
   }

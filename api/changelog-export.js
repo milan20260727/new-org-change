@@ -35,8 +35,15 @@ module.exports = async (req, res) => {
       return;
     }
     try {
-      await createSourceRecords('orgChangeLog', orgRows);
-      await createSourceRecords('employeeChangeLog', employeeRows);
+      // Different tables, so these can run concurrently — only writes to the SAME table need to
+      // stay sequential (Lark's write-conflict guard). A large watermark rollback can mean
+      // hundreds of employee rows against a handful of org rows; running them in parallel halves
+      // the wall-clock time instead of making the (usually much bigger) employee write wait
+      // behind the org write for no reason.
+      await Promise.all([
+        createSourceRecords('orgChangeLog', orgRows),
+        createSourceRecords('employeeChangeLog', employeeRows),
+      ]);
       await setLastChangeLogExportAt(newWatermark);
       res.status(200).json({ ok: true, orgCount: orgRows.length, employeeCount: employeeRows.length });
     } catch (err) {

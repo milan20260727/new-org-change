@@ -2,6 +2,9 @@
   "functions": {
     "api/org-data.js": {
       "maxDuration": 60
+    },
+    "api/changelog-export.js": {
+      "maxDuration": 60
     }
   }
 }
