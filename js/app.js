@@ -2290,7 +2290,10 @@
       ctx.fillStyle = textColor;
       ctx.font = '700 12.5px -apple-system, "Segoe UI", sans-serif';
       ctx.textBaseline = 'top';
-      var nameLines = wrapLines(ctx, nameEl ? nameEl.textContent : '', r.width - padX*2, 2);
+      // No line cap — the box itself is already drawn at its real on-screen height (which the
+      // live DOM already grew to fit the fully-wrapped name), so truncating the text here would
+      // just lose words the box has visible room for.
+      var nameLines = wrapLines(ctx, nameEl ? nameEl.textContent : '', r.width - padX*2, Infinity);
       nameLines.forEach(function(line){ ctx.fillText(line, x+padX, cy); cy += 15; });
 
       cy += 2;
