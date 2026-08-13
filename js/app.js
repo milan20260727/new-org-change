@@ -46,10 +46,10 @@
       langLabel:'语言', downloadPngBtn:'下载组织架构图（PNG）',
       legendNew:'新增', legendDelete:'删除', legendMoved:'移动', legendRenamed:'已改名', legendRoleWarn:'⚠ 角色不一致',
       changeLogTitle:'变更记录', unitRecords:'条', colType:'类型', colDetail:'详情', colEditor:'编辑人', colEditTime:'编辑时间',
-      logEmptyNote:'暂无变更，点一个部门框试试', copyLogBtn:'复制变更（可直接粘贴到 Base）', downloadCsvBtn:'下载 CSV',
+      logEmptyNote:'暂无变更，点一个部门框试试', downloadCsvBtn:'下载 CSV',
       affectedEmpTitle:'受影响员工', unitPeople:'人', colName:'姓名', colPathChange:'原组织架构 → 新组织架构', colReportsTo:'汇报对象',
       colDivision:'Division', colBusinessUnit:'Business Unit', colDepartment:'Department', colTeam:'Team', colSubTeam:'Sub Team', colSection:'Section', colStatus:'Status', colHrbpLead:'HRBP Lead',
-      empEmptyNote:'还没有员工受影响', copyEmpBtn:'复制员工变更（可直接粘贴到 Base）',
+      empEmptyNote:'还没有员工受影响',
       unassignedTitle:'待安置员工', unassignedEmptyNote:'暂无待安置员工', unassignedTransferBtn:'转移',
       addChildTitle:'新增子部门', tabStructure:'编辑类型', tabRole:'变更角色', tabRoster:'下辖员工名单',
       transferModalTitle:'转移员工', fieldEmployee:'员工', searchEmpPlaceholder:'搜索姓名或 EID…',
@@ -95,7 +95,6 @@
       toastPickBulkTarget:'请先选择批量目标部门', toastCascaded:'已应用到所有下级部门',
       toastPickTransferTarget:'请先选择转移目标部门', toastTransferredN:function(n){ return '已转移 ' + n + ' 名员工'; },
       toastUndoDeleted:'已撤销删除', toastMovePending:'已选定目标，点击"保存"确认这次移动',
-      toastCopied:'已复制，可直接粘贴到 Base', toastCopyFailed:'复制失败，请改用下载',
       toastReportUpdated:'已更新汇报对象', toastTransferredName:function(name){ return '已转移 ' + name; },
       toastPngFailed:'导出失败，请改用浏览器自带的截图功能', toastPngDone:'已下载 PNG',
       toastPngError:function(msg){ return '导出失败：' + msg; },
@@ -166,10 +165,10 @@
       langLabel:'Language', downloadPngBtn:'Download chart (PNG)',
       legendNew:'New', legendDelete:'Deleted', legendMoved:'Moved', legendRenamed:'Renamed', legendRoleWarn:'⚠ Role inconsistent',
       changeLogTitle:'Change log', unitRecords:'', colType:'Type', colDetail:'Detail', colEditor:'Editor', colEditTime:'Edit time',
-      logEmptyNote:'No changes yet — try clicking a department box', copyLogBtn:'Copy changes (paste directly into Base)', downloadCsvBtn:'Download CSV',
+      logEmptyNote:'No changes yet — try clicking a department box', downloadCsvBtn:'Download CSV',
       affectedEmpTitle:'Affected employees', unitPeople:'', colName:'Name', colPathChange:'Old org → New org', colReportsTo:'Reports to',
       colDivision:'Division', colBusinessUnit:'Business Unit', colDepartment:'Department', colTeam:'Team', colSubTeam:'Sub Team', colSection:'Section', colStatus:'Status', colHrbpLead:'HRBP Lead',
-      empEmptyNote:'No employees affected yet', copyEmpBtn:'Copy employee changes (paste directly into Base)',
+      empEmptyNote:'No employees affected yet',
       unassignedTitle:'Unassigned employees', unassignedEmptyNote:'No unassigned employees', unassignedTransferBtn:'Transfer',
       addChildTitle:'Add sub-department', tabStructure:'Edit type', tabRole:'Roles', tabRoster:'Team roster',
       transferModalTitle:'Transfer employee', fieldEmployee:'Employee', searchEmpPlaceholder:'Search by name or EID…',
@@ -215,7 +214,6 @@
       toastPickBulkTarget:'Choose a bulk target department first', toastCascaded:'Applied to all sub-departments',
       toastPickTransferTarget:'Choose a transfer target department first', toastTransferredN:function(n){ return 'Transferred ' + n + ' employee(s)'; },
       toastUndoDeleted:'Deletion undone', toastMovePending:'Target selected — click "Save" to confirm the move',
-      toastCopied:'Copied — paste directly into Base', toastCopyFailed:'Copy failed, please download instead',
       toastReportUpdated:'Reporting line updated', toastTransferredName:function(name){ return 'Transferred ' + name; },
       toastPngFailed:'Export failed — please use your browser’s screenshot tool instead', toastPngDone:'PNG downloaded',
       toastPngError:function(msg){ return 'Export failed: ' + msg; },
@@ -1791,7 +1789,7 @@
             .then(function(result){ toast(t('toastExportChangeLogDone')({orgCount:result.orgCount, empCount:result.employeeCount})); });
         });
       })
-      .catch(function(){ toast(t('toastExportChangeLogFailed')); })
+      .catch(function(err){ statusEl.textContent = t('toastExportChangeLogFailed') + (err && err.message ? ' (' + err.message + ')' : ''); toast(t('toastExportChangeLogFailed')); })
       .then(function(){ btn.disabled = false; btn.textContent = t('exportChangeLogBtn'); });
   });
 
@@ -1863,18 +1861,7 @@
     setTimeout(function(){ el.classList.remove('search-hit'); }, 2400);
   }
 
-  // ---------- copy / download ----------
-  function copyText(text){
-    if(navigator.clipboard && navigator.clipboard.writeText){
-      navigator.clipboard.writeText(text).then(function(){ toast(t('toastCopied')); }, function(){ fallbackCopy(text); });
-    } else { fallbackCopy(text); }
-  }
-  function fallbackCopy(text){
-    var ta = document.createElement('textarea');
-    ta.value = text; document.body.appendChild(ta); ta.select();
-    try{ document.execCommand('copy'); toast(t('toastCopied')); }catch(e){ toast(t('toastCopyFailed')); }
-    document.body.removeChild(ta);
-  }
+  // ---------- download ----------
   function downloadCsv(filename, rows){
     var csv = rows.map(function(r){ return r.map(function(v){ v=String(v==null?'':v); return /[",\n]/.test(v) ? '"'+v.replace(/"/g,'""')+'"' : v; }).join(','); }).join('\r\n');
     var blob = new Blob(['﻿'+csv], {type:'text/csv;charset=utf-8;'});
@@ -2037,46 +2024,37 @@
   }
 
   // ---------- wiring ----------
-  // Copy-to-clipboard mirrors the CSV download exactly, minus the header row (Base pastes column
-  // headers itself; only the data rows are needed).
-  document.getElementById('copyLogBtn').addEventListener('click', function(){
-    getCombinedReplayState().then(function(s){
-      copyText(buildCombinedOrgChangeRows(pristineNodes, s.finalNodes, s.entries).slice(1).map(function(r){ return r.join('\t'); }).join('\n'));
-    }).catch(function(err){ toast(err.message); });
-  });
+  // Inserted before the .csv extension so repeated downloads on different days don't overwrite
+  // each other and it's obvious at a glance which day's export a file is.
+  function todayDateStamp(){
+    var d = new Date();
+    function pad(n){ return n<10 ? '0'+n : ''+n; }
+    return d.getFullYear()+'-'+pad(d.getMonth()+1)+'-'+pad(d.getDate());
+  }
+  function dateStampedFilename(name){
+    return name.replace(/\.csv$/i, '-' + todayDateStamp() + '.csv');
+  }
+
+  // The "archive changes to Base" admin button replaced these as the supported way to get
+  // changes into Base — CSV download (still below) remains for anyone who wants a local copy.
   document.getElementById('downloadLogBtn').addEventListener('click', function(){
     getCombinedReplayState().then(function(s){
-      downloadCsv(ct('csvOrgChangeFilename'), buildCombinedOrgChangeRows(pristineNodes, s.finalNodes, s.entries));
-    }).catch(function(err){ toast(err.message); });
-  });
-  document.getElementById('copyChangelogBtn').addEventListener('click', function(){
-    getCombinedReplayState().then(function(s){
-      copyText(buildCombinedOrgChangeRows(pristineNodes, s.finalNodes, s.entries).slice(1).map(function(r){ return r.join('\t'); }).join('\n'));
+      downloadCsv(dateStampedFilename(ct('csvOrgChangeFilename')), buildCombinedOrgChangeRows(pristineNodes, s.finalNodes, s.entries));
     }).catch(function(err){ toast(err.message); });
   });
   document.getElementById('downloadChangelogBtn').addEventListener('click', function(){
     getCombinedReplayState().then(function(s){
-      downloadCsv(ct('csvOrgChangeFilename'), buildCombinedOrgChangeRows(pristineNodes, s.finalNodes, s.entries));
-    }).catch(function(err){ toast(err.message); });
-  });
-  document.getElementById('copyEmpBtn').addEventListener('click', function(){
-    getCombinedReplayState().then(function(s){
-      copyText(buildCombinedPersonnelRows(pristineNodes, pristineEmployees, s.finalNodes, s.finalEmployees, s.entries).slice(1).map(function(r){ return r.join('\t'); }).join('\n'));
+      downloadCsv(dateStampedFilename(ct('csvOrgChangeFilename')), buildCombinedOrgChangeRows(pristineNodes, s.finalNodes, s.entries));
     }).catch(function(err){ toast(err.message); });
   });
   document.getElementById('downloadEmpBtn').addEventListener('click', function(){
     getCombinedReplayState().then(function(s){
-      downloadCsv(ct('csvPersonnelFilename'), buildCombinedPersonnelRows(pristineNodes, pristineEmployees, s.finalNodes, s.finalEmployees, s.entries));
-    }).catch(function(err){ toast(err.message); });
-  });
-  document.getElementById('copyChangelogEmpBtn').addEventListener('click', function(){
-    getCombinedReplayState().then(function(s){
-      copyText(buildCombinedPersonnelRows(pristineNodes, pristineEmployees, s.finalNodes, s.finalEmployees, s.entries).slice(1).map(function(r){ return r.join('\t'); }).join('\n'));
+      downloadCsv(dateStampedFilename(ct('csvPersonnelFilename')), buildCombinedPersonnelRows(pristineNodes, pristineEmployees, s.finalNodes, s.finalEmployees, s.entries));
     }).catch(function(err){ toast(err.message); });
   });
   document.getElementById('downloadChangelogEmpBtn').addEventListener('click', function(){
     getCombinedReplayState().then(function(s){
-      downloadCsv(ct('csvPersonnelFilename'), buildCombinedPersonnelRows(pristineNodes, pristineEmployees, s.finalNodes, s.finalEmployees, s.entries));
+      downloadCsv(dateStampedFilename(ct('csvPersonnelFilename')), buildCombinedPersonnelRows(pristineNodes, pristineEmployees, s.finalNodes, s.finalEmployees, s.entries));
     }).catch(function(err){ toast(err.message); });
   });
   document.getElementById('editCloseBtn').addEventListener('click', closePanel);
