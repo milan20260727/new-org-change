@@ -271,6 +271,11 @@
         <h3 data-i18n="clearChangelogTitle" style="margin:0 0 6px; font-size:14px;">清空共享变更记录</h3>
         <p class="hint" data-i18n="clearChangelogHint">移除所有用户共享的变更历史（不可恢复）。不会影响任何人本地尚未导出的编辑草稿。</p>
         <button class="btn ghost" id="clearChangelogBtn" style="border-color:var(--warn-border); color:var(--warn-text);" data-i18n="clearChangelogBtn">清空共享变更记录</button>
+        <hr style="border:none; border-top:1px solid var(--line); margin:18px 0;">
+        <h3 data-i18n="exportChangeLogTitle" style="margin:0 0 6px; font-size:14px;">写入变更记录到Base</h3>
+        <p class="hint" data-i18n="exportChangeLogHint">把上次写入之后新产生的组织/人员变更，自动写入"Org change log"和"Employee change log"两张表。</p>
+        <button class="btn primary" id="exportChangeLogBtn" data-i18n="exportChangeLogBtn">写入变更记录到Base</button>
+        <div class="settings-status" id="exportChangeLogStatus"></div>
       </div>
     </div>
   </div>

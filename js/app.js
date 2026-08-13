@@ -25,6 +25,13 @@
       clearChangelogBtn:'清空共享变更记录',
       clearChangelogConfirm:'确定要清空所有人共享的变更记录吗？此操作不可恢复。',
       toastChangelogCleared:'已清空共享变更记录',
+      exportChangeLogTitle:'写入变更记录到Base',
+      exportChangeLogHint:'把上次写入之后新产生的组织/人员变更，自动写入"Org change log"和"Employee change log"两张表。',
+      exportChangeLogBtn:'写入变更记录到Base',
+      exportChangeLogBtnLoading:'正在写入…',
+      toastExportChangeLogNone:'没有新的变更需要写入',
+      toastExportChangeLogDone:function(p){ return '已写入 ' + p.orgCount + ' 条组织变更、' + p.empCount + ' 条人员变更'; },
+      toastExportChangeLogFailed:'写入失败，请稍后重试',
       pageTitle:'组织架构调整工具',
       scopeTag:'正在加载组织数据…',
       scopeTagLoaded:function(p){ return '共 ' + p.nodeCount + ' 个组织节点 · ' + p.empCount + ' 名在职员工 · 数据来自 Lark Base'; },
@@ -98,7 +105,7 @@
 
       reportPromptText:function(p){ return '「' + p.dept + '」已移动到「' + p.parent + '」下。是否把负责人「' + p.pic + '」的直属汇报对象，从「' + (p.from||STR.zh.empty) + '」改为「' + p.to + '」？'; },
 
-      role_pic:'PIC', role_hrbp1:'HRBP1', role_hrbp2:'HRBP2', role_hrbpLead:'HRBP Lead', role_da:'Department Assistant',
+      role_pic:'PIC', role_hrbp1:'HRBP1', role_hrbp2:'HRBP2', role_hrbpLead:'HRBP Lead', role_da:'Department Assistant', role_reportsTo:'Reports-to',
 
       logType:{ rename:'重命名', move:'移动', add:'新增', emp_transfer:'员工调动', delete:'删除', undo_delete:'撤销删除', role_change:'角色变更', role_cascade:'角色批量应用', report_change:'汇报关系变更' },
       logDetail:{
@@ -114,8 +121,7 @@
       },
       csvOrgChangeHeaders:['变更类型','角色变动','变更前的组织架构名','变更前PIC','变更前HRBP1','变更前HRBP2','变更前HRBP Lead','变更前Assistant','变更后的组织架构名','变更后PIC','变更后HRBP1','变更后HRBP2','变更后HRBP Lead','变更后Assistant','编辑时间'],
       csvPersonnelHeaders:['EID','员工名','组织变更','角色变更','变更前的组织架构','变更前汇报对象','变更前HRBP1','变更前HRBP2','变更前HRBP Lead','变更前Assistant','变更后组织架构','变更后汇报对象','变更后HRBP1','变更后HRBP2','变更后HRBP Lead','变更后Assistant','备注','编辑时间'],
-      csvOrgChangeFilename:'组织变更记录.csv', csvPersonnelFilename:'人员变更记录.csv',
-      orgChangeLabel:'是'
+      csvOrgChangeFilename:'组织变更记录.csv', csvPersonnelFilename:'人员变更记录.csv'
     },
     en: {
       loginTitle:'Org Structure Change Tool', loginSubtitle:'Sign in to view the org structure and employee data',
@@ -139,6 +145,13 @@
       clearChangelogBtn:'Clear shared change log',
       clearChangelogConfirm:"Clear everyone's shared change log? This cannot be undone.",
       toastChangelogCleared:'Shared change log cleared',
+      exportChangeLogTitle:'Archive changes to Base',
+      exportChangeLogHint:'Writes org/personnel changes made since the last archive into the "Org change log" and "Employee change log" tables.',
+      exportChangeLogBtn:'Archive changes to Base',
+      exportChangeLogBtnLoading:'Archiving…',
+      toastExportChangeLogNone:'No new changes to archive',
+      toastExportChangeLogDone:function(p){ return 'Archived ' + p.orgCount + ' org change(s), ' + p.empCount + ' personnel change(s)'; },
+      toastExportChangeLogFailed:'Archive failed, please try again',
       pageTitle:'Org Structure Change Tool',
       scopeTag:'Loading org data…',
       scopeTagLoaded:function(p){ return p.nodeCount + ' org units · ' + p.empCount + ' active employees · live from Lark Base'; },
@@ -212,7 +225,7 @@
 
       reportPromptText:function(p){ return '"' + p.dept + '" moved under "' + p.parent + '". Update the reporting line for its PIC "' + p.pic + '" from "' + (p.from||STR.en.empty) + '" to "' + p.to + '"?'; },
 
-      role_pic:'PIC', role_hrbp1:'HRBP1', role_hrbp2:'HRBP2', role_hrbpLead:'HRBP Lead', role_da:'Department Assistant',
+      role_pic:'PIC', role_hrbp1:'HRBP1', role_hrbp2:'HRBP2', role_hrbpLead:'HRBP Lead', role_da:'Department Assistant', role_reportsTo:'Reports-to',
 
       logType:{ rename:'Rename', move:'Move', add:'Add', emp_transfer:'Transfer', delete:'Delete', undo_delete:'Undo delete', role_change:'Role change', role_cascade:'Role cascade', report_change:'Reporting line' },
       logDetail:{
@@ -228,8 +241,7 @@
       },
       csvOrgChangeHeaders:['Change Type','Role Change','Org Unit Before','PIC Before','HRBP1 Before','HRBP2 Before','HRBP Lead Before','Assistant Before','Org Unit After','PIC After','HRBP1 After','HRBP2 After','HRBP Lead After','Assistant After','Edit Time'],
       csvPersonnelHeaders:['EID','Name','Org Change','Role Change','Org Before','Reports-to Before','HRBP1 Before','HRBP2 Before','HRBP Lead Before','Assistant Before','Org After','Reports-to After','HRBP1 After','HRBP2 After','HRBP Lead After','Assistant After','Notes','Edit Time'],
-      csvOrgChangeFilename:'org-change-record.csv', csvPersonnelFilename:'personnel-change-record.csv',
-      orgChangeLabel:'Yes'
+      csvOrgChangeFilename:'org-change-record.csv', csvPersonnelFilename:'personnel-change-record.csv'
     }
   };
   function t(key){ var v = STR[LANG][key]; return v===undefined ? key : v; }
@@ -1736,6 +1748,53 @@
     });
   });
 
+  // Converts a builder's [headerRow, ...cellRows] output into {fieldName: value} objects ready
+  // for createSourceRecords, renaming/typing only the columns that need it for the target table.
+  function rowsToBaseFields(headers, cellRows, renameMap, numberFields){
+    return cellRows.map(function(cells){
+      var obj = {};
+      headers.forEach(function(h, i){
+        var key = (renameMap && renameMap[h]) || h;
+        var val = cells[i];
+        obj[key] = (numberFields && numberFields.indexOf(key)!==-1) ? Number(val) : val;
+      });
+      return obj;
+    });
+  }
+
+  // Archives everything changed since the shared watermark into the permanent "Org change
+  // log"/"Employee change log" Base tables — separate from the "Change Log" table used for
+  // cross-session live sync, which this never touches or clears.
+  document.getElementById('exportChangeLogBtn').addEventListener('click', function(){
+    var btn = document.getElementById('exportChangeLogBtn');
+    var statusEl = document.getElementById('exportChangeLogStatus');
+    btn.disabled = true; btn.textContent = t('exportChangeLogBtnLoading'); statusEl.textContent = '';
+    fetch('/api/changelog-export', {credentials:'same-origin'})
+      .then(function(res){ return res.json().then(function(j){ if(!res.ok) throw new Error(j.error||'error'); return j; }); })
+      .then(function(watermarkData){
+        var sinceTime = watermarkData.lastExportAt || 0;
+        return getCombinedReplayState().then(function(state){
+          var orgHeaders = ct('csvOrgChangeHeaders');
+          // rawEditTime=true here — the org table's Edit Date column is a real datetime field,
+          // unlike the employee table's (plain text), so only this one needs the raw epoch.
+          var orgRows = buildCombinedOrgChangeRows(pristineNodes, state.finalNodes, state.entries, sinceTime, true).slice(1);
+          var empHeaders = ct('csvPersonnelHeaders');
+          var empRows = buildCombinedPersonnelRows(pristineNodes, pristineEmployees, state.finalNodes, state.finalEmployees, state.entries, sinceTime).slice(1);
+          if(!orgRows.length && !empRows.length){ toast(t('toastExportChangeLogNone')); return null; }
+          var orgFieldsRows = rowsToBaseFields(orgHeaders, orgRows, {'Edit Time':'Edit Date'});
+          var empFieldsRows = rowsToBaseFields(empHeaders, empRows, {'Edit Time':'Edit Date'}, ['EID']);
+          var newWatermark = state.entries.reduce(function(max, e){ return Math.max(max, e.time||0); }, sinceTime);
+          return fetch('/api/changelog-export', {
+            method:'POST', credentials:'same-origin', headers:{'Content-Type':'application/json'},
+            body: JSON.stringify({orgRows: orgFieldsRows, employeeRows: empFieldsRows, newWatermark: newWatermark})
+          }).then(function(res){ return res.json().then(function(j){ if(!res.ok) throw new Error(j.error||'error'); return j; }); })
+            .then(function(result){ toast(t('toastExportChangeLogDone')({orgCount:result.orgCount, empCount:result.employeeCount})); });
+        });
+      })
+      .catch(function(){ toast(t('toastExportChangeLogFailed')); })
+      .then(function(){ btn.disabled = false; btn.textContent = t('exportChangeLogBtn'); });
+  });
+
   function render(){
     renderTree();
     renderLog();
@@ -1840,11 +1899,17 @@
   // and the fully-replayed combined state — not per log entry. This is what makes "1 person, 3
   // steps" and "3 people, 1 step each" collapse to the exact same row: a chain that nets to no
   // difference (e.g. renamed X→Y→X by two different people) produces no row at all.
-  function buildCombinedOrgChangeRows(pristineNodes, finalNodes, entries){
+  // sinceTime (optional, epoch ms) restricts to nodes last touched strictly after it — used by
+  // the "archive to Base" button so it only sends genuinely new rows, not everything again.
+  // rawEditTime (optional) returns the Edit Time cell as a raw epoch number instead of a
+  // formatted string — also for that button, since the Base column it writes to is a real
+  // datetime field there (unlike the CSV, which always shows the human-formatted string).
+  function buildCombinedOrgChangeRows(pristineNodes, finalNodes, entries, sinceTime, rawEditTime){
     var pristineById = {}; pristineNodes.forEach(function(n){ pristineById[n.id] = n; });
     var nodeTime = computeLastTouched(entries).nodeTime;
     var rows = [];
     finalNodes.forEach(function(fn){
+      if(sinceTime && !(nodeTime[fn.id] > sinceTime)) return;
       var pn = pristineById[fn.id];
       var wasNew = !pn;
       var isDeletedNow = !!fn.flags.isDeleted;
@@ -1875,7 +1940,7 @@
       }
       if(!typeLabels.length) return; // no net difference from baseline
 
-      var editTime = nodeTime[fn.id] ? formatSnapshotTime(new Date(nodeTime[fn.id])) : '';
+      var editTime = rawEditTime ? (nodeTime[fn.id] || null) : (nodeTime[fn.id] ? formatSnapshotTime(new Date(nodeTime[fn.id])) : '');
       rows.push({
         sortName: afterName || beforeName,
         cells: [typeLabels.join(', '), roleChangeLabel, beforeName, beforeRoles.pic||'', beforeRoles.hrbp1||'', beforeRoles.hrbp2||'', beforeRoles.hrbpLead||'', beforeRoles.da||'',
@@ -1893,13 +1958,24 @@
   // resolved against whichever node they were in at each end (pristine vs replayed final), which
   // also naturally covers "never moved, but their department's HRBP changed" — no separate
   // ancestor-chain tracking needed, it falls out of comparing the two node states directly.
-  function buildCombinedPersonnelRows(pristineNodes, pristineEmployees, finalNodes, finalEmployees, entries){
+  // Ancestor IDs from root down to nodeId, following each node's CURRENT parentId in the given
+  // node set — used below to tell whether an employee's path changed because their own
+  // department moved/renamed vs. some ancestor further up the chain did.
+  function ancestorChainIds(nodeById, nodeId){
+    var ids = [], n = nodeById[nodeId];
+    while(n){ ids.unshift(n.id); n = n.parentId ? nodeById[n.parentId] : null; }
+    return ids;
+  }
+
+  // sinceTime/rawEditTime (both optional) mirror buildCombinedOrgChangeRows' own — see its comment.
+  function buildCombinedPersonnelRows(pristineNodes, pristineEmployees, finalNodes, finalEmployees, entries, sinceTime, rawEditTime){
     var pristineNodeById = {}; pristineNodes.forEach(function(n){ pristineNodeById[n.id] = n; });
     var finalNodeById = {}; finalNodes.forEach(function(n){ finalNodeById[n.id] = n; });
     var pristineEmpById = {}; pristineEmployees.forEach(function(e){ pristineEmpById[e.eid] = e; });
     var empTime = computeLastTouched(entries).empTime;
 
     var rows = finalEmployees.map(function(fe){
+      if(sinceTime && !(empTime[fe.eid] > sinceTime)) return null;
       var pe = pristineEmpById[fe.eid];
       if(!pe) return null;
       var oldPath = pathLabelIn(pristineNodes, pe.nodeId);
@@ -1908,10 +1984,32 @@
       var reportsChanged = fe.reportsTo !== pe.reportsTo;
       var before = pristineNodeById[pe.nodeId] ? nodeRolesAfter(pristineNodeById[pe.nodeId]) : {};
       var after = finalNodeById[fe.nodeId] ? nodeRolesAfter(finalNodeById[fe.nodeId]) : {};
-      var roleChangeLabel = roleChangeSummary(before, after, PERSONNEL_ROLE_FIELDS);
+      var roleChangeLabel = roleChangeSummary(
+        Object.assign({}, before, {reportsTo: pe.reportsTo||''}),
+        Object.assign({}, after, {reportsTo: fe.reportsTo||''}),
+        ['reportsTo'].concat(PERSONNEL_ROLE_FIELDS)
+      );
       if(!pathChanged && !reportsChanged && !roleChangeLabel) return null;
-      var orgChangeLabel = pathChanged ? ct('orgChangeLabel') : '';
-      var editTime = empTime[fe.eid] ? formatSnapshotTime(new Date(empTime[fe.eid])) : '';
+
+      // What kind of org change actually moved this employee, mirroring the org-change CSV's
+      // own "type" labels: a direct transfer to a different department, vs. staying put while
+      // that department (or one of its ancestors) got renamed and/or moved elsewhere.
+      var orgChangeTypeLabels = [];
+      if(pathChanged){
+        if(fe.nodeId !== pe.nodeId){
+          orgChangeTypeLabels.push(ct('logType').emp_transfer);
+        } else {
+          var oldChain = ancestorChainIds(pristineNodeById, pe.nodeId);
+          var newChain = ancestorChainIds(finalNodeById, fe.nodeId);
+          if(oldChain.join('>') !== newChain.join('>')) orgChangeTypeLabels.push(ct('logType').move);
+          var renamedInChain = oldChain.some(function(id){
+            return newChain.indexOf(id)!==-1 && pristineNodeById[id].name !== finalNodeById[id].name;
+          });
+          if(renamedInChain) orgChangeTypeLabels.push(ct('logType').rename);
+        }
+      }
+      var orgChangeLabel = orgChangeTypeLabels.join(', ');
+      var editTime = rawEditTime ? (empTime[fe.eid] || null) : (empTime[fe.eid] ? formatSnapshotTime(new Date(empTime[fe.eid])) : '');
       return {
         sortName: newPath || oldPath,
         cells: [fe.eid, fe.name, orgChangeLabel, roleChangeLabel,
