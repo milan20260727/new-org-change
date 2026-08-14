@@ -108,6 +108,9 @@
       undoDeleteBtn:'撤销删除',
 
       reportPromptText:function(p){ return '「' + p.dept + '」已移动到「' + p.parent + '」下。是否把负责人「' + p.pic + '」的直属汇报对象，从「' + (p.from||STR.zh.empty) + '」改为「' + p.to + '」？'; },
+      reportPromptTextTransferOne:function(p){ return '已将「' + p.name + '」调动到「' + p.dept + '」。是否把其直属汇报对象，从「' + (p.from||STR.zh.empty) + '」改为「' + p.to + '」（该部门负责人）？'; },
+      reportPromptTextTransferManySame:function(p){ return '已调动 ' + p.count + ' 名员工到新部门。是否把他们的直属汇报对象统一改为「' + p.to + '」（对应部门负责人）？'; },
+      reportPromptTextTransferManyMixed:function(p){ return '已调动 ' + p.count + ' 名员工到不同部门。是否把他们的直属汇报对象分别改为各自新部门的负责人？'; },
 
       role_pic:'PIC', role_hrbp1:'HRBP1', role_hrbp2:'HRBP2', role_hrbpLead:'HRBP Lead', role_da:'Department Assistant', role_reportsTo:'Reports-to',
 
@@ -232,6 +235,9 @@
       undoDeleteBtn:'Undo delete',
 
       reportPromptText:function(p){ return '"' + p.dept + '" moved under "' + p.parent + '". Update the reporting line for its PIC "' + p.pic + '" from "' + (p.from||STR.en.empty) + '" to "' + p.to + '"?'; },
+      reportPromptTextTransferOne:function(p){ return '"' + p.name + '" was transferred to "' + p.dept + '". Update their reporting line from "' + (p.from||STR.en.empty) + '" to "' + p.to + '" (that department\'s PIC)?'; },
+      reportPromptTextTransferManySame:function(p){ return p.count + ' employee(s) were transferred to a new department. Update their reporting line to "' + p.to + '" (that department\'s PIC)?'; },
+      reportPromptTextTransferManyMixed:function(p){ return p.count + ' employee(s) were transferred to different departments. Update each one\'s reporting line to their new department\'s PIC?'; },
 
       role_pic:'PIC', role_hrbp1:'HRBP1', role_hrbp2:'HRBP2', role_hrbpLead:'HRBP Lead', role_da:'Department Assistant', role_reportsTo:'Direct Manager',
 
@@ -658,6 +664,7 @@
       var missing = subtreeEmployees.filter(function(e){ return !assignments || !assignments[e.eid]; });
       if(missing.length) return {ok:false, reason:'unassigned', missing:missing};
     }
+    var transferred = [];
     subtreeNodes.forEach(function(d){
       if(d.flags.isNew){
         nodes = nodes.filter(function(x){ return x.id!==d.id; });
@@ -670,12 +677,13 @@
         var toId = assignments[e.eid];
         restoreLog.push({eid:e.eid, toNodeId:toId, fromNodeId:d.id});
         commitEmployeeTransfer(e, toId);
+        transferred.push({emp:e, toNode:getNode(toId)});
       });
       d.restoreLog = restoreLog.length ? restoreLog : null;
       d.flags.isDeleted = true;
       addLog('delete', {name:d.name, parent:getNode(d.parentId).name, empCount:restoreLog.length}, d.id);
     });
-    return {ok:true};
+    return {ok:true, transferred:transferred};
   }
   function commitRestoreDelete(n){
     n.flags.isDeleted = false;
@@ -744,8 +752,35 @@
     var parent = getNode(n.parentId);
     var newSupervisor = parent ? parent.pic : '';
     if(!newSupervisor || newSupervisor===picEmp.reportsTo || newSupervisor===n.pic) return;
-    pendingReportPrompt = {emp:picEmp, newSupervisor:newSupervisor};
+    pendingReportPrompt = [{emp:picEmp, newSupervisor:newSupervisor}];
     document.getElementById('reportPromptText').textContent = t('reportPromptText')({dept:n.name, parent:parent.name, pic:picEmp.name, from:picEmp.reportsTo, to:newSupervisor});
+    document.getElementById('reportPromptOverlay').classList.add('show');
+  }
+  // Employee-transfer counterpart of maybePromptReportChange above: that one only covers a
+  // department's OWN PIC when the department itself is moved. This covers the (more common)
+  // case of transferring an employee into a department — their reports-to otherwise just keeps
+  // whatever it was, even though they now sit under a different PIC. pairs is [{emp, toNode}];
+  // toNode can differ per pair since e.g. a cascading department delete reassigns each employee
+  // individually. One dialog either way — never N popups for a bulk transfer.
+  function maybePromptReportChangeForTransfers(pairs){
+    var candidates = pairs.map(function(p){
+      var newSupervisor = p.toNode ? (p.toNode.pic || '') : '';
+      if(!newSupervisor || newSupervisor===(p.emp.reportsTo||'') || matchesPersonName(p.emp.name, newSupervisor)) return null;
+      return {emp:p.emp, newSupervisor:newSupervisor, deptName:p.toNode.name};
+    }).filter(Boolean);
+    if(!candidates.length) return;
+    pendingReportPrompt = candidates.map(function(c){ return {emp:c.emp, newSupervisor:c.newSupervisor}; });
+    var text;
+    if(candidates.length===1){
+      var c = candidates[0];
+      text = t('reportPromptTextTransferOne')({name:c.emp.name, dept:c.deptName, from:c.emp.reportsTo, to:c.newSupervisor});
+    } else {
+      var sameTarget = candidates.every(function(c){ return c.newSupervisor===candidates[0].newSupervisor; });
+      text = sameTarget
+        ? t('reportPromptTextTransferManySame')({count:candidates.length, to:candidates[0].newSupervisor})
+        : t('reportPromptTextTransferManyMixed')({count:candidates.length});
+    }
+    document.getElementById('reportPromptText').textContent = text;
     document.getElementById('reportPromptOverlay').classList.add('show');
   }
 
@@ -794,6 +829,7 @@
         var res = commitDelete(n, pendingEdit.del.assignments);
         if(!res.ok){ toast(t('toastDeleteBlockedEmp')(res.missing.length)); return; }
         toast(t('toastDeleted')); closePanel(); render();
+        maybePromptReportChangeForTransfers(res.transferred);
       };
       var descendants = getDescendants(n.id).filter(function(d){ return !d.flags.isDeleted; });
       if(descendants.length) showConfirm(t('deleteCascadeConfirmTitle'), t('deleteCascadeConfirmText')(descendants.length), t('deleteCascadeOkBtn'), doDelete);
@@ -1057,12 +1093,15 @@
     document.getElementById('rosterBulkApply').addEventListener('click', function(){
       var target = rosterBulkTarget;
       if(!target){ toast(t('toastPickTransferTarget')); return; }
+      var targetNode = getNode(target);
       var moved = 0;
-      direct.forEach(function(e){ if(rosterSelected[e.eid]){ commitEmployeeTransfer(e, target); moved++; } });
+      var transferred = [];
+      direct.forEach(function(e){ if(rosterSelected[e.eid]){ commitEmployeeTransfer(e, target); moved++; transferred.push({emp:e, toNode:targetNode}); } });
       rosterSelected = {};
       rosterBulkTarget = '';
       toast(t('toastTransferredN')(moved));
       renderTree(); renderLog(); renderEmployees(); renderPanel();
+      maybePromptReportChangeForTransfers(transferred);
     });
   }
 
@@ -1699,10 +1738,12 @@
         var target = unassignedTargets[eid];
         if(!target){ toast(t('toastPickTransferTarget')); return; }
         var emp = employees.filter(function(e){ return e.eid===eid; })[0];
+        var targetNode = getNode(target);
         commitEmployeeTransfer(emp, target);
         delete unassignedTargets[eid];
         toast(t('toastTransferredName')(emp.name));
         renderTree(); renderLog(); renderEmployees(); renderUnassigned();
+        maybePromptReportChangeForTransfers([{emp:emp, toNode:targetNode}]);
       });
     });
   }
@@ -2315,8 +2356,8 @@
     }
   }
   document.getElementById('reportPromptApplyBtn').addEventListener('click', function(){
-    if(pendingReportPrompt){
-      commitReportChange(pendingReportPrompt.emp, pendingReportPrompt.newSupervisor);
+    if(pendingReportPrompt && pendingReportPrompt.length){
+      pendingReportPrompt.forEach(function(p){ commitReportChange(p.emp, p.newSupervisor); });
       toast(t('toastReportUpdated'));
       renderLog();
     }
@@ -2336,11 +2377,12 @@
   document.getElementById('gmodalOrgSearch').addEventListener('input', function(){ renderGModalOptions('org', this.value); });
   document.getElementById('gmodalConfirmBtn').addEventListener('click', function(){
     if(!gmodalEmp || !gmodalOrg) return;
-    var name = gmodalEmp.name;
-    commitEmployeeTransfer(gmodalEmp, gmodalOrg.id);
-    toast(t('toastTransferredName')(name));
+    var emp = gmodalEmp, targetNode = gmodalOrg;
+    commitEmployeeTransfer(emp, targetNode.id);
+    toast(t('toastTransferredName')(emp.name));
     closeGlobalTransfer();
     render();
+    maybePromptReportChangeForTransfers([{emp:emp, toNode:targetNode}]);
   });
 
   // ---------- download org chart as PNG ----------
