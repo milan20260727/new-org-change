@@ -1679,7 +1679,7 @@
       var oldPath = pathLabelIn(pristineNodes, pe.nodeId);
       var newPath = pathLabelIn(replayed.nodes, e.nodeId);
       if(oldPath===newPath && e.reportsTo===pe.reportsTo) return null;
-      return {eid:e.eid, name:e.name, oldPath:oldPath, newPath:newPath};
+      return {eid:e.eid, name:e.name, oldPath:oldPath, newPath:newPath, oldReportsTo:pe.reportsTo||'', newReportsTo:e.reportsTo||''};
     }).filter(Boolean);
   }
 
@@ -1687,10 +1687,16 @@
   // "变更记录" tab's side-by-side panel, mirroring how renderLogInto covers both change-log spots.
   function renderEmployeesInto(bodyId, impacted){
     var body = document.getElementById(bodyId);
-    if(!impacted.length){ body.innerHTML = '<tr><td colspan="3" class="empty-note">'+escapeHtml(t('empEmptyNote'))+'</td></tr>'; return; }
+    if(!impacted.length){ body.innerHTML = '<tr><td colspan="4" class="empty-note">'+escapeHtml(t('empEmptyNote'))+'</td></tr>'; return; }
     body.innerHTML = impacted.map(function(e){
       var right = '<div class="path-old">'+escapeHtml(e.oldPath)+'</div><div class="path-new">'+escapeHtml(e.newPath)+'</div>';
-      return '<tr><td class="mono">'+e.eid+'</td><td>'+escapeHtml(e.name)+'</td><td>'+right+'</td></tr>';
+      // Only show the struck-through old value when it actually changed — an unrelated pure org
+      // move shouldn't render the same reports-to name crossed out above itself.
+      var reportsChanged = e.oldReportsTo !== e.newReportsTo;
+      var reportsCell = reportsChanged
+        ? '<div class="path-old">'+escapeHtml(e.oldReportsTo||t('notSet'))+'</div><div class="path-new">'+escapeHtml(e.newReportsTo||t('notSet'))+'</div>'
+        : escapeHtml(e.newReportsTo||t('notSet'));
+      return '<tr><td class="mono">'+e.eid+'</td><td>'+escapeHtml(e.name)+'</td><td>'+right+'</td><td>'+reportsCell+'</td></tr>';
     }).join('');
   }
   function renderEmployees(){
