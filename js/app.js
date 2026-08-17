@@ -1564,7 +1564,15 @@
     }
     var rootLi = wrap.querySelector('.tree > ul.tlevel > li');
     if(rootLi) walk(rootLi);
-    return {segments:segments, width:wrap.scrollWidth, height:wrap.scrollHeight};
+    // wrapRect (not scrollWidth/scrollHeight) on purpose: the reorder handle's bottom-right
+    // corner sits at -8px, outside its node's own box, with no reserved clearance below the
+    // last row in vertical mode (horizontal mode's per-row 12px top/bottom padding happens to
+    // absorb it). That overflow inflates scrollHeight past the tree's actual rendered size, so
+    // an SVG sized in CSS to the real box but given a taller viewBox squished every connector's
+    // Y coordinate — worse the deeper the tree, which is exactly the "lines don't reach the
+    // boxes" symptom. All segment points above are already computed relative to wrapRect, so
+    // using its own dimensions here keeps the SVG's coordinate space a true 1:1 match.
+    return {segments:segments, width:wrapRect.width, height:wrapRect.height};
   }
 
   function roundedPathD(pts, r){
