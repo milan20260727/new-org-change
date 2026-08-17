@@ -1528,20 +1528,6 @@
 
   function computeConnectorSegments(){
     var wrap = document.getElementById('treeWrap');
-    // Chromium's non-standard `zoom` CSS property (applied to #treeRoot for the zoom control,
-    // always present even at 100%) has a known history of not invalidating cached layout after
-    // certain DOM mutations. Confirmed against the actual reported symptom: connector lines go
-    // blank right after an undo, but come back the instant ANYTHING forces a real layout
-    // recalculation — switching orientation, clicking zoom in/out (applyZoom() re-assigns this
-    // same zoom property), or even just opening DevTools (which narrows the viewport and fires a
-    // genuine resize). Re-assigning the zoom style — even back to its own current value — is
-    // exactly what those fixes have in common, so doing it here forces Chromium to redo the
-    // zoom-scaled layout pass immediately, before the getBoundingClientRect() reads below.
-    var treeRootEl = document.getElementById('treeRoot');
-    var zoomStyle = treeRootEl.style.zoom;
-    treeRootEl.style.zoom = '';
-    void treeRootEl.offsetHeight; // force the reflow between clearing and restoring zoom
-    treeRootEl.style.zoom = zoomStyle;
     var wrapRect = wrap.getBoundingClientRect();
 
     function centerOf(el, side){
@@ -1863,6 +1849,14 @@
     document.getElementById('changelogView').style.display = view==='changelog' ? '' : 'none';
     document.getElementById('adminView').style.display = view==='admin' ? '' : 'none';
     if(view==='admin'){ renderAdmin(); renderEditWindowSettings(); fetchExportWatermark().then(renderExportWatermark); }
+    // The real cause of the "connectors go blank" report: any render (e.g. clicking Undo, which
+    // lives on the Change log tab) that happens while chartView is display:none computes every
+    // box's getBoundingClientRect() as all-zero — there's no layout box for a hidden subtree —
+    // leaving the SVG's viewBox and every path collapsed to 0. Nothing previously redrew it when
+    // switching back, so it stayed broken until some other action (zoom, orientation, a resize)
+    // happened to trigger a fresh render while the chart was actually visible. Redrawing here,
+    // now that the chart is visible again, fixes it directly instead of relying on that.
+    if(view==='chart' && nodes) drawConnectors();
   }
   document.getElementById('viewTabs').addEventListener('click', function(ev){
     var btn = ev.target.closest('button[data-view]'); if(!btn) return;
