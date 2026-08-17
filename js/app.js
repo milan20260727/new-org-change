@@ -208,7 +208,7 @@
 
       roleWarnHeader:'⚠ Roles need review in sub-departments:', roleOkBox:'✓ HRBP / Department Assistant are consistent across this branch.',
       roleDiffers:'values differ among sub-departments', roleBlank:'not set somewhere (blank)',
-      cascadeBtn:'Apply to all sub-departments (HRBP1/HRBP2/HRBP Lead/Dept. Assistant)',
+      cascadeBtn:'Apply to all sub-departments',
       rosterEmptyNote:'No employees report directly to this department.', rosterTargetPlaceholder:'Transfer target department…',
       pickerSearchPh:'Search names from Lark User…', clearRoleOption:'Clear this role', noMatchResult:'No matches', noMatchDept:'No matching department', noMatchEmp:'No matching employee',
 
