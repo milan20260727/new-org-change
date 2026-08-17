@@ -44,6 +44,11 @@
     </div>
     <div class="topbar-right">
       <div class="user-chip"><span data-i18n="loggedInAs">已登录：</span><b id="userName">—</b><span class="logout" id="logoutBtn" data-i18n="logoutBtn">退出</span></div>
+      <span class="ctrl-label" data-i18n="langLabel">语言</span>
+      <div class="seg" id="langSeg">
+        <button data-lang="zh">中文</button>
+        <button data-lang="en" class="active">EN</button>
+      </div>
     </div>
   </div>
 
@@ -72,12 +77,6 @@
       <button data-orient="vertical" class="active" data-i18n="orientVertical">纵向</button>
       <button data-orient="horizontal" data-i18n="orientHorizontal">横向</button>
     </div>
-    <span class="ctrl-label" data-i18n="langLabel">语言</span>
-    <div class="seg" id="langSeg">
-      <button data-lang="zh">中文</button>
-      <button data-lang="en" class="active">EN</button>
-    </div>
-    <button class="btn ghost" id="downloadPngBtn" data-i18n="downloadPngBtn">下载组织架构图（PNG）</button>
   </div>
 
   <div class="edit-window-banner" id="editWindowBanner" style="display:none;"></div>
@@ -91,6 +90,8 @@
         <div class="legend-item"><span class="swatch" style="background:var(--mov-bg); border-color:var(--mov-border);"></span><span data-i18n="legendMoved">移动</span></div>
         <div class="legend-item"><span class="swatch" style="background:var(--accent-soft); border-color:var(--accent);"></span><span data-i18n="legendRenamed">已改名</span></div>
         <div class="legend-item" style="color:var(--warn-text);" data-i18n="legendRoleWarn">⚠ 角色不一致</div>
+        <span style="flex:1;"></span>
+        <button class="btn ghost" id="downloadPngBtn" data-i18n="downloadPngBtn">下载组织架构图（PNG）</button>
       </div>
       <div class="tree-scroll">
         <div class="tree-wrap" id="treeWrap">
