@@ -41,7 +41,7 @@
       loggedInAs:'已登录：', logoutBtn:'退出',
       snapshotLabel:'数据快照时间：', refreshBtn:'刷新数据', refreshBtnLoading:'刷新中…',
       searchPlaceholder:'搜索组织架构名称…', searchEmpNamePlaceholder:'搜索员工姓名…', focusPrefix:'聚焦于「', focusSuffix:'」',
-      globalTransferBtn:'转移员工', addOrgBtn:'新增组织架构', viewChart:'组织架构图', viewUnassigned:'待安置员工',
+      globalTransferBtn:'转移员工', viewChart:'组织架构图', viewUnassigned:'待安置员工',
       expandAllBtn:'全部展开', collapseAllBtn:'全部折叠', expandTitle:'展开', collapseTitle:'折叠',
       refreshEditsBtn:'刷新编辑', refreshEditsBtnLoading:'刷新中…', toastEditsRefreshed:'已拉取最新的变更记录', toastEditsRefreshFailed:'拉取变更记录失败',
       refreshEditsConfirmDiscard:'你还有尚未同步的本地编辑草稿，刷新会丢弃这些草稿（已同步的变更不受影响）。确定继续吗？',
@@ -49,7 +49,7 @@
       orientLabel:'查看方向', orientVertical:'纵向', orientHorizontal:'横向',
       langLabel:'语言', downloadPngBtn:'下载组织架构图（PNG）',
       legendNew:'新增', legendDelete:'删除', legendMoved:'移动', legendRenamed:'已改名', legendRoleWarn:'⚠ 角色不一致',
-      changeLogTitle:'变更记录', unitRecords:'条', colType:'类型', colDetail:'详情', colEditor:'编辑人', colEditTime:'编辑时间',
+      changeLogTitle:'变更记录', unitRecords:'条', colType:'类型', colDetail:'详情', colEditor:'编辑人', colEditTime:'编辑时间', colAction:'操作', undoLogBtn:'撤销',
       logEmptyNote:'暂无变更，点一个部门框试试', downloadCsvBtn:'下载 CSV',
       affectedEmpTitle:'受影响员工', unitPeople:'人', colName:'姓名', colPathChange:'原组织架构 → 新组织架构', colReportsTo:'汇报对象',
       colDivision:'Division', colBusinessUnit:'Business Unit', colDepartment:'Department', colTeam:'Team', colSubTeam:'Sub Team', colSection:'Section', colStatus:'Status', colHrbpLead:'HRBP Lead',
@@ -58,7 +58,6 @@
       addChildTitle:'新增子部门', reorderHandleTitle:'按住拖动可调整同级部门的显示顺序', tabStructure:'编辑类型', tabRole:'变更角色', tabRoster:'下辖员工名单',
       transferModalTitle:'转移员工', fieldEmployee:'员工', searchEmpPlaceholder:'搜索姓名或 EID…',
       fieldTargetOrg:'目标组织架构', searchOrgPlaceholder:'搜索目标部门…', cancelBtn:'取消', confirmTransferBtn:'确认转移',
-      reportPromptTitle:'是否同步更新汇报关系？', skipBtn:'保持不变', applyReportBtn:'更新汇报对象',
 
       empty:'（空）', notSet:'未设置', changeBtn:'更改', reselectBtn:'重选', closeBtn:'关闭',
       newTag:'新增', renamedTag:'已改名', movedTag:'已移动', inactiveTag:'既有停用',
@@ -100,26 +99,21 @@
       toastPickTransferTarget:'请先选择转移目标部门', toastTransferredN:function(n){ return '已转移 ' + n + ' 名员工'; },
       toastUndoDeleted:'已撤销删除', toastMovePending:'已选定目标，点击"保存"确认这次移动',
       toastReorderDone:'已调整排序（仅保存在本地浏览器）',
-      toastReportUpdated:'已更新汇报对象', toastTransferredName:function(name){ return '已转移 ' + name; },
+      toastTransferredName:function(name){ return '已转移 ' + name; },
       toastPngFailed:'导出失败，请改用浏览器自带的截图功能', toastPngDone:'已下载 PNG',
       toastPngError:function(msg){ return '导出失败：' + msg; },
       toastPngNeedsChartView:'请先切换到"组织架构图"页面，再下载', toastPngTooLarge:'组织架构图展开范围太大，已自动缩小导出比例；如仍失败，请先折叠部分分支再试',
       deletedPanelNote:'该部门已标记删除。删除时涉及的员工已安置到其他部门；撤销删除会把他们迁回来。',
       undoDeleteBtn:'撤销删除',
 
-      reportPromptText:function(p){ return '「' + p.dept + '」已移动到「' + p.parent + '」下。是否把负责人「' + p.pic + '」的直属汇报对象，从「' + (p.from||STR.zh.empty) + '」改为「' + p.to + '」？'; },
-      reportPromptTextTransferOne:function(p){ return '已将「' + p.name + '」调动到「' + p.dept + '」。是否把其直属汇报对象，从「' + (p.from||STR.zh.empty) + '」改为「' + p.to + '」（该部门负责人）？'; },
-      reportPromptTextTransferManySame:function(p){ return '已调动 ' + p.count + ' 名员工到新部门。是否把他们的直属汇报对象统一改为「' + p.to + '」（对应部门负责人）？'; },
-      reportPromptTextTransferManyMixed:function(p){ return '已调动 ' + p.count + ' 名员工到不同部门。是否把他们的直属汇报对象分别改为各自新部门的负责人？'; },
-
       role_pic:'PIC', role_hrbp1:'HRBP1', role_hrbp2:'HRBP2', role_hrbpLead:'HRBP Lead', role_da:'Department Assistant', role_reportsTo:'Reports-to',
 
       logType:{ rename:'重命名', move:'移动', add:'新增', emp_transfer:'员工调动', delete:'删除', undo_delete:'撤销删除', role_change:'角色变更', role_cascade:'角色批量应用', report_change:'汇报关系变更' },
       logDetail:{
         rename: function(p){ return '「' + p.from + '」→「' + p.to + '」'; },
-        move: function(p){ return p.name + '：「' + p.from + '」→「' + p.to + '」'; },
+        move: function(p){ return p.name + '：「' + p.from + '」→「' + p.to + '」' + (p.reportsInfo ? '（负责人直属上级：「' + (p.reportsInfo.reportsToBefore||STR.zh.empty) + '」→「' + p.reportsInfo.reportsToAfter + '」）' : ''); },
         add: function(p){ return '「' + p.name + '」新增于「' + p.parent + '」下' + (p.roleBits.length ? '（' + p.roleBits.join('，') + '）' : ''); },
-        emp_transfer: function(p){ return p.name + '（' + p.eid + '）：「' + p.from + '」→「' + p.to + '」'; },
+        emp_transfer: function(p){ return p.name + '（' + p.eid + '）：「' + p.from + '」→「' + p.to + '」' + (p.reportsToAfter ? '，直属上级「' + (p.reportsToBefore||STR.zh.empty) + '」→「' + p.reportsToAfter + '」' : ''); },
         delete: function(p){ return '「' + p.name + '」（原上级：' + p.parent + (p.empCount ? '，' + p.empCount + ' 名员工已安置新部门' : '') + '）'; },
         undo_delete: function(p){ return '「' + p.name + '」已恢复' + (p.restored ? '，' + p.restored + ' 名员工已迁回原部门' : ''); },
         role_change: function(p){ return '「' + p.name + '」' + p.roleLabel + '：' + (p.from || STR.zh.empty) + ' → ' + (p.to || STR.zh.empty); },
@@ -168,7 +162,7 @@
       loggedInAs:'Signed in as: ', logoutBtn:'Sign out',
       snapshotLabel:'Data snapshot: ', refreshBtn:'Refresh data', refreshBtnLoading:'Refreshing…',
       searchPlaceholder:'Search org unit name…', searchEmpNamePlaceholder:'Search employee name…', focusPrefix:'Focused on "', focusSuffix:'"',
-      globalTransferBtn:'Transfer employee', addOrgBtn:'Add org unit', viewChart:'Org Chart', viewUnassigned:'Unassigned',
+      globalTransferBtn:'Transfer employee', viewChart:'Org Chart', viewUnassigned:'Unassigned',
       expandAllBtn:'Expand All', collapseAllBtn:'Collapse All', expandTitle:'Expand', collapseTitle:'Collapse',
       refreshEditsBtn:'Refresh edits', refreshEditsBtnLoading:'Refreshing…', toastEditsRefreshed:'Pulled the latest change log', toastEditsRefreshFailed:'Failed to pull the change log',
       refreshEditsConfirmDiscard:"You have local edits that haven't been synced yet — refreshing will discard them (already-synced changes are unaffected). Continue?",
@@ -176,7 +170,7 @@
       orientLabel:'Layout', orientVertical:'Vertical', orientHorizontal:'Horizontal',
       langLabel:'Language', downloadPngBtn:'Download chart (PNG)',
       legendNew:'New', legendDelete:'Deleted', legendMoved:'Moved', legendRenamed:'Renamed', legendRoleWarn:'⚠ Role inconsistent',
-      changeLogTitle:'Change log', unitRecords:'', colType:'Type', colDetail:'Detail', colEditor:'Editor', colEditTime:'Edit time',
+      changeLogTitle:'Change log', unitRecords:'', colType:'Type', colDetail:'Detail', colEditor:'Editor', colEditTime:'Edit time', colAction:'Action', undoLogBtn:'Undo',
       logEmptyNote:'No changes yet — try clicking a department box', downloadCsvBtn:'Download CSV',
       affectedEmpTitle:'Affected employees', unitPeople:'', colName:'Name', colPathChange:'Old org → New org', colReportsTo:'Direct Manager',
       colDivision:'Division', colBusinessUnit:'Business Unit', colDepartment:'Department', colTeam:'Team', colSubTeam:'Sub Team', colSection:'Section', colStatus:'Status', colHrbpLead:'HRBP Lead',
@@ -185,7 +179,6 @@
       addChildTitle:'Add sub-department', reorderHandleTitle:'Drag to reorder among sibling departments', tabStructure:'Edit type', tabRole:'Roles', tabRoster:'Team roster',
       transferModalTitle:'Transfer employee', fieldEmployee:'Employee', searchEmpPlaceholder:'Search by name or EID…',
       fieldTargetOrg:'Target org unit', searchOrgPlaceholder:'Search target department…', cancelBtn:'Cancel', confirmTransferBtn:'Confirm transfer',
-      reportPromptTitle:'Sync the reporting line too?', skipBtn:'Leave as is', applyReportBtn:'Update reporting line',
 
       empty:'(empty)', notSet:'Not set', changeBtn:'Change', reselectBtn:'Change', closeBtn:'Close',
       newTag:'New', renamedTag:'Renamed', movedTag:'Moved', inactiveTag:'Inactive (Lark)',
@@ -227,26 +220,21 @@
       toastPickTransferTarget:'Choose a transfer target department first', toastTransferredN:function(n){ return 'Transferred ' + n + ' employee(s)'; },
       toastUndoDeleted:'Deletion undone', toastMovePending:'Target selected — click "Save" to confirm the move',
       toastReorderDone:'Order updated (saved to this browser only)',
-      toastReportUpdated:'Reporting line updated', toastTransferredName:function(name){ return 'Transferred ' + name; },
+      toastTransferredName:function(name){ return 'Transferred ' + name; },
       toastPngFailed:'Export failed — please use your browser’s screenshot tool instead', toastPngDone:'PNG downloaded',
       toastPngError:function(msg){ return 'Export failed: ' + msg; },
       toastPngNeedsChartView:'Switch to the "Org Chart" tab before downloading', toastPngTooLarge:'The expanded chart is very large — export scale was reduced automatically; collapse some branches first if it still fails',
       deletedPanelNote:'This department is marked as deleted. Employees affected by this deletion were reassigned; undoing the deletion moves them back.',
       undoDeleteBtn:'Undo delete',
 
-      reportPromptText:function(p){ return '"' + p.dept + '" moved under "' + p.parent + '". Update the reporting line for its PIC "' + p.pic + '" from "' + (p.from||STR.en.empty) + '" to "' + p.to + '"?'; },
-      reportPromptTextTransferOne:function(p){ return '"' + p.name + '" was transferred to "' + p.dept + '". Update their reporting line from "' + (p.from||STR.en.empty) + '" to "' + p.to + '" (that department\'s PIC)?'; },
-      reportPromptTextTransferManySame:function(p){ return p.count + ' employee(s) were transferred to a new department. Update their reporting line to "' + p.to + '" (that department\'s PIC)?'; },
-      reportPromptTextTransferManyMixed:function(p){ return p.count + ' employee(s) were transferred to different departments. Update each one\'s reporting line to their new department\'s PIC?'; },
-
       role_pic:'PIC', role_hrbp1:'HRBP1', role_hrbp2:'HRBP2', role_hrbpLead:'HRBP Lead', role_da:'Department Assistant', role_reportsTo:'Direct Manager',
 
       logType:{ rename:'Rename', move:'Transfer Org', add:'Add', emp_transfer:'Transfer Emp', delete:'Delete', undo_delete:'Undo delete', role_change:'Role change', role_cascade:'Role cascade', report_change:'Reporting line' },
       logDetail:{
         rename: function(p){ return '"' + p.from + '" → "' + p.to + '"'; },
-        move: function(p){ return p.name + ': "' + p.from + '" → "' + p.to + '"'; },
+        move: function(p){ return p.name + ': "' + p.from + '" → "' + p.to + '"' + (p.reportsInfo ? ' (PIC\'s reports-to: "' + (p.reportsInfo.reportsToBefore||STR.en.empty) + '" → "' + p.reportsInfo.reportsToAfter + '")' : ''); },
         add: function(p){ return '"' + p.name + '" added under "' + p.parent + '"' + (p.roleBits.length ? ' (' + p.roleBits.join(', ') + ')' : ''); },
-        emp_transfer: function(p){ return p.name + ' (' + p.eid + '): "' + p.from + '" → "' + p.to + '"'; },
+        emp_transfer: function(p){ return p.name + ' (' + p.eid + '): "' + p.from + '" → "' + p.to + '"' + (p.reportsToAfter ? ', reports-to "' + (p.reportsToBefore||STR.en.empty) + '" → "' + p.reportsToAfter + '"' : ''); },
         delete: function(p){ return '"' + p.name + '" (previous parent: ' + p.parent + (p.empCount ? ', ' + p.empCount + ' employee(s) reassigned' : '') + ')'; },
         undo_delete: function(p){ return '"' + p.name + '" restored' + (p.restored ? ', ' + p.restored + ' employee(s) moved back' : ''); },
         role_change: function(p){ return '"' + p.name + '" ' + p.roleLabel + ': ' + (p.from || STR.en.empty) + ' → ' + (p.to || STR.en.empty); },
@@ -305,7 +293,7 @@
   var personPool = [];
   var rootId = 'root';
 
-  var nodes, employees, log, selectedId, viewRootId, orientation, logSeq, tempCounter, dragSrcId, dragMode, pendingEdit, activeTab, createDraft, rosterSelected, rosterBulkTarget, gmodalEmp, gmodalOrg, pendingReportPrompt, snapshotAt, unassignedId, unassignedTargets, collapsed, zoomPct;
+  var nodes, employees, log, selectedId, viewRootId, orientation, logSeq, tempCounter, dragSrcId, dragMode, pendingEdit, activeTab, createDraft, rosterSelected, rosterBulkTarget, gmodalEmp, gmodalOrg, snapshotAt, unassignedId, unassignedTargets, collapsed, zoomPct;
   // Other users' edits, pulled on demand from the shared "Change Log" Base table (never touched
   // by init()/the "刷新数据" refresh, which only re-reads the 3 org-source tables). Display-only —
   // CSV export still reads `log` alone, since it needs live local node state to build correct diffs.
@@ -401,11 +389,9 @@
         createDraft = null;
         rosterSelected = {};
         rosterBulkTarget = '';
-        pendingReportPrompt = null;
         activeTab = 'structure';
         document.getElementById('adminSnapshotTime').textContent = formatSnapshotTime(snapshotAt);
         document.getElementById('searchInput').value = '';
-        document.getElementById('reportPromptOverlay').classList.remove('show');
         document.getElementById('orientSeg').querySelectorAll('button').forEach(function(b){ b.classList.toggle('active', b.getAttribute('data-orient')==='vertical'); });
         switchView('chart');
         closePanel();
@@ -532,6 +518,21 @@
       .then(function(data){ if(data && data.recordId) entry.recordId = data.recordId; })
       .catch(function(){});
   }
+  // Because the shared feed is append-only (see above), simply removing a local entry after an
+  // undo doesn't erase the row already pushed for it — a later "刷新编辑" or reload would replay
+  // that stale row and silently redo the very thing just undone. A retraction is a real pushed
+  // entry too ({typeKey:'undo', key:<the retracted row's recordId>}); mergedLogForDisplay strips
+  // both the retraction markers and whatever recordId they name before anything else consumes
+  // the merged list, so every replay/CSV/on-screen view agrees the undone entry never happened.
+  // Silent no-op if the entry hasn't finished its own initial push yet (recordId not assigned) —
+  // a narrow race that would need a queue to close completely; undoing within that same instant
+  // is rare enough not to warrant the extra complexity.
+  function pushRetraction(recordId){
+    if(!recordId) return;
+    fetch('/api/changelog', {method:'POST', credentials:'same-origin', headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({typeKey:'undo', key:recordId, params:{}, by:currentUserName, time:Date.now()})})
+      .catch(function(){});
+  }
   // Pulls other sessions' actions from the shared table — deliberately independent of init()'s
   // org-source refetch (the "刷新数据" admin button), per request: refreshing edits shouldn't
   // also re-pull Structures/Employees/Lark User.
@@ -556,9 +557,57 @@
     if(existing){ existing.params = params; existing.by = currentUserName; existing.time = Date.now(); pushRemoteChangeLog(existing); }
     else { var entry = {seq:logSeq++, typeKey:typeKey, params:params, key:key, by:currentUserName, time:Date.now()}; log.push(entry); pushRemoteChangeLog(entry); }
   }
-  function removeLog(typeKey, key){ log = log.filter(function(l){ return !(l.typeKey===typeKey && l.key===key); }); }
+  function removeLog(typeKey, key){
+    log.filter(function(l){ return l.typeKey===typeKey && l.key===key; }).forEach(function(l){ pushRetraction(l.recordId); });
+    log = log.filter(function(l){ return !(l.typeKey===typeKey && l.key===key); });
+  }
   function removeAllLogsForNode(nodeId){
     log = log.filter(function(l){ return l.key!==nodeId && (typeof l.key!=='string' || l.key.indexOf(nodeId+'#')!==0); });
+  }
+  // ---------- change-log undo ----------
+  // Scoped to `log` (this session's own not-yet-superseded plan) only — remoteLog entries (pulled
+  // via "刷新编辑") are other people's already-committed work and never get an Undo button, so
+  // there's no way to revert someone else's action from here.
+  // rename/move/role_change are upsert-logged as session-original -> current, so reverting to the
+  // original value makes the commit fns remove their own log line (see upsertLog callers). add/
+  // delete already have dedicated undo paths (commitDelete/commitRestoreDelete). emp_transfer has
+  // no self-cleaning story since every transfer is its own entry, so its undo manually drops the
+  // entry after reversing it.
+  function canUndoLogEntry(l){
+    if(log.indexOf(l) < 0) return false;
+    if(l.typeKey==='rename' || l.typeKey==='move') return !!getNode(l.key);
+    if(l.typeKey==='role_change'){ return !!getNode(l.key.split('#')[0]); }
+    if(l.typeKey==='add'){ var n=getNode(l.key); return !!n && n.flags.isNew && !n.flags.isDeleted; }
+    if(l.typeKey==='delete'){ var n=getNode(l.key); return !!n && n.flags.isDeleted; }
+    if(l.typeKey==='emp_transfer'){
+      var e = employees.filter(function(x){ return x.eid===l.params.eid; })[0];
+      return !!e && !!l.params.toId && e.nodeId===l.params.toId;
+    }
+    return false;
+  }
+  function undoLogEntry(l){
+    if(l.typeKey==='rename'){ var n=getNode(l.key); if(n) commitRename(n, n.origName); }
+    else if(l.typeKey==='move'){ var n=getNode(l.key); if(n) commitMove(n, n.movedFrom); }
+    else if(l.typeKey==='role_change'){ var parts=l.key.split('#'); var n=getNode(parts[0]); if(n) commitRoleChange(n, parts[1], n.origRoles[parts[1]]); }
+    else if(l.typeKey==='add'){
+      var n=getNode(l.key);
+      if(n){
+        var res = commitDelete(n, {});
+        if(!res.ok) toast(t('toastDeleteBlockedEmp')(res.missing.length));
+      }
+    }
+    else if(l.typeKey==='delete'){ var n=getNode(l.key); if(n) commitRestoreDelete(n); }
+    else if(l.typeKey==='emp_transfer'){
+      var e = employees.filter(function(x){ return x.eid===l.params.eid; })[0];
+      if(e && l.params.fromId){
+        // silent — moving back re-syncs reports-to fresh against the original department's
+        // current PIC (self-correcting, same as a net-zero department move), and this entry
+        // gets dropped below rather than growing into its own "moved back" record.
+        commitEmployeeTransfer(e, l.params.fromId, true);
+        pushRetraction(l.recordId);
+        log = log.filter(function(x){ return x.seq!==l.seq; });
+      }
+    }
   }
   function formatLogType(entry){ return t('logType')[entry.typeKey] || entry.typeKey; }
   function formatLogDetail(entry){ var fn = t('logDetail')[entry.typeKey]; return fn ? fn(entry.params) : ''; }
@@ -605,15 +654,33 @@
     }
     return {ok:true};
   }
+  // Every reports-to value must trace back to a PIC somewhere on the org chart — never a free-
+  // typed name — so syncing it is never optional/manual. commitMove folds the department's own
+  // PIC's reports-to sync directly into the move itself (one log entry, no separate prompt/record):
+  // if this department's PIC has a name match in Employee list and the new parent's PIC differs
+  // from their current reports-to (and isn't just their own name), their reports-to is updated
+  // right here and the before/after travels along in the move entry's params.
+  function syncPicReportsTo(n){
+    if(!n.pic) return null;
+    var picEmp = employees.filter(function(e){ return matchesPersonName(e.name, n.pic); })[0];
+    if(!picEmp) return null;
+    var parent = getNode(n.parentId);
+    var newSupervisor = parent ? parent.pic : '';
+    if(!newSupervisor || newSupervisor===(picEmp.reportsTo||'') || newSupervisor===n.pic) return null;
+    var info = {eid:picEmp.eid, reportsToBefore:picEmp.reportsTo||'', reportsToAfter:newSupervisor};
+    picEmp.reportsTo = newSupervisor;
+    return info;
+  }
   function commitMove(n, targetId){
     if(!targetId || targetId===n.parentId || targetId===n.id || isDescendant(n.id, targetId)) return false;
     if(n.movedFrom===null) n.movedFrom = n.parentId;
     n.parentId = targetId;
+    var reportsInfo = syncPicReportsTo(n);
     if(n.parentId === n.movedFrom){
       n.movedFrom = null;
       removeLog('move', n.id);
     } else {
-      upsertLog('move', n.id, {name:n.name, from:getNode(n.movedFrom).name, to:getNode(n.parentId).name});
+      upsertLog('move', n.id, {name:n.name, from:getNode(n.movedFrom).name, to:getNode(n.parentId).name, reportsInfo:reportsInfo});
     }
     return true;
   }
@@ -646,7 +713,16 @@
     var toNode = getNode(targetId);
     if(!toNode || targetId===emp.nodeId) return false;
     emp.nodeId = targetId;
-    if(!silent) addLog('emp_transfer', {name:emp.name, eid:emp.eid, from:fromNode.name, to:toNode.name, fromId:fromNode.id, toId:toNode.id});
+    // Auto-sync reports-to to the destination department's PIC — no confirmation prompt, since
+    // reports-to is never a free-typed value, only ever the PIC of wherever the employee sits.
+    // Folded into this same emp_transfer entry (not a separate report_change one) so the change
+    // log keeps one row per transfer, matching how commitMove folds in its own PIC's sync.
+    var reportsToBefore = emp.reportsTo || '';
+    var newSupervisor = toNode.pic || '';
+    var reportsSynced = !!newSupervisor && newSupervisor!==reportsToBefore && !matchesPersonName(emp.name, newSupervisor);
+    if(reportsSynced) emp.reportsTo = newSupervisor;
+    if(!silent) addLog('emp_transfer', {name:emp.name, eid:emp.eid, from:fromNode.name, to:toNode.name, fromId:fromNode.id, toId:toNode.id,
+      reportsToBefore: reportsSynced ? reportsToBefore : null, reportsToAfter: reportsSynced ? newSupervisor : null});
     return true;
   }
   // Deleting a department with sub-departments now cascades: the whole subtree (n + all live
@@ -664,7 +740,6 @@
       var missing = subtreeEmployees.filter(function(e){ return !assignments || !assignments[e.eid]; });
       if(missing.length) return {ok:false, reason:'unassigned', missing:missing};
     }
-    var transferred = [];
     subtreeNodes.forEach(function(d){
       if(d.flags.isNew){
         nodes = nodes.filter(function(x){ return x.id!==d.id; });
@@ -677,13 +752,12 @@
         var toId = assignments[e.eid];
         restoreLog.push({eid:e.eid, toNodeId:toId, fromNodeId:d.id});
         commitEmployeeTransfer(e, toId);
-        transferred.push({emp:e, toNode:getNode(toId)});
       });
       d.restoreLog = restoreLog.length ? restoreLog : null;
       d.flags.isDeleted = true;
       addLog('delete', {name:d.name, parent:getNode(d.parentId).name, empCount:restoreLog.length}, d.id);
     });
-    return {ok:true, transferred:transferred};
+    return {ok:true};
   }
   function commitRestoreDelete(n){
     n.flags.isDeleted = false;
@@ -738,52 +812,6 @@
     var empLower = empName.toLowerCase();
     return picParts.length>0 && picParts.every(function(p){ return empLower.indexOf(p)>=0; });
   }
-  function commitReportChange(emp, newSupervisor){
-    var old = emp.reportsTo || '';
-    emp.reportsTo = newSupervisor;
-    if(emp.reportsTo === emp.origReportsTo) removeLog('report_change', emp.eid);
-    else upsertLog('report_change', emp.eid, {name:emp.name, from:old, to:newSupervisor});
-  }
-
-  function maybePromptReportChange(n){
-    if(!n.pic) return;
-    var picEmp = employees.filter(function(e){ return matchesPersonName(e.name, n.pic); })[0];
-    if(!picEmp) return;
-    var parent = getNode(n.parentId);
-    var newSupervisor = parent ? parent.pic : '';
-    if(!newSupervisor || newSupervisor===picEmp.reportsTo || newSupervisor===n.pic) return;
-    pendingReportPrompt = [{emp:picEmp, newSupervisor:newSupervisor}];
-    document.getElementById('reportPromptText').textContent = t('reportPromptText')({dept:n.name, parent:parent.name, pic:picEmp.name, from:picEmp.reportsTo, to:newSupervisor});
-    document.getElementById('reportPromptOverlay').classList.add('show');
-  }
-  // Employee-transfer counterpart of maybePromptReportChange above: that one only covers a
-  // department's OWN PIC when the department itself is moved. This covers the (more common)
-  // case of transferring an employee into a department — their reports-to otherwise just keeps
-  // whatever it was, even though they now sit under a different PIC. pairs is [{emp, toNode}];
-  // toNode can differ per pair since e.g. a cascading department delete reassigns each employee
-  // individually. One dialog either way — never N popups for a bulk transfer.
-  function maybePromptReportChangeForTransfers(pairs){
-    var candidates = pairs.map(function(p){
-      var newSupervisor = p.toNode ? (p.toNode.pic || '') : '';
-      if(!newSupervisor || newSupervisor===(p.emp.reportsTo||'') || matchesPersonName(p.emp.name, newSupervisor)) return null;
-      return {emp:p.emp, newSupervisor:newSupervisor, deptName:p.toNode.name};
-    }).filter(Boolean);
-    if(!candidates.length) return;
-    pendingReportPrompt = candidates.map(function(c){ return {emp:c.emp, newSupervisor:c.newSupervisor}; });
-    var text;
-    if(candidates.length===1){
-      var c = candidates[0];
-      text = t('reportPromptTextTransferOne')({name:c.emp.name, dept:c.deptName, from:c.emp.reportsTo, to:c.newSupervisor});
-    } else {
-      var sameTarget = candidates.every(function(c){ return c.newSupervisor===candidates[0].newSupervisor; });
-      text = sameTarget
-        ? t('reportPromptTextTransferManySame')({count:candidates.length, to:candidates[0].newSupervisor})
-        : t('reportPromptTextTransferManyMixed')({count:candidates.length});
-    }
-    document.getElementById('reportPromptText').textContent = text;
-    document.getElementById('reportPromptOverlay').classList.add('show');
-  }
-
   // ---------- panel (edit drawer) ----------
   function openPanel(id, tab){
     selectedId = id;
@@ -829,7 +857,6 @@
         var res = commitDelete(n, pendingEdit.del.assignments);
         if(!res.ok){ toast(t('toastDeleteBlockedEmp')(res.missing.length)); return; }
         toast(t('toastDeleted')); closePanel(); render();
-        maybePromptReportChangeForTransfers(res.transferred);
       };
       var descendants = getDescendants(n.id).filter(function(d){ return !d.flags.isDeleted; });
       if(descendants.length) showConfirm(t('deleteCascadeConfirmTitle'), t('deleteCascadeConfirmText')(descendants.length), t('deleteCascadeOkBtn'), doDelete);
@@ -846,7 +873,6 @@
     if(!did){ toast(t('toastNothingToSave')); return; }
     closePanel(); render();
     toast(t('toastSaved'));
-    if(moved) maybePromptReportChange(n);
   }
 
   function saveCreateChild(){
@@ -1093,15 +1119,12 @@
     document.getElementById('rosterBulkApply').addEventListener('click', function(){
       var target = rosterBulkTarget;
       if(!target){ toast(t('toastPickTransferTarget')); return; }
-      var targetNode = getNode(target);
       var moved = 0;
-      var transferred = [];
-      direct.forEach(function(e){ if(rosterSelected[e.eid]){ commitEmployeeTransfer(e, target); moved++; transferred.push({emp:e, toNode:targetNode}); } });
+      direct.forEach(function(e){ if(rosterSelected[e.eid]){ commitEmployeeTransfer(e, target); moved++; } });
       rosterSelected = {};
       rosterBulkTarget = '';
       toast(t('toastTransferredN')(moved));
       renderTree(); renderLog(); renderEmployees(); renderPanel();
-      maybePromptReportChangeForTransfers(transferred);
     });
   }
 
@@ -1553,11 +1576,21 @@
   // same merged list — rendered into both tbodies so neither ever falls out of sync with the other.
   function renderLogInto(bodyId, entries){
     var body = document.getElementById(bodyId);
-    if(!entries.length){ body.innerHTML = '<tr><td colspan="5" class="empty-note">'+escapeHtml(t('logEmptyNote'))+'</td></tr>'; return; }
+    if(!entries.length){ body.innerHTML = '<tr><td colspan="6" class="empty-note">'+escapeHtml(t('logEmptyNote'))+'</td></tr>'; return; }
     body.innerHTML = entries.map(function(l, i){
       var timeText = l.time ? formatSnapshotTime(new Date(l.time)) : '';
-      return '<tr><td class="mono">'+(i+1)+'</td><td>'+escapeHtml(formatLogType(l))+'</td><td>'+escapeHtml(formatLogDetail(l))+'</td><td>'+escapeHtml(l.by||'')+'</td><td class="mono">'+escapeHtml(timeText)+'</td></tr>';
+      var action = canUndoLogEntry(l) ? '<button class="btn ghost" type="button" data-undo-seq="'+l.seq+'">'+escapeHtml(t('undoLogBtn'))+'</button>' : '';
+      return '<tr><td class="mono">'+(i+1)+'</td><td>'+escapeHtml(formatLogType(l))+'</td><td>'+escapeHtml(formatLogDetail(l))+'</td><td>'+escapeHtml(l.by||'')+'</td><td class="mono">'+escapeHtml(timeText)+'</td><td>'+action+'</td></tr>';
     }).join('');
+    body.querySelectorAll('[data-undo-seq]').forEach(function(btn){
+      btn.addEventListener('click', function(){
+        var seq = Number(btn.getAttribute('data-undo-seq'));
+        var entry = log.filter(function(l){ return l.seq===seq; })[0];
+        if(!entry) return;
+        undoLogEntry(entry);
+        renderTree(); renderLog(); renderEmployees(); renderUnassigned(); renderPanel();
+      });
+    });
   }
   // Local `log` (this session's own plan — what CSV export reads) unioned with `remoteLog`
   // (other sessions' actions, pulled via "刷新编辑"), deduped by the shared table's record id
@@ -1566,7 +1599,13 @@
     var seen = new Set();
     log.forEach(function(l){ if(l.recordId) seen.add(l.recordId); });
     var extra = remoteLog.filter(function(r){ return !seen.has(r.recordId); });
-    return log.concat(extra).sort(function(a,b){ return (a.time||0) - (b.time||0); });
+    var all = log.concat(extra);
+    // 'undo' entries are retractions (see pushRetraction) — never real changes themselves, and
+    // whatever recordId they name gets dropped along with them so replay never sees it either.
+    var retracted = new Set();
+    all.forEach(function(l){ if(l.typeKey==='undo') retracted.add(l.key); });
+    return all.filter(function(l){ return l.typeKey!=='undo' && !retracted.has(l.recordId); })
+      .sort(function(a,b){ return (a.time||0) - (b.time||0); });
   }
 
   // ---------- cross-user replay (combined "final result" view for CSV export) ----------
@@ -1622,6 +1661,9 @@
           n.parentId = target.id;
           if(n.parentId === n.movedFrom) n.movedFrom = null;
         }
+        if(p.reportsInfo){
+          var picE = wGetEmp(p.reportsInfo.eid); if(picE) picE.reportsTo = p.reportsInfo.reportsToAfter;
+        }
       } else if(l.typeKey==='add'){
         if(!wGetNode(l.key)){
           var parent = wGetNodeByName(p.parent);
@@ -1645,6 +1687,7 @@
         });
       } else if(l.typeKey==='emp_transfer'){
         var e = wGetEmp(p.eid); if(e && p.toId) e.nodeId = p.toId;
+        if(e && p.reportsToAfter) e.reportsTo = p.reportsToAfter;
       } else if(l.typeKey==='report_change'){
         var e = wGetEmp(l.key); if(e) e.reportsTo = p.to;
       }
@@ -1744,12 +1787,10 @@
         var target = unassignedTargets[eid];
         if(!target){ toast(t('toastPickTransferTarget')); return; }
         var emp = employees.filter(function(e){ return e.eid===eid; })[0];
-        var targetNode = getNode(target);
         commitEmployeeTransfer(emp, target);
         delete unassignedTargets[eid];
         toast(t('toastTransferredName')(emp.name));
         renderTree(); renderLog(); renderEmployees(); renderUnassigned();
-        maybePromptReportChangeForTransfers([{emp:emp, toNode:targetNode}]);
       });
     });
   }
@@ -1771,7 +1812,6 @@
   function applyRoleGating(){
     document.getElementById('viewAdminBtn').style.display = isAdminRole() ? '' : 'none';
     document.getElementById('globalTransferBtn').style.display = canEdit() ? '' : 'none';
-    document.getElementById('addOrgBtn').style.display = canEdit() ? '' : 'none';
     var roleAllowsEdit = currentUserRole==='Editor' || currentUserRole==='Senior Admin' || currentUserRole==='Owner';
     var banner = document.getElementById('editWindowBanner');
     if(roleAllowsEdit && !isWithinEditWindow()){
@@ -2035,17 +2075,16 @@
       });
     });
   }
+  // Used to scroll-and-flash the node on the chart, but the highlight fades before you can find
+  // it in a big tree — opening straight to the department's roster tab shows the person directly
+  // instead of making you go hunt for a box that's already stopped glowing.
   function jumpToEmployeeNode(nodeId){
     switchView('chart');
     viewRootId = rootId;
     var n = getNode(nodeId);
     while(n && n.parentId){ collapsed.delete(n.parentId); n = getNode(n.parentId); }
     render();
-    var el = document.querySelector('.node[data-id="'+nodeId+'"]');
-    if(!el) return;
-    el.scrollIntoView({behavior:'smooth', block:'center', inline:'center'});
-    el.classList.add('search-hit');
-    setTimeout(function(){ el.classList.remove('search-hit'); }, 2400);
+    openPanel(nodeId, 'roster');
   }
 
   // ---------- download ----------
@@ -2361,34 +2400,19 @@
       });
     }
   }
-  document.getElementById('reportPromptApplyBtn').addEventListener('click', function(){
-    if(pendingReportPrompt && pendingReportPrompt.length){
-      pendingReportPrompt.forEach(function(p){ commitReportChange(p.emp, p.newSupervisor); });
-      toast(t('toastReportUpdated'));
-      renderLog();
-    }
-    document.getElementById('reportPromptOverlay').classList.remove('show');
-    pendingReportPrompt = null;
-  });
-  document.getElementById('reportPromptSkipBtn').addEventListener('click', function(){
-    document.getElementById('reportPromptOverlay').classList.remove('show');
-    pendingReportPrompt = null;
-  });
 
   document.getElementById('globalTransferBtn').addEventListener('click', openGlobalTransfer);
-  document.getElementById('addOrgBtn').addEventListener('click', function(){ if(nodes) openCreateChild(viewRootId); });
   document.getElementById('gmodalCancelBtn').addEventListener('click', closeGlobalTransfer);
   document.getElementById('gmodalOverlay').addEventListener('click', function(ev){ if(ev.target.id==='gmodalOverlay') closeGlobalTransfer(); });
   document.getElementById('gmodalEmpSearch').addEventListener('input', function(){ renderGModalOptions('emp', this.value); });
   document.getElementById('gmodalOrgSearch').addEventListener('input', function(){ renderGModalOptions('org', this.value); });
   document.getElementById('gmodalConfirmBtn').addEventListener('click', function(){
     if(!gmodalEmp || !gmodalOrg) return;
-    var emp = gmodalEmp, targetNode = gmodalOrg;
-    commitEmployeeTransfer(emp, targetNode.id);
-    toast(t('toastTransferredName')(emp.name));
+    var name = gmodalEmp.name;
+    commitEmployeeTransfer(gmodalEmp, gmodalOrg.id);
+    toast(t('toastTransferredName')(name));
     closeGlobalTransfer();
     render();
-    maybePromptReportChangeForTransfers([{emp:emp, toNode:targetNode}]);
   });
 
   // ---------- download org chart as PNG ----------

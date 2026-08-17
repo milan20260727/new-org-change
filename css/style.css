@@ -217,9 +217,6 @@
   .tag.ren{background:var(--accent-soft); color:var(--accent); border:1px solid var(--accent);}
   .tag.off{background:var(--del-bg); color:var(--del-text); border:1px solid var(--del-border);}
 
-  @keyframes search-hit-pulse{ 0%,100%{box-shadow:0 0 0 0 transparent;} 30%{box-shadow:0 0 0 5px var(--accent-soft);} }
-  .node.search-hit{animation:search-hit-pulse 1.1s ease-in-out 2; border-color:var(--accent) !important;}
-
   .node.st-new{background:var(--new-bg); border-color:var(--new-border);}
   .node.st-moved{background:var(--mov-bg); border-color:var(--mov-border);}
   .node.st-renamed{background:var(--accent-soft); border-color:var(--accent);}
@@ -253,8 +250,8 @@
   .edit-head{padding:16px 18px; border-bottom:1px solid var(--line); display:flex; align-items:flex-start; justify-content:space-between; gap:10px;}
   .edit-head h3{margin:0; font-size:15px; font-weight:700; text-wrap:balance; flex:1;}
   .edit-head .head-actions{display:flex; align-items:center; gap:6px; flex:none;}
-  .edit-head .add-btn{width:26px; height:26px; border-radius:7px; border:1px solid var(--line); background:var(--surface-2); color:var(--accent); font-size:16px; font-weight:800; cursor:pointer; line-height:1; display:flex; align-items:center; justify-content:center;}
-  .edit-head .add-btn:hover{border-color:var(--accent);}
+  .edit-head .add-btn{width:28px; height:28px; border-radius:7px; border:1px solid var(--accent); background:var(--accent); color:var(--accent-ink); font-size:17px; font-weight:800; cursor:pointer; line-height:1; display:flex; align-items:center; justify-content:center; box-shadow:var(--shadow);}
+  .edit-head .add-btn:hover{filter:brightness(1.06);}
   .edit-head .close-btn{background:none; border:none; font-size:18px; color:var(--ink-muted); cursor:pointer; line-height:1; padding:2px;}
   .edit-tabs{display:flex; border-bottom:1px solid var(--line);}
   .edit-tabs button{flex:1; padding:10px; background:none; border:none; font-size:12.5px; font-weight:700; color:var(--ink-muted); cursor:pointer; border-bottom:2px solid transparent;}
