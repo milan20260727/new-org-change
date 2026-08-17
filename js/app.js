@@ -87,7 +87,7 @@
 
       roleWarnHeader:'⚠ 下级部门角色需要核查：', roleOkBox:'✓ 该分支下的 HRBP / Department Assistant 设置一致。',
       roleDiffers:'下级部门取值不一致', roleBlank:'存在未设置（空值）',
-      cascadeBtn:'应用到所有下级部门（HRBP1/HRBP2/HRBP Lead/Dept. Assistant）',
+      cascadeBtn:'应用到所有下级部门',
       rosterEmptyNote:'该部门目前没有直属员工。', rosterTargetPlaceholder:'转移目标部门…',
       pickerSearchPh:'从 Lark User 中搜索姓名…', clearRoleOption:'清空该角色', noMatchResult:'无匹配结果', noMatchDept:'无匹配部门', noMatchEmp:'无匹配员工',
 
