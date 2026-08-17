@@ -88,6 +88,8 @@
       roleWarnHeader:'⚠ 下级部门角色需要核查：', roleOkBox:'✓ 该分支下的 HRBP / Department Assistant 设置一致。',
       roleDiffers:'下级部门取值不一致', roleBlank:'存在未设置（空值）',
       cascadeBtn:'应用到所有下级部门',
+      cascadeConfirmHint:'请选择要应用到下级部门的角色类型：',
+      cascadeFieldHrbpLabel:'HRBP（HRBP1/HRBP2/HRBP Lead）', cascadeFieldDaLabel:'部门助理（Department Assistant）',
       rosterEmptyNote:'该部门目前没有直属员工。', rosterTargetPlaceholder:'转移目标部门…',
       pickerSearchPh:'从 Lark User 中搜索姓名…', clearRoleOption:'清空该角色', noMatchResult:'无匹配结果', noMatchDept:'无匹配部门', noMatchEmp:'无匹配员工',
 
@@ -95,7 +97,7 @@
       toastDeleted:'已标记删除', toastNothingToSave:'没有可保存的变更', toastSaved:'已保存变更',
       toastNeedName:'请填写新部门名称', toastAdded:'已新增部门',
       toastNameDuplicate:'该名称已存在，请换一个', toastNameInvalidChars:'名称不能包含特殊符号（如 & - 等），只能使用文字、数字和空格',
-      toastPickBulkTarget:'请先选择批量目标部门', toastCascaded:'已应用到所有下级部门',
+      toastPickBulkTarget:'请先选择批量目标部门', toastCascaded:'已应用到所有下级部门', toastCascadeNoneSelected:'请至少选择一项角色类型',
       toastPickTransferTarget:'请先选择转移目标部门', toastTransferredN:function(n){ return '已转移 ' + n + ' 名员工'; },
       toastUndoDeleted:'已撤销删除', toastMovePending:'已选定目标，点击"保存"确认这次移动',
       toastReorderDone:'已调整排序（仅保存在本地浏览器）',
@@ -117,7 +119,7 @@
         delete: function(p){ return '「' + p.name + '」（原上级：' + p.parent + (p.empCount ? '，' + p.empCount + ' 名员工已安置新部门' : '') + '）'; },
         undo_delete: function(p){ return '「' + p.name + '」已恢复' + (p.restored ? '，' + p.restored + ' 名员工已迁回原部门' : ''); },
         role_change: function(p){ return '「' + p.name + '」' + p.roleLabel + '：' + (p.from || STR.zh.empty) + ' → ' + (p.to || STR.zh.empty); },
-        role_cascade: function(p){ return '将「' + p.name + '」的 HRBP1/HRBP2/Department Assistant 应用到 ' + p.count + ' 个下级部门'; },
+        role_cascade: function(p){ var fs = p.fields || CASCADE_FIELDS; return '将「' + p.name + '」的 ' + fs.map(function(f){ return t('role_'+f); }).join('/') + ' 应用到 ' + p.count + ' 个下级部门'; },
         report_change: function(p){ return p.name + '：直属主管 ' + (p.from || STR.zh.empty) + ' → ' + p.to; }
       },
       csvOrgChangeHeaders:['变更类型','角色变动','变更前的组织架构名','变更前PIC','变更前HRBP1','变更前HRBP2','变更前HRBP Lead','变更前Assistant','变更后的组织架构名','变更后PIC','变更后HRBP1','变更后HRBP2','变更后HRBP Lead','变更后Assistant','编辑时间'],
@@ -209,6 +211,8 @@
       roleWarnHeader:'⚠ Roles need review in sub-departments:', roleOkBox:'✓ HRBP / Department Assistant are consistent across this branch.',
       roleDiffers:'values differ among sub-departments', roleBlank:'not set somewhere (blank)',
       cascadeBtn:'Apply to all sub-departments',
+      cascadeConfirmHint:'Choose which role types to apply to sub-departments:',
+      cascadeFieldHrbpLabel:'HRBP (HRBP1/HRBP2/HRBP Lead)', cascadeFieldDaLabel:'Department Assistant',
       rosterEmptyNote:'No employees report directly to this department.', rosterTargetPlaceholder:'Transfer target department…',
       pickerSearchPh:'Search names from Lark User…', clearRoleOption:'Clear this role', noMatchResult:'No matches', noMatchDept:'No matching department', noMatchEmp:'No matching employee',
 
@@ -216,7 +220,7 @@
       toastDeleted:'Marked as deleted', toastNothingToSave:'No changes to save', toastSaved:'Changes saved',
       toastNeedName:'Please enter a department name', toastAdded:'Department added',
       toastNameDuplicate:'That name is already in use — pick another', toastNameInvalidChars:'Names can\'t contain special symbols (like & or -) — letters, numbers, and spaces only',
-      toastPickBulkTarget:'Choose a bulk target department first', toastCascaded:'Applied to all sub-departments',
+      toastPickBulkTarget:'Choose a bulk target department first', toastCascaded:'Applied to all sub-departments', toastCascadeNoneSelected:'Select at least one role type',
       toastPickTransferTarget:'Choose a transfer target department first', toastTransferredN:function(n){ return 'Transferred ' + n + ' employee(s)'; },
       toastUndoDeleted:'Deletion undone', toastMovePending:'Target selected — click "Save" to confirm the move',
       toastReorderDone:'Order updated (saved to this browser only)',
@@ -238,7 +242,7 @@
         delete: function(p){ return '"' + p.name + '" (previous parent: ' + p.parent + (p.empCount ? ', ' + p.empCount + ' employee(s) reassigned' : '') + ')'; },
         undo_delete: function(p){ return '"' + p.name + '" restored' + (p.restored ? ', ' + p.restored + ' employee(s) moved back' : ''); },
         role_change: function(p){ return '"' + p.name + '" ' + p.roleLabel + ': ' + (p.from || STR.en.empty) + ' → ' + (p.to || STR.en.empty); },
-        role_cascade: function(p){ return 'Applied "' + p.name + '"’s HRBP1/HRBP2/Department Assistant to ' + p.count + ' sub-department(s)'; },
+        role_cascade: function(p){ var fs = p.fields || CASCADE_FIELDS; return 'Applied "' + p.name + '"’s ' + fs.map(function(f){ return t('role_'+f); }).join('/') + ' to ' + p.count + ' sub-department(s)'; },
         report_change: function(p){ return p.name + ': direct manager ' + (p.from || STR.en.empty) + ' → ' + p.to; }
       },
       csvOrgChangeHeaders:['Change Type','Role Change','Org Unit Before','PIC Before','HRBP1 Before','HRBP2 Before','HRBP Lead Before','Assistant Before','Org Unit After','PIC After','HRBP1 After','HRBP2 After','HRBP Lead After','Assistant After','Edit Time'],
@@ -596,6 +600,7 @@
     if(l.by !== currentUserName) return false;
     if(l.typeKey==='rename' || l.typeKey==='move') return !!getNode(l.key);
     if(l.typeKey==='role_change'){ return !!getNode(l.key.split('#')[0]); }
+    if(l.typeKey==='role_cascade'){ return (l.params.beforeValues||[]).some(function(bv){ return !!getNode(bv.id); }); }
     if(l.typeKey==='add'){ var n=getNode(l.key); return !!n && n.flags.isNew && !n.flags.isDeleted; }
     if(l.typeKey==='delete'){ var n=getNode(l.key); return !!n && n.flags.isDeleted; }
     if(l.typeKey==='emp_transfer'){
@@ -626,6 +631,14 @@
     if(l.typeKey==='rename'){ var n=getNode(l.key); if(n) commitRename(n, n.origName); dropAndRetractIfStillPresent(l); }
     else if(l.typeKey==='move'){ var n=getNode(l.key); if(n) commitMove(n, n.movedFrom); dropAndRetractIfStillPresent(l); }
     else if(l.typeKey==='role_change'){ var parts=l.key.split('#'); var n=getNode(parts[0]); if(n) commitRoleChange(n, parts[1], n.origRoles[parts[1]]); dropAndRetractIfStillPresent(l); }
+    else if(l.typeKey==='role_cascade'){
+      var cascFields = l.params.fields || CASCADE_FIELDS;
+      (l.params.beforeValues||[]).forEach(function(bv){
+        var d = getNode(bv.id);
+        if(d) cascFields.forEach(function(field){ d[field] = bv[field]; });
+      });
+      dropAndRetract(l);
+    }
     else if(l.typeKey==='add'){
       var n=getNode(l.key);
       if(n){
@@ -819,26 +832,34 @@
     }
   }
   var CASCADE_FIELDS = ['hrbp1', 'hrbp2', 'hrbpLead', 'da'];
-  function commitCascade(n){
+  // fields: subset of CASCADE_FIELDS to actually cascade — HRBP1/HRBP2/HRBP Lead and Department
+  // Assistant are distinct roles, so the caller lets the user pick which group(s) to apply rather
+  // than always overwriting all four together.
+  function commitCascade(n, fields){
     var desc = getDescendants(n.id);
-    if(!desc.length) return;
+    if(!desc.length || !fields || !fields.length) return;
     // beforeValues captures each descendant's value right before this cascade overwrote it —
     // undo restores exactly that (not session-original), so an earlier legitimate edit that
     // predates this cascade isn't silently wiped out along with it.
     var beforeValues = desc.map(function(d){
       if(!d.origRoles) d.origRoles = {pic:d.pic, hrbp1:d.hrbp1, hrbp2:d.hrbp2, hrbpLead:d.hrbpLead, da:d.da};
-      return {id:d.id, hrbp1:d.hrbp1, hrbp2:d.hrbp2, hrbpLead:d.hrbpLead, da:d.da};
+      var bv = {id:d.id};
+      fields.forEach(function(field){ bv[field] = d[field]; });
+      return bv;
     });
     // Snapshot what's actually being applied, separate from beforeValues — a CSV/report built
     // later must show what THIS cascade did, not diff against whatever the descendant's fields
     // happen to hold by then (a later individual edit would otherwise get misattributed here).
-    var appliedValues = {hrbp1:n.hrbp1, hrbp2:n.hrbp2, hrbpLead:n.hrbpLead, da:n.da};
+    var appliedValues = {};
+    fields.forEach(function(field){ appliedValues[field] = n[field]; });
     desc.forEach(function(d){
-      d.hrbp1 = n.hrbp1; d.hrbp2 = n.hrbp2; d.hrbpLead = n.hrbpLead; d.da = n.da;
-      // the batch summary line below supersedes any individual role_change entries for these fields
-      CASCADE_FIELDS.forEach(function(field){ removeLog('role_change', d.id+'#'+field); });
+      fields.forEach(function(field){
+        d[field] = n[field];
+        // the batch summary line below supersedes any individual role_change entries for this field
+        removeLog('role_change', d.id+'#'+field);
+      });
     });
-    addLog('role_cascade', {name:n.name, count:desc.length, beforeValues:beforeValues, appliedValues:appliedValues});
+    addLog('role_cascade', {name:n.name, count:desc.length, fields:fields, beforeValues:beforeValues, appliedValues:appliedValues});
   }
 
   // BIPO ("LAST, First Middle") and Lark/PIC ("First Last") name formats differ — the same
@@ -1112,9 +1133,19 @@
     document.getElementById('cancelEditBtn').addEventListener('click', closePanel);
     var cascadeBtn = document.getElementById('cascadeBtn');
     if(cascadeBtn) cascadeBtn.addEventListener('click', function(){
-      commitCascade(n);
-      toast(t('toastCascaded'));
-      renderTree(); renderLog(); renderEmployees(); renderPanel();
+      var extraHtml = '<div style="display:flex; flex-direction:column; gap:10px;">'+
+        '<label style="display:flex; align-items:center; gap:8px; font-size:13px;"><input type="checkbox" id="cascadeFieldHrbp" checked> '+escapeHtml(t('cascadeFieldHrbpLabel'))+'</label>'+
+        '<label style="display:flex; align-items:center; gap:8px; font-size:13px;"><input type="checkbox" id="cascadeFieldDa" checked> '+escapeHtml(t('cascadeFieldDaLabel'))+'</label>'+
+        '</div>';
+      showConfirm(t('cascadeBtn'), t('cascadeConfirmHint'), t('cascadeBtn'), function(){
+        var fields = [];
+        if(document.getElementById('cascadeFieldHrbp').checked) fields = fields.concat(['hrbp1','hrbp2','hrbpLead']);
+        if(document.getElementById('cascadeFieldDa').checked) fields.push('da');
+        if(!fields.length){ toast(t('toastCascadeNoneSelected')); return; }
+        commitCascade(n, fields);
+        toast(t('toastCascaded'));
+        renderTree(); renderLog(); renderEmployees(); renderPanel();
+      }, extraHtml);
     });
   }
 
@@ -1734,9 +1765,10 @@
         if(n && parts[1]) n[parts[1]] = p.to;
       } else if(l.typeKey==='role_cascade'){
         var applied = p.appliedValues || {};
+        var cascFields = p.fields || CASCADE_FIELDS;
         (p.beforeValues||[]).forEach(function(bv){
           var n = wGetNode(bv.id);
-          if(n){ n.hrbp1=applied.hrbp1; n.hrbp2=applied.hrbp2; n.hrbpLead=applied.hrbpLead; n.da=applied.da; }
+          if(n){ cascFields.forEach(function(field){ n[field] = applied[field]; }); }
         });
       } else if(l.typeKey==='emp_transfer'){
         var e = wGetEmp(p.eid); if(e && p.toId) e.nodeId = p.toId;
@@ -2600,11 +2632,14 @@
 
   // ---------- generic confirm modal (used by "refresh", which can now discard real local edits) ----------
   var pendingConfirm = null;
-  function showConfirm(title, message, okLabel, onConfirm){
+  function showConfirm(title, message, okLabel, onConfirm, extraHtml){
     pendingConfirm = onConfirm;
     document.getElementById('confirmTitle').textContent = title;
     document.getElementById('confirmText').textContent = message;
     document.getElementById('confirmOkBtn').textContent = okLabel;
+    var extra = document.getElementById('confirmExtra');
+    extra.innerHTML = extraHtml || '';
+    extra.style.display = extraHtml ? 'block' : 'none';
     document.getElementById('confirmOverlay').classList.add('show');
   }
   document.getElementById('confirmOkBtn').addEventListener('click', function(){
