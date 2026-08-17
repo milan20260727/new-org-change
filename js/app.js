@@ -613,10 +613,19 @@
     log = log.filter(function(x){ return x!==l; });
     remoteLog = remoteLog.filter(function(x){ return x!==l; });
   }
+  // rename/move/role_change's commit fns already retract+drop `l` themselves via their own
+  // removeLog call, but only when `l` was still a local `log` entry at the time — if it's
+  // remoteLog-sourced (survived a refresh/reload), that internal call finds nothing local to
+  // touch, and this is the only thing that will actually retract+drop it. Checking whether `l`
+  // is still sitting in either array after the commit call tells us which case just happened,
+  // so a already-handled entry doesn't get a second, redundant retraction pushed for it.
+  function dropAndRetractIfStillPresent(l){
+    if(log.indexOf(l)>=0 || remoteLog.indexOf(l)>=0) dropAndRetract(l);
+  }
   function undoLogEntry(l){
-    if(l.typeKey==='rename'){ var n=getNode(l.key); if(n) commitRename(n, n.origName); dropAndRetract(l); }
-    else if(l.typeKey==='move'){ var n=getNode(l.key); if(n) commitMove(n, n.movedFrom); dropAndRetract(l); }
-    else if(l.typeKey==='role_change'){ var parts=l.key.split('#'); var n=getNode(parts[0]); if(n) commitRoleChange(n, parts[1], n.origRoles[parts[1]]); dropAndRetract(l); }
+    if(l.typeKey==='rename'){ var n=getNode(l.key); if(n) commitRename(n, n.origName); dropAndRetractIfStillPresent(l); }
+    else if(l.typeKey==='move'){ var n=getNode(l.key); if(n) commitMove(n, n.movedFrom); dropAndRetractIfStillPresent(l); }
+    else if(l.typeKey==='role_change'){ var parts=l.key.split('#'); var n=getNode(parts[0]); if(n) commitRoleChange(n, parts[1], n.origRoles[parts[1]]); dropAndRetractIfStillPresent(l); }
     else if(l.typeKey==='add'){
       var n=getNode(l.key);
       if(n){
