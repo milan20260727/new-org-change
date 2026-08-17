@@ -1609,7 +1609,7 @@
   }
 
   // ---------- SVG connector lines (drawn from actual rendered box positions) ----------
-  function drawConnectors(){
+  function drawConnectorsNow(){
     var svg = document.getElementById('treeConnectors');
     var result = computeConnectorSegments();
     svg.setAttribute('width', result.width);
@@ -1619,6 +1619,16 @@
       return '<path d="'+roundedPathD(seg.points, CONNECTOR_RADIUS)+'"/>';
     });
     svg.innerHTML = paths.join('');
+  }
+  // Occasionally the connectors go visually blank right after an action like undo, reappearing
+  // only once something else forces a fuller redraw (e.g. toggling orientation) — but inspecting
+  // the SVG in that exact state shows the <path> elements already have the correct geometry, so
+  // this isn't a computation bug: the browser just hasn't repainted the overlay yet on that same
+  // tick. A second pass one frame later is the standard, low-cost nudge for that class of "DOM
+  // already right, paint stale" quirk; it's a no-op in the common case since nothing changes.
+  function drawConnectors(){
+    drawConnectorsNow();
+    requestAnimationFrame(drawConnectorsNow);
   }
 
   // The compact panel (inside the chart view) and the full-page "变更记录" tab show the exact
