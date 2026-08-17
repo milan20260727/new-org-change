@@ -511,12 +511,16 @@
   // upsertLog update pushes a new remote row rather than editing a prior one, so the shared feed
   // is an honest full history (including things later reverted), while the local `log` array
   // stays the "current plan" view CSV export reads from.
+  // Returns the in-flight push's promise (stashed on the entry too) so a fast undo — right after
+  // making the edit, before the round trip resolves — can wait for the recordId instead of racing
+  // past it and silently skipping the retraction below.
   function pushRemoteChangeLog(entry){
-    fetch('/api/changelog', {method:'POST', credentials:'same-origin', headers:{'Content-Type':'application/json'},
+    entry.pushPromise = fetch('/api/changelog', {method:'POST', credentials:'same-origin', headers:{'Content-Type':'application/json'},
       body:JSON.stringify({typeKey:entry.typeKey, key:entry.key, params:entry.params, by:entry.by, time:entry.time})})
       .then(function(res){ return res.ok ? res.json() : null; })
-      .then(function(data){ if(data && data.recordId) entry.recordId = data.recordId; })
-      .catch(function(){});
+      .then(function(data){ if(data && data.recordId) entry.recordId = data.recordId; return entry.recordId; })
+      .catch(function(){ return null; });
+    return entry.pushPromise;
   }
   // Because the shared feed is append-only (see above), simply removing a local entry after an
   // undo doesn't erase the row already pushed for it — a later "刷新编辑" or reload would replay
@@ -524,14 +528,18 @@
   // entry too ({typeKey:'undo', key:<the retracted row's recordId>}); mergedLogForDisplay strips
   // both the retraction markers and whatever recordId they name before anything else consumes
   // the merged list, so every replay/CSV/on-screen view agrees the undone entry never happened.
-  // Silent no-op if the entry hasn't finished its own initial push yet (recordId not assigned) —
-  // a narrow race that would need a queue to close completely; undoing within that same instant
-  // is rare enough not to warrant the extra complexity.
   function pushRetraction(recordId){
     if(!recordId) return;
     fetch('/api/changelog', {method:'POST', credentials:'same-origin', headers:{'Content-Type':'application/json'},
       body:JSON.stringify({typeKey:'undo', key:recordId, params:{}, by:currentUserName, time:Date.now()})})
       .catch(function(){});
+  }
+  // Retracts a specific entry regardless of timing: if its own push already resolved (the normal
+  // case), recordId is ready immediately; if undo was clicked within that same instant, this waits
+  // on the entry's own pushPromise first so the retraction never gets silently dropped.
+  function retractEntry(entry){
+    var wait = entry.pushPromise || Promise.resolve(entry.recordId);
+    wait.then(function(){ pushRetraction(entry.recordId); });
   }
   // Pulls other sessions' actions from the shared table — deliberately independent of init()'s
   // org-source refetch (the "刷新数据" admin button), per request: refreshing edits shouldn't
@@ -558,23 +566,27 @@
     else { var entry = {seq:logSeq++, typeKey:typeKey, params:params, key:key, by:currentUserName, time:Date.now()}; log.push(entry); pushRemoteChangeLog(entry); }
   }
   function removeLog(typeKey, key){
-    log.filter(function(l){ return l.typeKey===typeKey && l.key===key; }).forEach(function(l){ pushRetraction(l.recordId); });
+    log.filter(function(l){ return l.typeKey===typeKey && l.key===key; }).forEach(retractEntry);
     log = log.filter(function(l){ return !(l.typeKey===typeKey && l.key===key); });
   }
   function removeAllLogsForNode(nodeId){
     log = log.filter(function(l){ return l.key!==nodeId && (typeof l.key!=='string' || l.key.indexOf(nodeId+'#')!==0); });
   }
   // ---------- change-log undo ----------
-  // Scoped to `log` (this session's own not-yet-superseded plan) only — remoteLog entries (pulled
-  // via "刷新编辑") are other people's already-committed work and never get an Undo button, so
-  // there's no way to revert someone else's action from here.
+  // Scoped to entries authored by the current user — checking `by` (not "still sitting in local
+  // `log`") so the Undo button survives "刷新编辑"/a page reload for your own actions. Everything
+  // you do gets pushed to the shared table immediately either way (see pushRemoteChangeLog), so
+  // "mine" and "already in the shared history" aren't mutually exclusive — remoteLog entries from
+  // someone else's `by` still never get a button, which is the actual thing being guarded here.
   // rename/move/role_change are upsert-logged as session-original -> current, so reverting to the
-  // original value makes the commit fns remove their own log line (see upsertLog callers). add/
-  // delete already have dedicated undo paths (commitDelete/commitRestoreDelete). emp_transfer has
-  // no self-cleaning story since every transfer is its own entry, so its undo manually drops the
-  // entry after reversing it.
+  // original value makes the commit fns remove their own log line (see upsertLog callers) when
+  // that entry is still local — but it may now live only in remoteLog (post-refresh), so undo also
+  // explicitly retracts+drops the exact entry clicked, regardless of which array holds it. add/
+  // delete already have dedicated undo paths (commitDelete/commitRestoreDelete) that compose
+  // correctly via replay without needing that explicit step. emp_transfer has no self-cleaning
+  // story since every transfer is its own entry, so its undo always needs the explicit drop.
   function canUndoLogEntry(l){
-    if(log.indexOf(l) < 0) return false;
+    if(l.by !== currentUserName) return false;
     if(l.typeKey==='rename' || l.typeKey==='move') return !!getNode(l.key);
     if(l.typeKey==='role_change'){ return !!getNode(l.key.split('#')[0]); }
     if(l.typeKey==='add'){ var n=getNode(l.key); return !!n && n.flags.isNew && !n.flags.isDeleted; }
@@ -585,10 +597,19 @@
     }
     return false;
   }
+  // Drops the exact clicked entry from wherever it currently lives (local `log` if made this
+  // session and not yet refreshed away, `remoteLog` if pulled back via "刷新编辑") and retracts it
+  // for every future replay. Safe to call even when a type's own commit fn already retracted a
+  // local copy via removeLog — retracting the same recordId twice is a harmless no-op remotely.
+  function dropAndRetract(l){
+    retractEntry(l);
+    log = log.filter(function(x){ return x!==l; });
+    remoteLog = remoteLog.filter(function(x){ return x!==l; });
+  }
   function undoLogEntry(l){
-    if(l.typeKey==='rename'){ var n=getNode(l.key); if(n) commitRename(n, n.origName); }
-    else if(l.typeKey==='move'){ var n=getNode(l.key); if(n) commitMove(n, n.movedFrom); }
-    else if(l.typeKey==='role_change'){ var parts=l.key.split('#'); var n=getNode(parts[0]); if(n) commitRoleChange(n, parts[1], n.origRoles[parts[1]]); }
+    if(l.typeKey==='rename'){ var n=getNode(l.key); if(n) commitRename(n, n.origName); dropAndRetract(l); }
+    else if(l.typeKey==='move'){ var n=getNode(l.key); if(n) commitMove(n, n.movedFrom); dropAndRetract(l); }
+    else if(l.typeKey==='role_change'){ var parts=l.key.split('#'); var n=getNode(parts[0]); if(n) commitRoleChange(n, parts[1], n.origRoles[parts[1]]); dropAndRetract(l); }
     else if(l.typeKey==='add'){
       var n=getNode(l.key);
       if(n){
@@ -602,10 +623,9 @@
       if(e && l.params.fromId){
         // silent — moving back re-syncs reports-to fresh against the original department's
         // current PIC (self-correcting, same as a net-zero department move), and this entry
-        // gets dropped below rather than growing into its own "moved back" record.
+        // gets dropped rather than growing into its own "moved back" record.
         commitEmployeeTransfer(e, l.params.fromId, true);
-        pushRetraction(l.recordId);
-        log = log.filter(function(x){ return x.seq!==l.seq; });
+        dropAndRetract(l);
       }
     }
   }
