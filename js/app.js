@@ -1750,13 +1750,11 @@
   function renderLog(){
     var merged = mergedLogForDisplay();
     var countText = merged.length + (t('unitRecords') ? ' ' + t('unitRecords') : '');
-    document.getElementById('logCount').textContent = countText;
     document.getElementById('changelogCount').textContent = countText;
     document.getElementById('viewChangelogCount').textContent = merged.length;
     // mergedLogForDisplay() stays chronological (oldest first) for replayAll() elsewhere — only
     // the on-screen table shows newest first, which is what people actually want to scan.
     var newestFirst = merged.slice().reverse();
-    renderLogInto('logBody', newestFirst);
     renderLogInto('changelogBody', newestFirst);
   }
 
@@ -1779,8 +1777,6 @@
     }).filter(Boolean);
   }
 
-  // Same combined list rendered into both the chart view's compact panel and the full-page
-  // "变更记录" tab's side-by-side panel, mirroring how renderLogInto covers both change-log spots.
   function renderEmployeesInto(bodyId, impacted){
     var body = document.getElementById(bodyId);
     if(!impacted.length){ body.innerHTML = '<tr><td colspan="4" class="empty-note">'+escapeHtml(t('empEmptyNote'))+'</td></tr>'; return; }
@@ -1798,9 +1794,7 @@
   function renderEmployees(){
     var impacted = computeImpacted();
     var countText = impacted.length + (t('unitPeople') ? ' ' + t('unitPeople') : '');
-    document.getElementById('empCount').textContent = countText;
     document.getElementById('changelogEmpCount').textContent = countText;
-    renderEmployeesInto('empBody', impacted);
     renderEmployeesInto('changelogEmpBody', impacted);
   }
 
@@ -2335,19 +2329,9 @@
 
   // The "archive changes to Base" admin button replaced these as the supported way to get
   // changes into Base — CSV download (still below) remains for anyone who wants a local copy.
-  document.getElementById('downloadLogBtn').addEventListener('click', function(){
-    getCombinedReplayState().then(function(s){
-      downloadCsv(dateStampedFilename(ct('csvOrgChangeFilename')), buildCombinedOrgChangeRows(pristineNodes, s.finalNodes, s.entries));
-    }).catch(function(err){ toast(err.message); });
-  });
   document.getElementById('downloadChangelogBtn').addEventListener('click', function(){
     getCombinedReplayState().then(function(s){
       downloadCsv(dateStampedFilename(ct('csvOrgChangeFilename')), buildCombinedOrgChangeRows(pristineNodes, s.finalNodes, s.entries));
-    }).catch(function(err){ toast(err.message); });
-  });
-  document.getElementById('downloadEmpBtn').addEventListener('click', function(){
-    getCombinedReplayState().then(function(s){
-      downloadCsv(dateStampedFilename(ct('csvPersonnelFilename')), buildCombinedPersonnelRows(pristineNodes, pristineEmployees, s.finalNodes, s.finalEmployees, s.entries));
     }).catch(function(err){ toast(err.message); });
   });
   document.getElementById('downloadChangelogEmpBtn').addEventListener('click', function(){
