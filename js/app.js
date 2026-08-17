@@ -2130,15 +2130,17 @@
       });
     });
   }
-  // Used to scroll-and-flash the node on the chart, but the highlight fades before you can find
-  // it in a big tree — opening straight to the department's roster tab shows the person directly
-  // instead of making you go hunt for a box that's already stopped glowing.
   function jumpToEmployeeNode(nodeId){
     switchView('chart');
     viewRootId = rootId;
     var n = getNode(nodeId);
     while(n && n.parentId){ collapsed.delete(n.parentId); n = getNode(n.parentId); }
     render();
+    var box = null;
+    document.getElementById('treeRoot').querySelectorAll('.node').forEach(function(el){
+      if(el.getAttribute('data-id')===nodeId) box = el;
+    });
+    if(box) box.scrollIntoView({behavior:'smooth', block:'center', inline:'center'});
     openPanel(nodeId, 'roster');
   }
 
