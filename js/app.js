@@ -570,7 +570,14 @@
     log = log.filter(function(l){ return !(l.typeKey===typeKey && l.key===key); });
   }
   function removeAllLogsForNode(nodeId){
-    log = log.filter(function(l){ return l.key!==nodeId && (typeof l.key!=='string' || l.key.indexOf(nodeId+'#')!==0); });
+    function matches(l){ return l.key===nodeId || (typeof l.key==='string' && l.key.indexOf(nodeId+'#')===0); }
+    // Also check remoteLog, not just local `log` — a brand-new node's "add" (and any of its own
+    // role_change entries) can be sourced from there once it's survived a "刷新编辑" or a plain
+    // page reload; retracting only the local copy left a ghost row nothing ever cleared.
+    log.filter(matches).forEach(retractEntry);
+    remoteLog.filter(matches).forEach(retractEntry);
+    log = log.filter(function(l){ return !matches(l); });
+    remoteLog = remoteLog.filter(function(l){ return !matches(l); });
   }
   // ---------- change-log undo ----------
   // Scoped to entries authored by the current user — checking `by` (not "still sitting in local
@@ -1600,13 +1607,17 @@
     if(!entries.length){ body.innerHTML = '<tr><td colspan="6" class="empty-note">'+escapeHtml(t('logEmptyNote'))+'</td></tr>'; return; }
     body.innerHTML = entries.map(function(l, i){
       var timeText = l.time ? formatSnapshotTime(new Date(l.time)) : '';
-      var action = canUndoLogEntry(l) ? '<button class="btn ghost" type="button" data-undo-seq="'+l.seq+'">'+escapeHtml(t('undoLogBtn'))+'</button>' : '';
+      var action = canUndoLogEntry(l) ? '<button class="btn ghost" type="button" data-undo-idx="'+i+'">'+escapeHtml(t('undoLogBtn'))+'</button>' : '';
       return '<tr><td class="mono">'+(i+1)+'</td><td>'+escapeHtml(formatLogType(l))+'</td><td>'+escapeHtml(formatLogDetail(l))+'</td><td>'+escapeHtml(l.by||'')+'</td><td class="mono">'+escapeHtml(timeText)+'</td><td>'+action+'</td></tr>';
     }).join('');
-    body.querySelectorAll('[data-undo-seq]').forEach(function(btn){
+    // Close over the actual entry via its render-time index instead of re-looking it up by
+    // `seq` in `log` — remoteLog entries (pulled via "刷新编辑", or any entry surviving a plain
+    // page reload, since init() always rebuilds `log` from the merged history) have no `seq` at
+    // all, so a seq-based re-lookup silently found nothing and the button did nothing.
+    body.querySelectorAll('[data-undo-idx]').forEach(function(btn){
+      var idx = Number(btn.getAttribute('data-undo-idx'));
       btn.addEventListener('click', function(){
-        var seq = Number(btn.getAttribute('data-undo-seq'));
-        var entry = log.filter(function(l){ return l.seq===seq; })[0];
+        var entry = entries[idx];
         if(!entry) return;
         undoLogEntry(entry);
         renderTree(); renderLog(); renderEmployees(); renderUnassigned(); renderPanel();
