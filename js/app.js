@@ -1528,6 +1528,20 @@
 
   function computeConnectorSegments(){
     var wrap = document.getElementById('treeWrap');
+    // Chromium's non-standard `zoom` CSS property (applied to #treeRoot for the zoom control,
+    // always present even at 100%) has a known history of not invalidating cached layout after
+    // certain DOM mutations. Confirmed against the actual reported symptom: connector lines go
+    // blank right after an undo, but come back the instant ANYTHING forces a real layout
+    // recalculation — switching orientation, clicking zoom in/out (applyZoom() re-assigns this
+    // same zoom property), or even just opening DevTools (which narrows the viewport and fires a
+    // genuine resize). Re-assigning the zoom style — even back to its own current value — is
+    // exactly what those fixes have in common, so doing it here forces Chromium to redo the
+    // zoom-scaled layout pass immediately, before the getBoundingClientRect() reads below.
+    var treeRootEl = document.getElementById('treeRoot');
+    var zoomStyle = treeRootEl.style.zoom;
+    treeRootEl.style.zoom = '';
+    void treeRootEl.offsetHeight; // force the reflow between clearing and restoring zoom
+    treeRootEl.style.zoom = zoomStyle;
     var wrapRect = wrap.getBoundingClientRect();
 
     function centerOf(el, side){
@@ -1609,7 +1623,7 @@
   }
 
   // ---------- SVG connector lines (drawn from actual rendered box positions) ----------
-  function drawConnectorsNow(){
+  function drawConnectors(){
     var svg = document.getElementById('treeConnectors');
     var result = computeConnectorSegments();
     svg.setAttribute('width', result.width);
@@ -1619,16 +1633,6 @@
       return '<path d="'+roundedPathD(seg.points, CONNECTOR_RADIUS)+'"/>';
     });
     svg.innerHTML = paths.join('');
-  }
-  // Occasionally the connectors go visually blank right after an action like undo, reappearing
-  // only once something else forces a fuller redraw (e.g. toggling orientation) — but inspecting
-  // the SVG in that exact state shows the <path> elements already have the correct geometry, so
-  // this isn't a computation bug: the browser just hasn't repainted the overlay yet on that same
-  // tick. A second pass one frame later is the standard, low-cost nudge for that class of "DOM
-  // already right, paint stale" quirk; it's a no-op in the common case since nothing changes.
-  function drawConnectors(){
-    drawConnectorsNow();
-    requestAnimationFrame(drawConnectorsNow);
   }
 
   // The compact panel (inside the chart view) and the full-page "变更记录" tab show the exact
