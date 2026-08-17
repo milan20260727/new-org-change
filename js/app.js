@@ -882,6 +882,7 @@
     if(!check.ok){ toastNameError(check.reason); return; }
     var newNode = commitAddChild(parent, createDraft);
     if(!newNode){ toast(t('toastNeedName')); return; }
+    collapsed.delete(parent.id); // reveal the new child immediately, even if this parent was collapsed
     toast(t('toastAdded')); closePanel(); render();
   }
 
