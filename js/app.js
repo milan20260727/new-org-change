@@ -905,7 +905,11 @@
       if(!renameRes.ok && renameRes.reason!=='nochange'){ toastNameError(renameRes.reason); return; }
       did = renameRes.ok || did;
     }
-    if(pendingEdit.move.on){ moved = commitMove(n, pendingEdit.move.target); did = moved || did; }
+    if(pendingEdit.move.on){
+      moved = commitMove(n, pendingEdit.move.target);
+      if(moved) collapsed.delete(pendingEdit.move.target); // reveal the moved department under its new parent
+      did = moved || did;
+    }
     if(!did){ toast(t('toastNothingToSave')); return; }
     closePanel(); render();
     toast(t('toastSaved'));
