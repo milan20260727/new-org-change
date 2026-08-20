@@ -504,10 +504,11 @@
     }
     return {hrbp1:check('hrbp1'), hrbp2:check('hrbp2'), hrbpLead:check('hrbpLead'), da:check('da')};
   }
-  // Root is depth 0; its direct children (level 1) and grandchildren (level 2) sit under such
-  // large headcounts that an HRBP/Department Assistant value differing somewhere among their many
-  // descendants is normal, not a real problem — only a genuinely missing PIC on the unit itself
-  // is worth flagging that high up. Deeper levels keep the full branch-wide consistency check.
+  // Level 1 = root (DigiPlus) itself; level 2 = root's direct children (Central, Operations,
+  // the BUs, etc). Both sit over such large headcounts that an HRBP/Department Assistant value
+  // differing somewhere among their many descendants is normal, not a real problem — only a
+  // genuinely missing PIC on the unit itself is worth flagging that high up. Deeper levels keep
+  // the full branch-wide consistency check.
   function nodeDepth(id){
     var d = 0, n = getNode(id);
     while(n && n.parentId){ d += 1; n = getNode(n.parentId); }
@@ -515,7 +516,7 @@
   }
   function isTopLevelForRoleWarning(id){
     var d = nodeDepth(id);
-    return d>=1 && d<=2;
+    return d>=0 && d<=1;
   }
   function hasAnyRoleWarning(id){
     if(getChildren(id).length===0) return false;
