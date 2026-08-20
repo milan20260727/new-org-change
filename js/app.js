@@ -504,8 +504,22 @@
     }
     return {hrbp1:check('hrbp1'), hrbp2:check('hrbp2'), hrbpLead:check('hrbpLead'), da:check('da')};
   }
+  // Root is depth 0; its direct children (level 1) and grandchildren (level 2) sit under such
+  // large headcounts that an HRBP/Department Assistant value differing somewhere among their many
+  // descendants is normal, not a real problem — only a genuinely missing PIC on the unit itself
+  // is worth flagging that high up. Deeper levels keep the full branch-wide consistency check.
+  function nodeDepth(id){
+    var d = 0, n = getNode(id);
+    while(n && n.parentId){ d += 1; n = getNode(n.parentId); }
+    return d;
+  }
+  function isTopLevelForRoleWarning(id){
+    var d = nodeDepth(id);
+    return d>=1 && d<=2;
+  }
   function hasAnyRoleWarning(id){
     if(getChildren(id).length===0) return false;
+    if(isTopLevelForRoleWarning(id)) return !getNode(id).pic;
     var r = roleInconsistency(id);
     return r.hrbp1.bad || r.hrbp2.bad || r.hrbpLead.bad || r.da.bad;
   }
@@ -1101,14 +1115,18 @@
   }
 
   function renderRoleTab(n, body, foot){
-    var inc = roleInconsistency(n.id);
     var warnParts = [];
-    ['hrbp1','hrbp2','hrbpLead','da'].forEach(function(f){
-      if(inc[f].bad){
-        var reason = inc[f].differs ? t('roleDiffers') : t('roleBlank');
-        warnParts.push('<b>'+escapeHtml(roleLabelFor(f))+'</b>：'+escapeHtml(reason));
-      }
-    });
+    if(isTopLevelForRoleWarning(n.id)){
+      if(!n.pic) warnParts.push('<b>'+escapeHtml(roleLabelFor('pic'))+'</b>：'+escapeHtml(t('roleBlank')));
+    } else {
+      var inc = roleInconsistency(n.id);
+      ['hrbp1','hrbp2','hrbpLead','da'].forEach(function(f){
+        if(inc[f].bad){
+          var reason = inc[f].differs ? t('roleDiffers') : t('roleBlank');
+          warnParts.push('<b>'+escapeHtml(roleLabelFor(f))+'</b>：'+escapeHtml(reason));
+        }
+      });
+    }
     var hasChildren = getChildren(n.id).length>0;
 
     var html = '';
