@@ -1303,8 +1303,13 @@
         if(onDoc){ document.removeEventListener('click', onDoc); onDoc = null; }
       }
       function paint(q){
-        var list = candidates.filter(function(x){ return pathLabel(x.id).toLowerCase().indexOf((q||'').toLowerCase())>=0; });
-        sortByRelevance(list, q, function(x){ return pathLabel(x.id); });
+        // Match against the department's own name only — matching the full breadcrumb path used
+        // to pull in every descendant of any ancestor whose name happened to contain the query
+        // (e.g. searching "Human Resources" surfaced every team under HR, not just HR itself),
+        // which buries the department actually being searched for under its own unrelated kids.
+        // The breadcrumb is still shown in the option text so same-named units stay distinguishable.
+        var list = candidates.filter(function(x){ return x.name.toLowerCase().indexOf((q||'').toLowerCase())>=0; });
+        sortByRelevance(list, q, function(x){ return x.name; });
         list = list.slice(0, SEARCH_RESULT_CAP);
         opts.innerHTML = list.length ? list.map(function(x){ return '<button type="button" data-id="'+x.id+'">'+escapeHtml(pathLabel(x.id))+'</button>'; }).join('')
           : '<button type="button" disabled style="color:var(--ink-muted);">'+escapeHtml(t('noMatchDept'))+'</button>';
