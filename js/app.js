@@ -743,8 +743,15 @@
   // right here and the before/after travels along in the move entry's params.
   function syncPicReportsTo(n){
     if(!n.pic) return null;
-    var picEmp = employees.filter(function(e){ return matchesPersonName(e.name, n.pic); })[0];
-    if(!picEmp) return null;
+    var matches = employees.filter(function(e){ return matchesPersonName(e.name, n.pic); });
+    // A bare first name (e.g. a PIC value of just "Janice") can genuinely match more than one
+    // employee — picking the first match arbitrarily risks silently overwriting the WRONG
+    // person's official reports-to record. Confirmed: PIC "Janice" for Human Resources matched
+    // both the actual HR person and an unrelated Customer Service employee who also happens to
+    // be named Janice; the sync updated the wrong one. Skipping is the safe fallback — leaving
+    // reports-to unsynced this time is far less damaging than corrupting a random employee's record.
+    if(matches.length!==1) return null;
+    var picEmp = matches[0];
     var parent = getNode(n.parentId);
     var newSupervisor = parent ? parent.pic : '';
     if(!newSupervisor || newSupervisor===(picEmp.reportsTo||'') || newSupervisor===n.pic) return null;
@@ -895,11 +902,22 @@
   }
 
   // BIPO ("LAST, First Middle") and Lark/PIC ("First Last") name formats differ — the same
-  // mismatch we saw in the department-name audit — so match loosely on name tokens.
+  // mismatch we saw in the department-name audit — so match loosely on name tokens. PIC values
+  // also commonly abbreviate the surname to its initial ("Elva H", "Seven C"), so a single-letter
+  // token matches as a prefix against one of the employee's own tokens.
+  // Confirmed bug: the old raw substring check (empLower.indexOf(p)>=0) matched a short PIC token
+  // against ANY name containing it anywhere, including buried inside an unrelated surname — e.g.
+  // PIC "Una" substring-matched "LIBUNAO, RONFRED HUEY R." (the "una" inside "LIBUNAO"), silently
+  // syncing that unrelated employee's reports-to instead of skipping. Requiring a whole-token
+  // match (or, for a single-letter token, a token *prefix* match) closes that hole while still
+  // handling both the LAST-vs-first reordering and the surname-initial abbreviation this was
+  // written for.
   function matchesPersonName(empName, picName){
-    var picParts = picName.toLowerCase().split(/\s+/).filter(Boolean);
-    var empLower = empName.toLowerCase();
-    return picParts.length>0 && picParts.every(function(p){ return empLower.indexOf(p)>=0; });
+    var picParts = picName.toLowerCase().split(/[^\p{L}]+/u).filter(Boolean);
+    var empParts = empName.toLowerCase().split(/[^\p{L}]+/u).filter(Boolean);
+    return picParts.length>0 && picParts.every(function(p){
+      return empParts.some(function(e){ return p.length===1 ? e.indexOf(p)===0 : e===p; });
+    });
   }
   // ---------- panel (edit drawer) ----------
   function openPanel(id, tab){
