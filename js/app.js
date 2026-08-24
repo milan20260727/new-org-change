@@ -95,7 +95,7 @@
 
       toastDeleteBlockedEmp:function(n){ return '还有 ' + n + ' 名员工尚未安置新部门'; },
       toastDeleted:'已标记删除', toastNothingToSave:'没有可保存的变更', toastSaved:'已保存变更',
-      toastNeedName:'请填写新部门名称', toastAdded:'已新增部门',
+      toastNeedName:'请填写新部门名称', toastNeedPic:'请设置新部门的 PIC', toastAdded:'已新增部门',
       toastNameDuplicate:'该名称已存在，请换一个', toastNameInvalidChars:'名称不能包含特殊符号（如 & - 等），只能使用文字、数字和空格',
       toastPickBulkTarget:'请先选择批量目标部门', toastCascaded:'已应用到所有下级部门', toastCascadeNoneSelected:'请至少选择一项角色类型',
       toastPickTransferTarget:'请先选择转移目标部门', toastTransferredN:function(n){ return '已转移 ' + n + ' 名员工'; },
@@ -218,7 +218,7 @@
 
       toastDeleteBlockedEmp:function(n){ return n + ' employee(s) still need a new department'; },
       toastDeleted:'Marked as deleted', toastNothingToSave:'No changes to save', toastSaved:'Changes saved',
-      toastNeedName:'Please enter a department name', toastAdded:'Department added',
+      toastNeedName:'Please enter a department name', toastNeedPic:'Please set a PIC for the new department', toastAdded:'Department added',
       toastNameDuplicate:'That name is already in use — pick another', toastNameInvalidChars:'Names can\'t contain special symbols (like & or -) — letters, numbers, and spaces only',
       toastPickBulkTarget:'Choose a bulk target department first', toastCascaded:'Applied to all sub-departments', toastCascadeNoneSelected:'Select at least one role type',
       toastPickTransferTarget:'Choose a transfer target department first', toastTransferredN:function(n){ return 'Transferred ' + n + ' employee(s)'; },
@@ -330,7 +330,7 @@
     return rawNodes.map(function(n){
       return {id:n.id, name:n.name, origName:n.name, parentId:n.parentId,
         inactive: !!n.inactive, movedFrom:null, restoreLog:null,
-        pic:n.pic||'', hrbp1:n.hrbp1||'', hrbp2:n.hrbp2||'', hrbpLead:n.hrbpLead||'', da:n.da||'', origRoles:null,
+        pic:n.pic||'', picEid:n.picEid||'', hrbp1:n.hrbp1||'', hrbp2:n.hrbp2||'', hrbpLead:n.hrbpLead||'', da:n.da||'', origRoles:null,
         flags:{isNew:false, isDeleted:false, isRenamed:false}};
     });
   }
@@ -743,15 +743,23 @@
   // right here and the before/after travels along in the move entry's params.
   function syncPicReportsTo(n){
     if(!n.pic) return null;
-    var matches = employees.filter(function(e){ return matchesPersonName(e.name, n.pic); });
-    // A bare first name (e.g. a PIC value of just "Janice") can genuinely match more than one
-    // employee — picking the first match arbitrarily risks silently overwriting the WRONG
-    // person's official reports-to record. Confirmed: PIC "Janice" for Human Resources matched
-    // both the actual HR person and an unrelated Customer Service employee who also happens to
-    // be named Janice; the sync updated the wrong one. Skipping is the safe fallback — leaving
-    // reports-to unsynced this time is far less damaging than corrupting a random employee's record.
-    if(matches.length!==1) return null;
-    var picEmp = matches[0];
+    // n.picEid resolves the PIC's real Lark account id (via Lark User's own open_user_id) to an
+    // exact EID server-side — precise, no ambiguity possible. Only when that's unavailable (older
+    // snapshot before this existed, or the PIC's Lark account has no matching Lark User row) does
+    // this fall back to fuzzy name matching, which is why matches.length!==1 still guards it: a
+    // bare first name (e.g. a PIC value of just "Janice") can genuinely match more than one
+    // employee, and picking the first arbitrarily risks silently overwriting the WRONG person's
+    // official reports-to record. Confirmed: PIC "Janice" for Human Resources matched both the
+    // actual HR person and an unrelated Customer Service employee also named Janice; the old
+    // fuzzy-only sync updated the wrong one. Skipping is the safe fallback — leaving reports-to
+    // unsynced this time is far less damaging than corrupting a random employee's record.
+    var picEmp = null;
+    if(n.picEid) picEmp = employees.filter(function(e){ return e.eid===n.picEid; })[0] || null;
+    if(!picEmp){
+      var matches = employees.filter(function(e){ return matchesPersonName(e.name, n.pic); });
+      if(matches.length!==1) return null;
+      picEmp = matches[0];
+    }
     var parent = getNode(n.parentId);
     var newSupervisor = parent ? parent.pic : '';
     if(!newSupervisor || newSupervisor===(picEmp.reportsTo||'') || newSupervisor===n.pic) return null;
@@ -807,7 +815,11 @@
     // log keeps one row per transfer, matching how commitMove folds in its own PIC's sync.
     var reportsToBefore = emp.reportsTo || '';
     var newSupervisor = toNode.pic || '';
-    var reportsSynced = !!newSupervisor && newSupervisor!==reportsToBefore && !matchesPersonName(emp.name, newSupervisor);
+    // Guards against setting someone's reports-to to themselves, when transferring them into a
+    // department they themselves are the PIC of. Prefer the precise EID match (see syncPicReportsTo)
+    // over fuzzy name matching whenever the destination's PIC resolved to a real EID.
+    var isSelfPic = toNode.picEid ? emp.eid===toNode.picEid : matchesPersonName(emp.name, newSupervisor);
+    var reportsSynced = !!newSupervisor && newSupervisor!==reportsToBefore && !isSelfPic;
     if(reportsSynced) emp.reportsTo = newSupervisor;
     if(!silent) addLog('emp_transfer', {name:emp.name, eid:emp.eid, from:fromNode.name, to:toNode.name, fromId:fromNode.id, toId:toNode.id,
       reportsToBefore: reportsSynced ? reportsToBefore : null, reportsToAfter: reportsSynced ? newSupervisor : null});
@@ -863,6 +875,12 @@
     if(val===n[field]) return;
     if(!n.origRoles) n.origRoles = {pic:n.pic, hrbp1:n.hrbp1, hrbp2:n.hrbp2, hrbpLead:n.hrbpLead, da:n.da};
     n[field] = val;
+    // picEid was resolved server-side for whoever the PIC was BEFORE this edit — stale and
+    // actively wrong once the name changes (it would otherwise keep pointing syncPicReportsTo at
+    // the previous person). The role picker only deals in plain name strings, so there's no new id
+    // to put in its place; clearing it just falls back to (still-safe) fuzzy name matching until
+    // the next full data refresh re-resolves it properly from Base.
+    if(field==='pic') n.picEid = '';
     var key = n.id + '#' + field;
     if(n[field] === n.origRoles[field]){
       removeLog('role_change', key);
@@ -991,6 +1009,7 @@
     if(!(createDraft.name||'').trim()){ toast(t('toastNeedName')); return; }
     var check = validateOrgName(createDraft.name, null);
     if(!check.ok){ toastNameError(check.reason); return; }
+    if(!(createDraft.pic||'').trim()){ toast(t('toastNeedPic')); return; }
     var newNode = commitAddChild(parent, createDraft);
     if(!newNode){ toast(t('toastNeedName')); return; }
     collapsed.delete(parent.id); // reveal the new child immediately, even if this parent was collapsed
