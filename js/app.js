@@ -1241,7 +1241,19 @@
         var input = picker.querySelector('input');
         var opts = picker.querySelector('.options');
         function renderOpts(q){
-          var list = personPool.filter(function(p){ return p.toLowerCase().indexOf((q||'').toLowerCase())>=0; }).slice(0,8);
+          var query = (q||'').toLowerCase();
+          // Same fix as the org-unit picker: only the first 8 matches ever show, and a common
+          // short query (e.g. "su") can match dozens of names — plain alphabetical order buried
+          // an exact/prefix match dozens of results deep, past the cutoff, purely because many
+          // longer names happened to sort earlier. Prefix matches now sort first.
+          var list = personPool.filter(function(p){ return p.toLowerCase().indexOf(query)>=0; });
+          list.sort(function(a, b){
+            var la = a.toLowerCase(), lb = b.toLowerCase();
+            var aStarts = la.indexOf(query)===0, bStarts = lb.indexOf(query)===0;
+            if(aStarts!==bStarts) return aStarts ? -1 : 1;
+            return la<lb ? -1 : (la>lb ? 1 : 0);
+          });
+          list = list.slice(0,8);
           opts.innerHTML = list.length ? list.map(function(p){ return '<button type="button" data-name="'+escapeHtml(p)+'">'+escapeHtml(p)+'</button>'; }).join('') + '<button type="button" data-name="" style="color:var(--warn-text);">'+escapeHtml(t('clearRoleOption'))+'</button>'
             : '<button type="button" disabled style="color:var(--ink-muted);">'+escapeHtml(t('noMatchResult'))+'</button>';
         }
