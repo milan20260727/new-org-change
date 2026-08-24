@@ -1816,8 +1816,19 @@
           if(n){ cascFields.forEach(function(field){ n[field] = applied[field]; }); }
         });
       } else if(l.typeKey==='emp_transfer'){
-        var e = wGetEmp(p.eid); if(e && p.toId) e.nodeId = p.toId;
-        if(e && p.reportsToAfter) e.reportsTo = p.reportsToAfter;
+        // p.toId can point at a department that no longer resolves by the time this replays —
+        // deleted since, retired (is_active=No) and dropped from a later snapshot, or a
+        // synthetic ancestor node whose generated id was never stable across rebuilds to begin
+        // with. Applying it anyway leaves the employee's nodeId dangling, which pathLabelIn
+        // silently renders as an empty path (a struck-through "before" row with a blank "after"
+        // line) instead of surfacing the problem. Skip the whole step instead, same as the
+        // existing move-target guard above, leaving the employee wherever they already resolved.
+        var e = wGetEmp(p.eid);
+        var target = p.toId ? wGetNode(p.toId) : null;
+        if(e && target){
+          e.nodeId = target.id;
+          if(p.reportsToAfter) e.reportsTo = p.reportsToAfter;
+        }
       } else if(l.typeKey==='report_change'){
         var e = wGetEmp(l.key); if(e) e.reportsTo = p.to;
       }
