@@ -493,6 +493,23 @@
     while(n){ names.unshift(n.name); n = n.parentId ? getNode(n.parentId) : null; }
     return names.join(' / ');
   }
+  // Shared by every search dropdown (org unit, employee, PIC/HRBP/Assistant name, and the
+  // global-transfer modal's own copies of both): a short common query can match far more than a
+  // handful of candidates, so sort by relevance — whatever starts with the typed text first, then
+  // alphabetically — instead of raw array order, so a short exact-ish match (e.g. "Su" for "su")
+  // reliably lands at the top instead of getting buried behind longer names that happen to sort
+  // earlier. RESULT_CAP is generous since every one of these dropdowns already scrolls.
+  var SEARCH_RESULT_CAP = 50;
+  function sortByRelevance(list, query, labelFn){
+    var q = (query||'').toLowerCase();
+    list.sort(function(a, b){
+      var la = labelFn(a).toLowerCase(), lb = labelFn(b).toLowerCase();
+      var aStarts = la.indexOf(q)===0, bStarts = lb.indexOf(q)===0;
+      if(aStarts!==bStarts) return aStarts ? -1 : 1;
+      return la<lb ? -1 : (la>lb ? 1 : 0);
+    });
+    return list;
+  }
   function roleInconsistency(id){
     var branch = [getNode(id)].concat(getDescendants(id));
     function check(field){
@@ -1241,19 +1258,9 @@
         var input = picker.querySelector('input');
         var opts = picker.querySelector('.options');
         function renderOpts(q){
-          var query = (q||'').toLowerCase();
-          // Same fix as the org-unit picker: only the first 8 matches ever show, and a common
-          // short query (e.g. "su") can match dozens of names — plain alphabetical order buried
-          // an exact/prefix match dozens of results deep, past the cutoff, purely because many
-          // longer names happened to sort earlier. Prefix matches now sort first.
-          var list = personPool.filter(function(p){ return p.toLowerCase().indexOf(query)>=0; });
-          list.sort(function(a, b){
-            var la = a.toLowerCase(), lb = b.toLowerCase();
-            var aStarts = la.indexOf(query)===0, bStarts = lb.indexOf(query)===0;
-            if(aStarts!==bStarts) return aStarts ? -1 : 1;
-            return la<lb ? -1 : (la>lb ? 1 : 0);
-          });
-          list = list.slice(0,8);
+          var list = personPool.filter(function(p){ return p.toLowerCase().indexOf((q||'').toLowerCase())>=0; });
+          sortByRelevance(list, q, function(p){ return p; });
+          list = list.slice(0, SEARCH_RESULT_CAP);
           opts.innerHTML = list.length ? list.map(function(p){ return '<button type="button" data-name="'+escapeHtml(p)+'">'+escapeHtml(p)+'</button>'; }).join('') + '<button type="button" data-name="" style="color:var(--warn-text);">'+escapeHtml(t('clearRoleOption'))+'</button>'
             : '<button type="button" disabled style="color:var(--ink-muted);">'+escapeHtml(t('noMatchResult'))+'</button>';
         }
@@ -1296,20 +1303,9 @@
         if(onDoc){ document.removeEventListener('click', onDoc); onDoc = null; }
       }
       function paint(q){
-        var query = (q||'').toLowerCase();
-        // Only the first 8 matches are ever shown — sorting by relevance (prefix match first,
-        // then alphabetical) instead of leaving candidates in their raw array order means a
-        // freshly-added department (always pushed to the END of that array) doesn't lose out to
-        // older departments that happen to share the same search text; which 8 show up is now
-        // consistent and name-driven instead of depending on when each one was created.
-        var list = candidates.filter(function(x){ return pathLabel(x.id).toLowerCase().indexOf(query)>=0; });
-        list.sort(function(a, b){
-          var la = pathLabel(a.id).toLowerCase(), lb = pathLabel(b.id).toLowerCase();
-          var aStarts = la.indexOf(query)===0, bStarts = lb.indexOf(query)===0;
-          if(aStarts!==bStarts) return aStarts ? -1 : 1;
-          return la<lb ? -1 : (la>lb ? 1 : 0);
-        });
-        list = list.slice(0,8);
+        var list = candidates.filter(function(x){ return pathLabel(x.id).toLowerCase().indexOf((q||'').toLowerCase())>=0; });
+        sortByRelevance(list, q, function(x){ return pathLabel(x.id); });
+        list = list.slice(0, SEARCH_RESULT_CAP);
         opts.innerHTML = list.length ? list.map(function(x){ return '<button type="button" data-id="'+x.id+'">'+escapeHtml(pathLabel(x.id))+'</button>'; }).join('')
           : '<button type="button" disabled style="color:var(--ink-muted);">'+escapeHtml(t('noMatchDept'))+'</button>';
         opts.classList.add('show');
@@ -2167,7 +2163,9 @@
     var box = document.getElementById('searchResults');
     q = q.trim();
     if(!q){ box.classList.remove('show'); box.innerHTML=''; return; }
-    var matches = nodes.filter(function(n){ return !n.flags.isDeleted && n.name.toLowerCase().indexOf(q.toLowerCase())>=0; }).slice(0,8);
+    var matches = nodes.filter(function(n){ return !n.flags.isDeleted && n.name.toLowerCase().indexOf(q.toLowerCase())>=0; });
+    sortByRelevance(matches, q, function(n){ return n.name; });
+    matches = matches.slice(0, SEARCH_RESULT_CAP);
     if(!matches.length){ box.innerHTML = '<button disabled style="color:var(--ink-muted);">'+escapeHtml(t('noMatchDept'))+'</button>'; box.classList.add('show'); return; }
     box.innerHTML = matches.map(function(n){ return '<button type="button" data-id="'+n.id+'">'+escapeHtml(n.name)+'</button>'; }).join('');
     box.classList.add('show');
@@ -2190,7 +2188,9 @@
     q = q.trim();
     if(!q){ box.classList.remove('show'); box.innerHTML=''; return; }
     var ql = q.toLowerCase();
-    var matches = employees.filter(function(e){ return e.name.toLowerCase().indexOf(ql)>=0 || e.eid.toLowerCase().indexOf(ql)>=0; }).slice(0,8);
+    var matches = employees.filter(function(e){ return e.name.toLowerCase().indexOf(ql)>=0 || e.eid.toLowerCase().indexOf(ql)>=0; });
+    sortByRelevance(matches, q, function(e){ return e.name; });
+    matches = matches.slice(0, SEARCH_RESULT_CAP);
     if(!matches.length){ box.innerHTML = '<button disabled style="color:var(--ink-muted);">'+escapeHtml(t('noMatchEmp'))+'</button>'; box.classList.add('show'); return; }
     box.innerHTML = matches.map(function(e){
       return '<button type="button" data-eid="'+e.eid+'">'+escapeHtml(e.name)+' <span class="mono" style="color:var(--ink-muted); font-size:11px;">'+escapeHtml(e.eid)+'</span>'+
@@ -2500,7 +2500,9 @@
   function renderGModalOptions(which, q){
     q = (q||'').toLowerCase();
     if(which==='emp'){
-      var list = employees.filter(function(e){ return e.name.toLowerCase().indexOf(q)>=0 || e.eid.indexOf(q)>=0; }).slice(0,8);
+      var list = employees.filter(function(e){ return e.name.toLowerCase().indexOf(q)>=0 || e.eid.indexOf(q)>=0; });
+      sortByRelevance(list, q, function(e){ return e.name; });
+      list = list.slice(0, SEARCH_RESULT_CAP);
       var box = document.getElementById('gmodalEmpOptions');
       box.innerHTML = list.length ? list.map(function(e){ return '<button type="button" data-eid="'+e.eid+'">'+escapeHtml(e.name)+' · <span class="mono">'+e.eid+'</span></button>'; }).join('')
         : '<button type="button" disabled style="color:var(--ink-muted);">'+escapeHtml(t('noMatchEmp'))+'</button>';
@@ -2511,7 +2513,9 @@
         });
       });
     } else {
-      var olist = nodes.filter(function(n){ return !n.flags.isDeleted && n.name.toLowerCase().indexOf(q)>=0; }).slice(0,8);
+      var olist = nodes.filter(function(n){ return !n.flags.isDeleted && n.name.toLowerCase().indexOf(q)>=0; });
+      sortByRelevance(olist, q, function(n){ return n.name; });
+      olist = olist.slice(0, SEARCH_RESULT_CAP);
       var obox = document.getElementById('gmodalOrgOptions');
       obox.innerHTML = olist.length ? olist.map(function(n){ return '<button type="button" data-id="'+n.id+'">'+escapeHtml(pathLabel(n.id))+'</button>'; }).join('')
         : '<button type="button" disabled style="color:var(--ink-muted);">'+escapeHtml(t('noMatchDept'))+'</button>';
