@@ -1284,7 +1284,20 @@
         if(onDoc){ document.removeEventListener('click', onDoc); onDoc = null; }
       }
       function paint(q){
-        var list = candidates.filter(function(x){ return pathLabel(x.id).toLowerCase().indexOf((q||'').toLowerCase())>=0; }).slice(0,8);
+        var query = (q||'').toLowerCase();
+        // Only the first 8 matches are ever shown — sorting by relevance (prefix match first,
+        // then alphabetical) instead of leaving candidates in their raw array order means a
+        // freshly-added department (always pushed to the END of that array) doesn't lose out to
+        // older departments that happen to share the same search text; which 8 show up is now
+        // consistent and name-driven instead of depending on when each one was created.
+        var list = candidates.filter(function(x){ return pathLabel(x.id).toLowerCase().indexOf(query)>=0; });
+        list.sort(function(a, b){
+          var la = pathLabel(a.id).toLowerCase(), lb = pathLabel(b.id).toLowerCase();
+          var aStarts = la.indexOf(query)===0, bStarts = lb.indexOf(query)===0;
+          if(aStarts!==bStarts) return aStarts ? -1 : 1;
+          return la<lb ? -1 : (la>lb ? 1 : 0);
+        });
+        list = list.slice(0,8);
         opts.innerHTML = list.length ? list.map(function(x){ return '<button type="button" data-id="'+x.id+'">'+escapeHtml(pathLabel(x.id))+'</button>'; }).join('')
           : '<button type="button" disabled style="color:var(--ink-muted);">'+escapeHtml(t('noMatchDept'))+'</button>';
         opts.classList.add('show');
