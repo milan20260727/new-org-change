@@ -69,7 +69,7 @@
       transferSelectedBtn:function(n){ return '转移已选员工（' + n + '）'; },
       reportsToPrefix:' · 汇报对象：',
       nowAtPrefix:' — 现在：',
-      extraPersonSuffix:{consultant:' (consultant)', shared:' (shared account)'},
+      extraPersonSuffix:{consultant:' (consultant)', shared:' (shared account)', pending:' (pending onboarding)'},
       matchLabel:function(eid){ return eid; },
 
       dragHint:function(name){ return '提示：也可以直接在图上把「' + name + '」拖到目标部门上完成移动；卡片右下角的 ⠿ 图标可以拖动调整同级部门的显示顺序（仅保存在本地浏览器）。'; },
@@ -193,7 +193,7 @@
       transferSelectedBtn:function(n){ return 'Transfer selected (' + n + ')'; },
       reportsToPrefix:' · Direct Manager: ',
       nowAtPrefix:' — currently: ',
-      extraPersonSuffix:{consultant:' (consultant)', shared:' (shared account)'},
+      extraPersonSuffix:{consultant:' (consultant)', shared:' (shared account)', pending:' (pending onboarding)'},
       matchLabel:function(eid){ return eid; },
 
       dragHint:function(name){ return 'Tip: you can also drag "' + name + '" onto a target department on the chart to move it; drag the ⠿ handle in a card\'s bottom-right corner to reorder among sibling departments (saved to this browser only).'; },
