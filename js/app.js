@@ -69,6 +69,7 @@
       transferSelectedBtn:function(n){ return '转移已选员工（' + n + '）'; },
       reportsToPrefix:' · 汇报对象：',
       nowAtPrefix:' — 现在：',
+      extraPersonSuffix:{consultant:' (consultant)', shared:' (shared account)'},
       matchLabel:function(eid){ return eid; },
 
       dragHint:function(name){ return '提示：也可以直接在图上把「' + name + '」拖到目标部门上完成移动；卡片右下角的 ⠿ 图标可以拖动调整同级部门的显示顺序（仅保存在本地浏览器）。'; },
@@ -192,6 +193,7 @@
       transferSelectedBtn:function(n){ return 'Transfer selected (' + n + ')'; },
       reportsToPrefix:' · Direct Manager: ',
       nowAtPrefix:' — currently: ',
+      extraPersonSuffix:{consultant:' (consultant)', shared:' (shared account)'},
       matchLabel:function(eid){ return eid; },
 
       dragHint:function(name){ return 'Tip: you can also drag "' + name + '" onto a target department on the chart to move it; drag the ⠿ handle in a card\'s bottom-right corner to reorder among sibling departments (saved to this browser only).'; },
@@ -298,6 +300,11 @@
   var rootId = 'root';
 
   var nodes, employees, log, selectedId, viewRootId, orientation, logSeq, tempCounter, dragSrcId, dragMode, pendingEdit, activeTab, createDraft, rosterSelected, rosterBulkTarget, gmodalEmp, gmodalOrg, snapshotAt, unassignedId, unassignedTargets, collapsed, zoomPct;
+  // Consultants and shared/function accounts — visible in a department's roster for reference
+  // only. Deliberately kept out of `employees` everywhere: rollupHeadcount, CSV exports, and the
+  // Affected Employees/Unassigned views only ever read `employees`, so this list never touches
+  // any of that by construction, not by extra filtering at each call site.
+  var extraPeople = [];
   // Other users' edits, pulled on demand from the shared "Change Log" Base table (never touched
   // by init()/the "刷新数据" refresh, which only re-reads the 3 org-source tables). Display-only —
   // CSV export still reads `log` alone, since it needs live local node state to build correct diffs.
@@ -373,6 +380,7 @@
         pristineNodes = hydrateNodes(data.nodes);
         pristineEmployees = data.employees.map(function(e){ return {eid:e.eid, name:e.name, nodeId:e.nodeId, reportsTo:e.reportsTo||''}; });
         personPool = data.personPool || [];
+        extraPeople = data.extraPeople || [];
         unassignedId = data.unassignedId || null;
         unassignedTargets = {};
         // Default view: root + its direct children expanded, everything deeper starts
@@ -1224,33 +1232,45 @@
 
   function renderRosterTab(n, body, foot){
     var direct = employees.filter(function(e){ return e.nodeId===n.id; });
+    // Consultants/shared accounts — display-only alongside the real roster; never selectable for
+    // bulk transfer (they're not headcount, and don't carry a moveable org record here at all).
+    var directExtra = extraPeople.filter(function(p){ return p.nodeId===n.id; });
     var otherNodes = nodes.filter(function(x){ return x.id!==n.id && !x.flags.isDeleted; });
     var selCount = Object.keys(rosterSelected).filter(function(k){ return rosterSelected[k]; }).length;
     var allSelected = direct.length>0 && direct.every(function(e){ return rosterSelected[e.eid]; });
 
-    if(!direct.length){
+    if(!direct.length && !directExtra.length){
       body.innerHTML = '<div class="empty-note">'+escapeHtml(t('rosterEmptyNote'))+'</div>';
       foot.innerHTML = '<button class="btn ghost" id="cancelEditBtn">'+escapeHtml(t('closeBtn'))+'</button>';
       document.getElementById('cancelEditBtn').addEventListener('click', closePanel);
       return;
     }
 
-    var html = '<div class="roster-toolbar">'+
+    var html = direct.length ? ('<div class="roster-toolbar">'+
       '<label style="display:flex; align-items:center; gap:6px; font-size:11.5px; color:var(--ink-muted);"><input type="checkbox" id="rosterSelectAll" '+(allSelected?'checked':'')+'> '+escapeHtml(t('selectAllLabel')(direct.length))+'</label>'+
-      '</div>';
+      '</div>') : '';
     direct.forEach(function(e){
       html += '<div class="roster-row" data-eid="'+e.eid+'">'+
         '<input type="checkbox" class="roster-cb" data-eid="'+e.eid+'" '+(rosterSelected[e.eid]?'checked':'')+'>'+
         '<div class="rr-info"><div class="rr-name">'+escapeHtml(e.name)+'</div><div class="rr-eid">EID '+e.eid+escapeHtml(t('reportsToPrefix'))+(e.reportsTo?escapeHtml(e.reportsTo):escapeHtml(t('notSet')))+'</div></div>'+
         '</div>';
     });
-    html += '<div class="roster-toolbar" style="margin-top:12px; padding-top:12px; border-top:1px solid var(--line);">'+
-      '<div id="rosterBulkPicker" style="flex:1;"></div>'+
-      '<button class="btn primary" id="rosterBulkApply" type="button" '+(selCount?'':'disabled')+'>'+escapeHtml(t('transferSelectedBtn')(selCount))+'</button></div>';
+    directExtra.forEach(function(p){
+      html += '<div class="roster-row" data-extra-id="'+escapeHtml(p.id)+'">'+
+        '<div class="rr-info"><div class="rr-name" style="color:var(--ink-muted);">'+escapeHtml(p.name)+escapeHtml(t('extraPersonSuffix')[p.kind]||'')+'</div></div>'+
+        '</div>';
+    });
+    if(direct.length){
+      html += '<div class="roster-toolbar" style="margin-top:12px; padding-top:12px; border-top:1px solid var(--line);">'+
+        '<div id="rosterBulkPicker" style="flex:1;"></div>'+
+        '<button class="btn primary" id="rosterBulkApply" type="button" '+(selCount?'':'disabled')+'>'+escapeHtml(t('transferSelectedBtn')(selCount))+'</button></div>';
+    }
 
     body.innerHTML = html;
     foot.innerHTML = '<button class="btn ghost" id="cancelEditBtn">'+escapeHtml(t('closeBtn'))+'</button>';
     document.getElementById('cancelEditBtn').addEventListener('click', closePanel);
+
+    if(!direct.length) return;
 
     document.getElementById('rosterSelectAll').addEventListener('change', function(){
       var newVal = !allSelected;
