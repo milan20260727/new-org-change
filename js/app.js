@@ -56,6 +56,7 @@
       empEmptyNote:'还没有员工受影响',
       unassignedTitle:'待安置员工', unassignedEmptyNote:'暂无待安置员工', unassignedTransferBtn:'转移',
       extraConsultantTitle:'顾问', extraSharedTitle:'公共账户', extraEmptyNote:'暂无因组织调整而受影响的记录',
+      extraMissingTitle:'花名册缺失', extraMissingEmptyNote:'暂无花名册缺失的账号', colOrgPath:'组织架构',
       addChildTitle:'新增子部门', reorderHandleTitle:'按住拖动可调整同级部门的显示顺序', tabStructure:'编辑类型', tabRole:'变更角色', tabRoster:'下辖员工名单',
       transferModalTitle:'转移员工', fieldEmployee:'员工', searchEmpPlaceholder:'搜索姓名或 EID…',
       fieldTargetOrg:'目标组织架构', searchOrgPlaceholder:'搜索目标部门…', cancelBtn:'取消', confirmTransferBtn:'确认转移',
@@ -70,7 +71,7 @@
       transferSelectedBtn:function(n){ return '转移已选员工（' + n + '）'; },
       reportsToPrefix:' · 汇报对象：',
       nowAtPrefix:' — 现在：',
-      extraPersonSuffix:{consultant:' (consultant)', shared:' (shared account)', pending:' (pending onboarding)'},
+      extraPersonSuffix:{consultant:' (consultant)', shared:' (shared account)', pending:' (pending onboarding)', missing:' (not in Employee List)'},
       matchLabel:function(eid){ return eid; },
 
       dragHint:function(name){ return '提示：也可以直接在图上把「' + name + '」拖到目标部门上完成移动；卡片右下角的 ⠿ 图标可以拖动调整同级部门的显示顺序（仅保存在本地浏览器）。'; },
@@ -181,6 +182,7 @@
       empEmptyNote:'No employees affected yet',
       unassignedTitle:'Unassigned employees', unassignedEmptyNote:'No unassigned employees', unassignedTransferBtn:'Transfer',
       extraConsultantTitle:'Consultants', extraSharedTitle:'Shared Accounts', extraEmptyNote:'No records affected by an org change yet',
+      extraMissingTitle:'Missing from Employee List', extraMissingEmptyNote:'No accounts missing from the Employee list', colOrgPath:'Org Structure',
       addChildTitle:'Add sub-department', reorderHandleTitle:'Drag to reorder among sibling departments', tabStructure:'Edit type', tabRole:'Roles', tabRoster:'Team roster',
       transferModalTitle:'Transfer employee', fieldEmployee:'Employee', searchEmpPlaceholder:'Search by name or EID…',
       fieldTargetOrg:'Target org unit', searchOrgPlaceholder:'Search target department…', cancelBtn:'Cancel', confirmTransferBtn:'Confirm transfer',
@@ -195,7 +197,7 @@
       transferSelectedBtn:function(n){ return 'Transfer selected (' + n + ')'; },
       reportsToPrefix:' · Direct Manager: ',
       nowAtPrefix:' — currently: ',
-      extraPersonSuffix:{consultant:' (consultant)', shared:' (shared account)', pending:' (pending onboarding)'},
+      extraPersonSuffix:{consultant:' (consultant)', shared:' (shared account)', pending:' (pending onboarding)', missing:' (not in Employee List)'},
       matchLabel:function(eid){ return eid; },
 
       dragHint:function(name){ return 'Tip: you can also drag "' + name + '" onto a target department on the chart to move it; drag the ⠿ handle in a card\'s bottom-right corner to reorder among sibling departments (saved to this browser only).'; },
@@ -2005,16 +2007,38 @@
       return {id:p.id, name:p.name, oldPath:oldPath, newPath:newPath};
     }).filter(Boolean);
   }
+  // No EID column here on purpose (per request) — these two tables are a change work-list, not
+  // an identity lookup, and most shared accounts don't carry a real EID anyway.
   function renderExtraListInto(bodyId, list){
     var body = document.getElementById(bodyId);
-    if(!list.length){ body.innerHTML = '<tr><td colspan="3" class="empty-note">'+escapeHtml(t('extraEmptyNote'))+'</td></tr>'; return; }
+    if(!list.length){ body.innerHTML = '<tr><td colspan="2" class="empty-note">'+escapeHtml(t('extraEmptyNote'))+'</td></tr>'; return; }
     body.innerHTML = list.map(function(p){
-      return '<tr><td class="mono">'+escapeHtml(p.id)+'</td><td>'+escapeHtml(p.name)+'</td>'+
+      return '<tr><td>'+escapeHtml(p.name)+'</td>'+
         '<td><div class="path-old">'+escapeHtml(p.oldPath)+'</div><div class="path-new">'+escapeHtml(p.newPath)+'</div></td></tr>';
     }).join('');
   }
   function extraCsvRows(list){
-    return [['EID', 'Name', 'Old Org Path', 'New Org Path']].concat(list.map(function(p){ return [p.id, p.name, p.oldPath, p.newPath]; }));
+    return [['Name', 'Old Org Path', 'New Org Path']].concat(list.map(function(p){ return [p.name, p.oldPath, p.newPath]; }));
+  }
+  // Unlike the two tables above, this isn't a change work-list — it's a data-quality list (every
+  // Lark account that looks like a real hire but has no Employee list/BIPO record at all, active
+  // or not-yet-onboarded alike), so it always shows everything currently in that state rather than
+  // only what changed this session. EID is kept here specifically since it's the join key back to
+  // BIPO once someone goes and adds the missing record.
+  function computeMissingExtraPeople(){
+    return extraPeople.filter(function(p){ return p.kind==='pending' || p.kind==='missing'; }).map(function(p){
+      return {id:p.id, name:p.name, path:pathLabel(p.nodeId), status:p.status||''};
+    });
+  }
+  function renderMissingListInto(bodyId, list){
+    var body = document.getElementById(bodyId);
+    if(!list.length){ body.innerHTML = '<tr><td colspan="4" class="empty-note">'+escapeHtml(t('extraMissingEmptyNote'))+'</td></tr>'; return; }
+    body.innerHTML = list.map(function(p){
+      return '<tr><td class="mono">'+escapeHtml(p.id)+'</td><td>'+escapeHtml(p.name)+'</td><td>'+escapeHtml(p.path)+'</td><td>'+escapeHtml(p.status)+'</td></tr>';
+    }).join('');
+  }
+  function missingCsvRows(list){
+    return [['EID', 'Name', 'Org Structure', 'Status']].concat(list.map(function(p){ return [p.id, p.name, p.path, p.status]; }));
   }
   function renderExtraView(){
     var tabBtn = document.getElementById('viewExtraBtn');
@@ -2026,16 +2050,22 @@
     tabBtn.style.display = '';
     var consultants = computeAffectedExtraPeople('consultant');
     var shared = computeAffectedExtraPeople('shared');
+    var missing = computeMissingExtraPeople();
     document.getElementById('extraConsultantCount').textContent = consultants.length;
     document.getElementById('extraSharedCount').textContent = shared.length;
+    document.getElementById('extraMissingCount').textContent = missing.length;
     renderExtraListInto('extraConsultantBody', consultants);
     renderExtraListInto('extraSharedBody', shared);
+    renderMissingListInto('extraMissingBody', missing);
   }
   document.getElementById('downloadExtraConsultantBtn').addEventListener('click', function(){
     downloadCsv(dateStampedFilename('consultants-affected.csv'), extraCsvRows(computeAffectedExtraPeople('consultant')));
   });
   document.getElementById('downloadExtraSharedBtn').addEventListener('click', function(){
     downloadCsv(dateStampedFilename('shared-accounts-affected.csv'), extraCsvRows(computeAffectedExtraPeople('shared')));
+  });
+  document.getElementById('downloadExtraMissingBtn').addEventListener('click', function(){
+    downloadCsv(dateStampedFilename('missing-from-employee-list.csv'), missingCsvRows(computeMissingExtraPeople()));
   });
 
   function switchView(view){
