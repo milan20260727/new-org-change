@@ -41,7 +41,7 @@
       loggedInAs:'已登录：', logoutBtn:'退出',
       snapshotLabel:'数据快照时间：', refreshBtn:'刷新数据', refreshBtnLoading:'刷新中…',
       searchPlaceholder:'搜索组织架构名称…', searchEmpNamePlaceholder:'搜索员工姓名…', focusPrefix:'聚焦于「', focusSuffix:'」',
-      globalTransferBtn:'转移员工', viewChart:'组织架构图', viewUnassigned:'待安置员工',
+      globalTransferBtn:'转移员工', viewChart:'组织架构图', viewUnassigned:'待安置员工', viewExtra:'顾问/公共账户',
       expandAllBtn:'全部展开', collapseAllBtn:'全部折叠', expandTitle:'展开', collapseTitle:'折叠',
       refreshEditsBtn:'刷新编辑', refreshEditsBtnLoading:'刷新中…', toastEditsRefreshed:'已拉取最新的变更记录', toastEditsRefreshFailed:'拉取变更记录失败',
       refreshEditsConfirmDiscard:'你还有尚未同步的本地编辑草稿，刷新会丢弃这些草稿（已同步的变更不受影响）。确定继续吗？',
@@ -55,6 +55,7 @@
       colDivision:'Division', colBusinessUnit:'Business Unit', colDepartment:'Department', colTeam:'Team', colSubTeam:'Sub Team', colSection:'Section', colStatus:'Status', colHrbpLead:'HRBP Lead',
       empEmptyNote:'还没有员工受影响',
       unassignedTitle:'待安置员工', unassignedEmptyNote:'暂无待安置员工', unassignedTransferBtn:'转移',
+      extraConsultantTitle:'顾问', extraSharedTitle:'公共账户', extraEmptyNote:'暂无因组织调整而受影响的记录',
       addChildTitle:'新增子部门', reorderHandleTitle:'按住拖动可调整同级部门的显示顺序', tabStructure:'编辑类型', tabRole:'变更角色', tabRoster:'下辖员工名单',
       transferModalTitle:'转移员工', fieldEmployee:'员工', searchEmpPlaceholder:'搜索姓名或 EID…',
       fieldTargetOrg:'目标组织架构', searchOrgPlaceholder:'搜索目标部门…', cancelBtn:'取消', confirmTransferBtn:'确认转移',
@@ -165,7 +166,7 @@
       loggedInAs:'Signed in as: ', logoutBtn:'Sign out',
       snapshotLabel:'Data snapshot: ', refreshBtn:'Refresh data', refreshBtnLoading:'Refreshing…',
       searchPlaceholder:'Search org unit name…', searchEmpNamePlaceholder:'Search employee name…', focusPrefix:'Focused on "', focusSuffix:'"',
-      globalTransferBtn:'Transfer employee', viewChart:'Org Chart', viewUnassigned:'Unassigned',
+      globalTransferBtn:'Transfer employee', viewChart:'Org Chart', viewUnassigned:'Unassigned', viewExtra:'Consultants/Shared Accounts',
       expandAllBtn:'Expand All', collapseAllBtn:'Collapse All', expandTitle:'Expand', collapseTitle:'Collapse',
       refreshEditsBtn:'Refresh edits', refreshEditsBtnLoading:'Refreshing…', toastEditsRefreshed:'Pulled the latest change log', toastEditsRefreshFailed:'Failed to pull the change log',
       refreshEditsConfirmDiscard:"You have local edits that haven't been synced yet — refreshing will discard them (already-synced changes are unaffected). Continue?",
@@ -179,6 +180,7 @@
       colDivision:'Division', colBusinessUnit:'Business Unit', colDepartment:'Department', colTeam:'Team', colSubTeam:'Sub Team', colSection:'Section', colStatus:'Status', colHrbpLead:'HRBP Lead',
       empEmptyNote:'No employees affected yet',
       unassignedTitle:'Unassigned employees', unassignedEmptyNote:'No unassigned employees', unassignedTransferBtn:'Transfer',
+      extraConsultantTitle:'Consultants', extraSharedTitle:'Shared Accounts', extraEmptyNote:'No records affected by an org change yet',
       addChildTitle:'Add sub-department', reorderHandleTitle:'Drag to reorder among sibling departments', tabStructure:'Edit type', tabRole:'Roles', tabRoster:'Team roster',
       transferModalTitle:'Transfer employee', fieldEmployee:'Employee', searchEmpPlaceholder:'Search by name or EID…',
       fieldTargetOrg:'Target org unit', searchOrgPlaceholder:'Search target department…', cancelBtn:'Cancel', confirmTransferBtn:'Confirm transfer',
@@ -1987,10 +1989,60 @@
     });
   }
 
+  // Consultants and shared accounts don't get individually transferred inside this tool (no
+  // emp_transfer entries ever target them) — the only thing that can move them is their fixed
+  // department itself being renamed/moved elsewhere in this session's (or others', via "刷新编辑")
+  // plan, exactly like the Affected Employees table tracks for real employees. Only rows that
+  // actually changed are worth showing here — the point is a work list of who still needs their
+  // Lark record updated to match, not a full directory.
+  function computeAffectedExtraPeople(kind){
+    var entries = mergedLogForDisplay();
+    var replayed = replayAll(entries, pristineNodes, pristineEmployees);
+    return extraPeople.filter(function(p){ return p.kind===kind; }).map(function(p){
+      var oldPath = pathLabelIn(pristineNodes, p.nodeId);
+      var newPath = pathLabelIn(replayed.nodes, p.nodeId);
+      if(oldPath===newPath) return null;
+      return {id:p.id, name:p.name, oldPath:oldPath, newPath:newPath};
+    }).filter(Boolean);
+  }
+  function renderExtraListInto(bodyId, list){
+    var body = document.getElementById(bodyId);
+    if(!list.length){ body.innerHTML = '<tr><td colspan="3" class="empty-note">'+escapeHtml(t('extraEmptyNote'))+'</td></tr>'; return; }
+    body.innerHTML = list.map(function(p){
+      return '<tr><td class="mono">'+escapeHtml(p.id)+'</td><td>'+escapeHtml(p.name)+'</td>'+
+        '<td><div class="path-old">'+escapeHtml(p.oldPath)+'</div><div class="path-new">'+escapeHtml(p.newPath)+'</div></td></tr>';
+    }).join('');
+  }
+  function extraCsvRows(list){
+    return [['EID', 'Name', 'Old Org Path', 'New Org Path']].concat(list.map(function(p){ return [p.id, p.name, p.oldPath, p.newPath]; }));
+  }
+  function renderExtraView(){
+    var tabBtn = document.getElementById('viewExtraBtn');
+    if(!extraPeople.length){
+      tabBtn.style.display = 'none';
+      if(tabBtn.classList.contains('active')) switchView('chart');
+      return;
+    }
+    tabBtn.style.display = '';
+    var consultants = computeAffectedExtraPeople('consultant');
+    var shared = computeAffectedExtraPeople('shared');
+    document.getElementById('extraConsultantCount').textContent = consultants.length;
+    document.getElementById('extraSharedCount').textContent = shared.length;
+    renderExtraListInto('extraConsultantBody', consultants);
+    renderExtraListInto('extraSharedBody', shared);
+  }
+  document.getElementById('downloadExtraConsultantBtn').addEventListener('click', function(){
+    downloadCsv(dateStampedFilename('consultants-affected.csv'), extraCsvRows(computeAffectedExtraPeople('consultant')));
+  });
+  document.getElementById('downloadExtraSharedBtn').addEventListener('click', function(){
+    downloadCsv(dateStampedFilename('shared-accounts-affected.csv'), extraCsvRows(computeAffectedExtraPeople('shared')));
+  });
+
   function switchView(view){
     document.querySelectorAll('#viewTabs button').forEach(function(b){ b.classList.toggle('active', b.getAttribute('data-view')===view); });
     document.getElementById('chartView').style.display = view==='chart' ? '' : 'none';
     document.getElementById('unassignedView').style.display = view==='unassigned' ? '' : 'none';
+    document.getElementById('extraView').style.display = view==='extra' ? '' : 'none';
     document.getElementById('changelogView').style.display = view==='changelog' ? '' : 'none';
     document.getElementById('adminView').style.display = view==='admin' ? '' : 'none';
     if(view==='admin'){ renderAdmin(); renderEditWindowSettings(); fetchExportWatermark().then(renderExportWatermark); }
@@ -2225,6 +2277,7 @@
     renderLog();
     renderEmployees();
     renderUnassigned();
+    renderExtraView();
     renderPanel();
     var pill = document.getElementById('focusPill');
     if(viewRootId!==rootId){ pill.classList.add('show'); document.getElementById('focusPillText').textContent = t('focusLabel')(getNode(viewRootId).name); }

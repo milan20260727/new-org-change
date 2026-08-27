@@ -39,6 +39,7 @@
           <button data-view="chart" class="active" data-i18n="viewChart">组织架构图</button>
           <button data-view="changelog" id="viewChangelogBtn"><span data-i18n="changeLogTitle">变更记录</span> (<span id="viewChangelogCount">0</span>)</button>
           <button data-view="unassigned" id="viewUnassignedBtn" style="display:none;"><span data-i18n="viewUnassigned">待安置员工</span> (<span id="viewUnassignedCount">0</span>)</button>
+          <button data-view="extra" id="viewExtraBtn" style="display:none;" data-i18n="viewExtra">顾问/公共账户</button>
           <button data-view="admin" id="viewAdminBtn" style="display:none;" data-i18n="viewAdmin">管理员</button>
         </div>
       </div>
@@ -132,6 +133,43 @@
           </tr></thead>
           <tbody id="unassignedBody"></tbody>
         </table>
+      </div>
+    </div>
+  </div>
+
+  <div class="admin-layout" id="extraView" style="display:none; grid-template-columns:1fr 1fr;">
+    <div class="panel">
+      <div class="panel-head">
+        <h2 data-i18n="extraConsultantTitle">顾问</h2>
+        <span class="count mono" id="extraConsultantCount">0</span>
+      </div>
+      <div class="panel-body">
+        <div class="scroll-table" style="max-height:calc(100vh - 260px);">
+          <table class="emptbl">
+            <thead><tr><th style="width:56px;">EID</th><th data-i18n="colName">姓名</th><th data-i18n="colPathChange">原组织架构 → 新组织架构</th></tr></thead>
+            <tbody id="extraConsultantBody"></tbody>
+          </table>
+        </div>
+        <div class="btn-row" style="margin-top:10px;">
+          <button class="btn primary" id="downloadExtraConsultantBtn" data-i18n="downloadCsvBtn">下载 CSV</button>
+        </div>
+      </div>
+    </div>
+    <div class="panel">
+      <div class="panel-head">
+        <h2 data-i18n="extraSharedTitle">公共账户</h2>
+        <span class="count mono" id="extraSharedCount">0</span>
+      </div>
+      <div class="panel-body">
+        <div class="scroll-table" style="max-height:calc(100vh - 260px);">
+          <table class="emptbl">
+            <thead><tr><th style="width:56px;">EID</th><th data-i18n="colName">姓名</th><th data-i18n="colPathChange">原组织架构 → 新组织架构</th></tr></thead>
+            <tbody id="extraSharedBody"></tbody>
+          </table>
+        </div>
+        <div class="btn-row" style="margin-top:10px;">
+          <button class="btn primary" id="downloadExtraSharedBtn" data-i18n="downloadCsvBtn">下载 CSV</button>
+        </div>
       </div>
     </div>
   </div>
@@ -307,7 +345,7 @@
 
 <div class="toast" id="toast"></div>
 
-<script src="js/app.js?v=20260817-17"></script>
+<script src="js/app.js?v=20260817-18"></script>
 
 </body>
 </html>
