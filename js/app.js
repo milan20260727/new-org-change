@@ -385,6 +385,19 @@
         pristineEmployees = data.employees.map(function(e){ return {eid:e.eid, name:e.name, nodeId:e.nodeId, reportsTo:e.reportsTo||''}; });
         personPool = data.personPool || [];
         extraPeople = data.extraPeople || [];
+        // "Group Strategy Center Office" only exists in this session's (or another user's shared)
+        // local restructuring plan, never in live Structures — buildOrgData can't resolve it
+        // server-side, so it leaves nodeId null and a needsBoDFallback flag on any Board of
+        // Directors row it couldn't place. Resolved here instead, against the live, locally-edited
+        // `nodes` (which does have it, once the "add" log entry that created it has replayed in).
+        // Still unresolved even here (e.g. that department hasn't been created in this session at
+        // all yet) is dropped, same as any other unplaceable extraPerson.
+        extraPeople.forEach(function(p){
+          if(p.nodeId || !p.needsBoDFallback) return;
+          var fallback = nodes.filter(function(n){ return !n.flags.isDeleted && n.name==='Group Strategy Center Office'; })[0];
+          if(fallback) p.nodeId = fallback.id;
+        });
+        extraPeople = extraPeople.filter(function(p){ return p.nodeId; });
         unassignedId = data.unassignedId || null;
         unassignedTargets = {};
         // Default view: root + its direct children expanded, everything deeper starts
