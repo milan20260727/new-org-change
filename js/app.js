@@ -56,7 +56,7 @@
       empEmptyNote:'还没有员工受影响',
       unassignedTitle:'待安置员工', unassignedEmptyNote:'暂无待安置员工', unassignedTransferBtn:'转移',
       extraConsultantTitle:'顾问', extraSharedTitle:'公共账户', extraEmptyNote:'暂无因组织调整而受影响的记录',
-      extraMissingTitle:'未定义员工或未入职', extraMissingEmptyNote:'暂无花名册缺失的账号', colOrgPath:'组织架构',
+      extraMissingTitle:'未定义员工或未入职', extraMissingEmptyNote:'暂无花名册缺失的账号',
       addChildTitle:'新增子部门', reorderHandleTitle:'按住拖动可调整同级部门的显示顺序', tabStructure:'编辑类型', tabRole:'变更角色', tabRoster:'下辖员工名单',
       transferModalTitle:'转移员工', fieldEmployee:'员工', searchEmpPlaceholder:'搜索姓名或 EID…',
       fieldTargetOrg:'目标组织架构', searchOrgPlaceholder:'搜索目标部门…', cancelBtn:'取消', confirmTransferBtn:'确认转移',
@@ -182,7 +182,7 @@
       empEmptyNote:'No employees affected yet',
       unassignedTitle:'Unassigned employees', unassignedEmptyNote:'No unassigned employees', unassignedTransferBtn:'Transfer',
       extraConsultantTitle:'Consultants', extraSharedTitle:'Shared Accounts', extraEmptyNote:'No records affected by an org change yet',
-      extraMissingTitle:'Undefined / Not Yet Onboarded', extraMissingEmptyNote:'No accounts missing from the Employee list', colOrgPath:'Org Structure',
+      extraMissingTitle:'Undefined / Not Yet Onboarded', extraMissingEmptyNote:'No accounts missing from the Employee list',
       addChildTitle:'Add sub-department', reorderHandleTitle:'Drag to reorder among sibling departments', tabStructure:'Edit type', tabRole:'Roles', tabRoster:'Team roster',
       transferModalTitle:'Transfer employee', fieldEmployee:'Employee', searchEmpPlaceholder:'Search by name or EID…',
       fieldTargetOrg:'Target org unit', searchOrgPlaceholder:'Search target department…', cancelBtn:'Cancel', confirmTransferBtn:'Confirm transfer',
@@ -2026,19 +2026,23 @@
   // only what changed this session. EID is kept here specifically since it's the join key back to
   // BIPO once someone goes and adds the missing record.
   function computeMissingExtraPeople(){
+    var entries = mergedLogForDisplay();
+    var replayed = replayAll(entries, pristineNodes, pristineEmployees);
     return extraPeople.filter(function(p){ return p.kind==='pending' || p.kind==='missing'; }).map(function(p){
-      return {id:p.id, name:p.name, path:pathLabel(p.nodeId), status:p.status||''};
+      return {id:p.id, name:p.name, oldPath:pathLabelIn(pristineNodes, p.nodeId), newPath:pathLabelIn(replayed.nodes, p.nodeId), status:p.status||''};
     });
   }
   function renderMissingListInto(bodyId, list){
     var body = document.getElementById(bodyId);
     if(!list.length){ body.innerHTML = '<tr><td colspan="4" class="empty-note">'+escapeHtml(t('extraMissingEmptyNote'))+'</td></tr>'; return; }
     body.innerHTML = list.map(function(p){
-      return '<tr><td class="mono">'+escapeHtml(p.id)+'</td><td>'+escapeHtml(p.name)+'</td><td>'+escapeHtml(p.path)+'</td><td>'+escapeHtml(p.status)+'</td></tr>';
+      return '<tr><td class="mono">'+escapeHtml(p.id)+'</td><td>'+escapeHtml(p.name)+'</td>'+
+        '<td><div class="path-old">'+escapeHtml(p.oldPath)+'</div><div class="path-new">'+escapeHtml(p.newPath)+'</div></td>'+
+        '<td>'+escapeHtml(p.status)+'</td></tr>';
     }).join('');
   }
   function missingCsvRows(list){
-    return [['EID', 'Name', 'Org Structure', 'Status']].concat(list.map(function(p){ return [p.id, p.name, p.path, p.status]; }));
+    return [['EID', 'Name', 'Old Org Path', 'New Org Path', 'Status']].concat(list.map(function(p){ return [p.id, p.name, p.oldPath, p.newPath, p.status]; }));
   }
   function renderExtraView(){
     var tabBtn = document.getElementById('viewExtraBtn');
