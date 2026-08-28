@@ -39,7 +39,6 @@
           <button data-view="chart" class="active" data-i18n="viewChart">组织架构图</button>
           <button data-view="changelog" id="viewChangelogBtn"><span data-i18n="changeLogTitle">变更记录</span> (<span id="viewChangelogCount">0</span>)</button>
           <button data-view="unassigned" id="viewUnassignedBtn" style="display:none;"><span data-i18n="viewUnassigned">待安置员工</span> (<span id="viewUnassignedCount">0</span>)</button>
-          <button data-view="extra" id="viewExtraBtn" style="display:none;" data-i18n="viewExtra">顾问/公共账户</button>
           <button data-view="admin" id="viewAdminBtn" style="display:none;" data-i18n="viewAdmin">管理员</button>
         </div>
       </div>
@@ -108,45 +107,44 @@
 
   <div class="panel" id="unassignedView" style="display:none;">
     <div class="panel-head">
-      <h2 data-i18n="unassignedTitle">待安置员工</h2>
+      <div class="seg" id="extraSubNav">
+        <button type="button" data-sub="unassigned" class="active" data-i18n="extraSubUnassigned">待安置员工</button>
+        <button type="button" data-sub="consultant" data-i18n="extraSubConsultant">顾问</button>
+        <button type="button" data-sub="shared" data-i18n="extraSubShared">公共账号</button>
+        <button type="button" data-sub="pending" data-i18n="extraSubPending">未入职</button>
+        <button type="button" data-sub="undefined" data-i18n="extraSubUndefined">未定义</button>
+      </div>
       <span class="count mono" id="unassignedCount">0</span>
     </div>
     <div class="panel-body">
-      <div class="scroll-table unassigned-scroll">
-        <table class="emptbl">
-          <thead><tr>
-            <th style="width:80px;">EID</th>
-            <th data-i18n="colName">姓名</th>
-            <th data-i18n="colDivision">Division</th>
-            <th data-i18n="colBusinessUnit">Business Unit</th>
-            <th data-i18n="colDepartment">Department</th>
-            <th data-i18n="colTeam">Team</th>
-            <th data-i18n="colSubTeam">Sub Team</th>
-            <th data-i18n="colSection">Section</th>
-            <th data-i18n="colStatus">Status</th>
-            <th data-i18n="role_hrbp1">HRBP1</th>
-            <th data-i18n="role_hrbp2">HRBP2</th>
-            <th data-i18n="colHrbpLead">HRBP Lead</th>
-            <th data-i18n="colReportsTo">汇报对象</th>
-            <th style="width:280px;" data-i18n="fieldTargetOrg">目标组织架构</th>
-            <th style="width:80px;"></th>
-          </tr></thead>
-          <tbody id="unassignedBody"></tbody>
-        </table>
-      </div>
-    </div>
-  </div>
-
-  <div class="admin-layout" id="extraView" style="display:none; grid-template-columns:1fr 1fr 1fr;">
-    <div class="panel">
-      <div class="panel-head">
-        <h2 data-i18n="extraConsultantTitle">顾问</h2>
-        <span class="count mono" id="extraConsultantCount">0</span>
-      </div>
-      <div class="panel-body">
-        <div class="scroll-table" style="max-height:calc(100vh - 260px);">
+      <div id="subViewUnassigned">
+        <div class="scroll-table unassigned-scroll">
           <table class="emptbl">
-            <thead><tr><th data-i18n="colName">姓名</th><th data-i18n="colPathChange">原组织架构 → 新组织架构</th></tr></thead>
+            <thead><tr>
+              <th style="width:80px;">EID</th>
+              <th data-i18n="colName">姓名</th>
+              <th data-i18n="colDivision">Division</th>
+              <th data-i18n="colBusinessUnit">Business Unit</th>
+              <th data-i18n="colDepartment">Department</th>
+              <th data-i18n="colTeam">Team</th>
+              <th data-i18n="colSubTeam">Sub Team</th>
+              <th data-i18n="colSection">Section</th>
+              <th data-i18n="colStatus">Status</th>
+              <th data-i18n="role_hrbp1">HRBP1</th>
+              <th data-i18n="role_hrbp2">HRBP2</th>
+              <th data-i18n="colHrbpLead">HRBP Lead</th>
+              <th data-i18n="colReportsTo">汇报对象</th>
+              <th style="width:280px;" data-i18n="fieldTargetOrg">目标组织架构</th>
+              <th style="width:80px;"></th>
+            </tr></thead>
+            <tbody id="unassignedBody"></tbody>
+          </table>
+        </div>
+      </div>
+      <div id="subViewConsultant" style="display:none;">
+        <div class="scroll-table unassigned-scroll">
+          <table class="emptbl">
+            <thead><tr><th data-i18n="colName">姓名</th><th data-i18n="colPathChange">原组织架构 → 新组织架构</th><th style="width:280px;" data-i18n="fieldTargetOrg">目标组织架构</th><th style="width:80px;"></th></tr></thead>
             <tbody id="extraConsultantBody"></tbody>
           </table>
         </div>
@@ -154,16 +152,10 @@
           <button class="btn primary" id="downloadExtraConsultantBtn" data-i18n="downloadCsvBtn">下载 CSV</button>
         </div>
       </div>
-    </div>
-    <div class="panel">
-      <div class="panel-head">
-        <h2 data-i18n="extraSharedTitle">公共账户</h2>
-        <span class="count mono" id="extraSharedCount">0</span>
-      </div>
-      <div class="panel-body">
-        <div class="scroll-table" style="max-height:calc(100vh - 260px);">
+      <div id="subViewShared" style="display:none;">
+        <div class="scroll-table unassigned-scroll">
           <table class="emptbl">
-            <thead><tr><th data-i18n="colName">姓名</th><th data-i18n="colPathChange">原组织架构 → 新组织架构</th></tr></thead>
+            <thead><tr><th data-i18n="colName">姓名</th><th data-i18n="colPathChange">原组织架构 → 新组织架构</th><th style="width:280px;" data-i18n="fieldTargetOrg">目标组织架构</th><th style="width:80px;"></th></tr></thead>
             <tbody id="extraSharedBody"></tbody>
           </table>
         </div>
@@ -171,21 +163,26 @@
           <button class="btn primary" id="downloadExtraSharedBtn" data-i18n="downloadCsvBtn">下载 CSV</button>
         </div>
       </div>
-    </div>
-    <div class="panel">
-      <div class="panel-head">
-        <h2 data-i18n="extraMissingTitle">未定义员工或未入职</h2>
-        <span class="count mono" id="extraMissingCount">0</span>
-      </div>
-      <div class="panel-body">
-        <div class="scroll-table" style="max-height:calc(100vh - 260px);">
+      <div id="subViewPending" style="display:none;">
+        <div class="scroll-table unassigned-scroll">
           <table class="emptbl">
-            <thead><tr><th style="width:80px;">EID</th><th data-i18n="colName">姓名</th><th data-i18n="colPathChange">原组织架构 → 新组织架构</th><th data-i18n="colStatus">Status</th></tr></thead>
-            <tbody id="extraMissingBody"></tbody>
+            <thead><tr><th style="width:80px;">EID</th><th data-i18n="colName">姓名</th><th data-i18n="colPathChange">原组织架构 → 新组织架构</th><th style="width:280px;" data-i18n="fieldTargetOrg">目标组织架构</th><th style="width:80px;"></th></tr></thead>
+            <tbody id="extraPendingBody"></tbody>
           </table>
         </div>
         <div class="btn-row" style="margin-top:10px;">
-          <button class="btn primary" id="downloadExtraMissingBtn" data-i18n="downloadCsvBtn">下载 CSV</button>
+          <button class="btn primary" id="downloadExtraPendingBtn" data-i18n="downloadCsvBtn">下载 CSV</button>
+        </div>
+      </div>
+      <div id="subViewUndefined" style="display:none;">
+        <div class="scroll-table unassigned-scroll">
+          <table class="emptbl">
+            <thead><tr><th style="width:80px;">EID</th><th data-i18n="colName">姓名</th><th data-i18n="colPathChange">原组织架构 → 新组织架构</th><th style="width:280px;" data-i18n="fieldTargetOrg">目标组织架构</th><th style="width:80px;"></th></tr></thead>
+            <tbody id="extraUndefinedBody"></tbody>
+          </table>
+        </div>
+        <div class="btn-row" style="margin-top:10px;">
+          <button class="btn primary" id="downloadExtraUndefinedBtn" data-i18n="downloadCsvBtn">下载 CSV</button>
         </div>
       </div>
     </div>
@@ -362,7 +359,7 @@
 
 <div class="toast" id="toast"></div>
 
-<script src="js/app.js?v=20260817-22"></script>
+<script src="js/app.js?v=20260828-1"></script>
 
 </body>
 </html>

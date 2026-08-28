@@ -41,7 +41,7 @@
       loggedInAs:'已登录：', logoutBtn:'退出',
       snapshotLabel:'数据快照时间：', refreshBtn:'刷新数据', refreshBtnLoading:'刷新中…',
       searchPlaceholder:'搜索组织架构名称…', searchEmpNamePlaceholder:'搜索员工姓名…', focusPrefix:'聚焦于「', focusSuffix:'」',
-      globalTransferBtn:'转移员工', viewChart:'组织架构图', viewUnassigned:'待安置员工', viewExtra:'顾问/公共账户',
+      globalTransferBtn:'转移员工', viewChart:'组织架构图', viewUnassigned:'待安置员工',
       expandAllBtn:'全部展开', collapseAllBtn:'全部折叠', expandTitle:'展开', collapseTitle:'折叠',
       refreshEditsBtn:'刷新编辑', refreshEditsBtnLoading:'刷新中…', toastEditsRefreshed:'已拉取最新的变更记录', toastEditsRefreshFailed:'拉取变更记录失败',
       refreshEditsConfirmDiscard:'你还有尚未同步的本地编辑草稿，刷新会丢弃这些草稿（已同步的变更不受影响）。确定继续吗？',
@@ -55,8 +55,11 @@
       colDivision:'Division', colBusinessUnit:'Business Unit', colDepartment:'Department', colTeam:'Team', colSubTeam:'Sub Team', colSection:'Section', colStatus:'Status', colHrbpLead:'HRBP Lead',
       empEmptyNote:'还没有员工受影响',
       unassignedTitle:'待安置员工', unassignedEmptyNote:'暂无待安置员工', unassignedTransferBtn:'转移',
-      extraConsultantTitle:'顾问', extraSharedTitle:'公共账户', extraEmptyNote:'暂无因组织调整而受影响的记录',
-      extraMissingTitle:'未定义员工或未入职', extraMissingEmptyNote:'暂无花名册缺失的账号',
+      extraSubUnassigned:'待安置员工', extraSubConsultant:'顾问', extraSubShared:'公共账号', extraSubPending:'未入职', extraSubUndefined:'未定义',
+      extraConsultantTitle:'顾问', extraConsultantEmptyNote:'暂无顾问账号',
+      extraSharedTitle:'公共账号', extraSharedEmptyNote:'暂无公共账号',
+      extraPendingTitle:'未入职', extraPendingEmptyNote:'暂无未入职账号',
+      extraUndefinedTitle:'未定义', extraUndefinedEmptyNote:'暂无未定义账号',
       addChildTitle:'新增子部门', reorderHandleTitle:'按住拖动可调整同级部门的显示顺序', tabStructure:'编辑类型', tabRole:'变更角色', tabRoster:'下辖员工名单',
       transferModalTitle:'转移员工', fieldEmployee:'员工', searchEmpPlaceholder:'搜索姓名或 EID…',
       fieldTargetOrg:'目标组织架构', searchOrgPlaceholder:'搜索目标部门…', cancelBtn:'取消', confirmTransferBtn:'确认转移',
@@ -71,7 +74,7 @@
       transferSelectedBtn:function(n){ return '转移已选员工（' + n + '）'; },
       reportsToPrefix:' · 汇报对象：',
       nowAtPrefix:' — 现在：',
-      extraPersonSuffix:{consultant:' (consultant)', shared:' (shared account)', pending:' (pending onboarding)', missing:' (not in Employee List)'},
+      extraPersonSuffix:{consultant:' (consultant)', shared:' (shared account)', pending:' (pending onboarding)', undefined:' (undefined)'},
       matchLabel:function(eid){ return eid; },
 
       dragHint:function(name){ return '提示：也可以直接在图上把「' + name + '」拖到目标部门上完成移动；卡片右下角的 ⠿ 图标可以拖动调整同级部门的显示顺序（仅保存在本地浏览器）。'; },
@@ -113,9 +116,10 @@
 
       role_pic:'PIC', role_hrbp1:'HRBP1', role_hrbp2:'HRBP2', role_hrbpLead:'HRBP Lead', role_da:'Department Assistant', role_reportsTo:'Reports-to',
 
-      logType:{ rename:'重命名', move:'移动', add:'新增', emp_transfer:'员工调动', delete:'删除', undo_delete:'撤销删除', role_change:'角色变更', role_cascade:'角色批量应用', report_change:'汇报关系变更' },
+      logType:{ rename:'重命名', move:'移动', add:'新增', emp_transfer:'员工调动', extra_transfer:'人员调动', delete:'删除', undo_delete:'撤销删除', role_change:'角色变更', role_cascade:'角色批量应用', report_change:'汇报关系变更' },
       logDetail:{
         rename: function(p){ return '「' + p.from + '」→「' + p.to + '」'; },
+        extra_transfer: function(p){ return p.name + '：「' + p.from + '」→「' + p.to + '」'; },
         move: function(p){ return p.name + '：「' + p.from + '」→「' + p.to + '」' + (p.reportsInfo ? '（负责人直属上级：「' + (p.reportsInfo.reportsToBefore||STR.zh.empty) + '」→「' + p.reportsInfo.reportsToAfter + '」）' : ''); },
         add: function(p){ return '「' + p.name + '」新增于「' + p.parent + '」下' + (p.roleBits.length ? '（' + p.roleBits.join('，') + '）' : ''); },
         emp_transfer: function(p){ return p.name + '（' + p.eid + '）：「' + p.from + '」→「' + p.to + '」' + (p.reportsToAfter ? '，直属上级「' + (p.reportsToBefore||STR.zh.empty) + '」→「' + p.reportsToAfter + '」' : ''); },
@@ -167,7 +171,7 @@
       loggedInAs:'Signed in as: ', logoutBtn:'Sign out',
       snapshotLabel:'Data snapshot: ', refreshBtn:'Refresh data', refreshBtnLoading:'Refreshing…',
       searchPlaceholder:'Search org unit name…', searchEmpNamePlaceholder:'Search employee name…', focusPrefix:'Focused on "', focusSuffix:'"',
-      globalTransferBtn:'Transfer employee', viewChart:'Org Chart', viewUnassigned:'Unassigned', viewExtra:'Consultants/Shared Accounts',
+      globalTransferBtn:'Transfer employee', viewChart:'Org Chart', viewUnassigned:'Unassigned',
       expandAllBtn:'Expand All', collapseAllBtn:'Collapse All', expandTitle:'Expand', collapseTitle:'Collapse',
       refreshEditsBtn:'Refresh edits', refreshEditsBtnLoading:'Refreshing…', toastEditsRefreshed:'Pulled the latest change log', toastEditsRefreshFailed:'Failed to pull the change log',
       refreshEditsConfirmDiscard:"You have local edits that haven't been synced yet — refreshing will discard them (already-synced changes are unaffected). Continue?",
@@ -181,8 +185,11 @@
       colDivision:'Division', colBusinessUnit:'Business Unit', colDepartment:'Department', colTeam:'Team', colSubTeam:'Sub Team', colSection:'Section', colStatus:'Status', colHrbpLead:'HRBP Lead',
       empEmptyNote:'No employees affected yet',
       unassignedTitle:'Unassigned employees', unassignedEmptyNote:'No unassigned employees', unassignedTransferBtn:'Transfer',
-      extraConsultantTitle:'Consultants', extraSharedTitle:'Shared Accounts', extraEmptyNote:'No records affected by an org change yet',
-      extraMissingTitle:'Undefined / Not Yet Onboarded', extraMissingEmptyNote:'No accounts missing from the Employee list',
+      extraSubUnassigned:'Unassigned', extraSubConsultant:'Consultants', extraSubShared:'Shared Accounts', extraSubPending:'Pending Onboard', extraSubUndefined:'Undefined',
+      extraConsultantTitle:'Consultants', extraConsultantEmptyNote:'No consultant accounts',
+      extraSharedTitle:'Shared Accounts', extraSharedEmptyNote:'No shared accounts',
+      extraPendingTitle:'Pending Onboard', extraPendingEmptyNote:'No pending-onboard accounts',
+      extraUndefinedTitle:'Undefined', extraUndefinedEmptyNote:'No undefined accounts',
       addChildTitle:'Add sub-department', reorderHandleTitle:'Drag to reorder among sibling departments', tabStructure:'Edit type', tabRole:'Roles', tabRoster:'Team roster',
       transferModalTitle:'Transfer employee', fieldEmployee:'Employee', searchEmpPlaceholder:'Search by name or EID…',
       fieldTargetOrg:'Target org unit', searchOrgPlaceholder:'Search target department…', cancelBtn:'Cancel', confirmTransferBtn:'Confirm transfer',
@@ -197,7 +204,7 @@
       transferSelectedBtn:function(n){ return 'Transfer selected (' + n + ')'; },
       reportsToPrefix:' · Direct Manager: ',
       nowAtPrefix:' — currently: ',
-      extraPersonSuffix:{consultant:' (consultant)', shared:' (shared account)', pending:' (pending onboarding)', missing:' (not in Employee List)'},
+      extraPersonSuffix:{consultant:' (consultant)', shared:' (shared account)', pending:' (pending onboarding)', undefined:' (undefined)'},
       matchLabel:function(eid){ return eid; },
 
       dragHint:function(name){ return 'Tip: you can also drag "' + name + '" onto a target department on the chart to move it; drag the ⠿ handle in a card\'s bottom-right corner to reorder among sibling departments (saved to this browser only).'; },
@@ -239,9 +246,10 @@
 
       role_pic:'PIC', role_hrbp1:'HRBP1', role_hrbp2:'HRBP2', role_hrbpLead:'HRBP Lead', role_da:'Department Assistant', role_reportsTo:'Direct Manager',
 
-      logType:{ rename:'Rename', move:'Transfer Org', add:'Add', emp_transfer:'Transfer Emp', delete:'Delete', undo_delete:'Undo delete', role_change:'Role change', role_cascade:'Role cascade', report_change:'Reporting line' },
+      logType:{ rename:'Rename', move:'Transfer Org', add:'Add', emp_transfer:'Transfer Emp', extra_transfer:'Transfer Person', delete:'Delete', undo_delete:'Undo delete', role_change:'Role change', role_cascade:'Role cascade', report_change:'Reporting line' },
       logDetail:{
         rename: function(p){ return '"' + p.from + '" → "' + p.to + '"'; },
+        extra_transfer: function(p){ return p.name + ': "' + p.from + '" → "' + p.to + '"'; },
         move: function(p){ return p.name + ': "' + p.from + '" → "' + p.to + '"' + (p.reportsInfo ? ' (PIC\'s reports-to: "' + (p.reportsInfo.reportsToBefore||STR.en.empty) + '" → "' + p.reportsInfo.reportsToAfter + '")' : ''); },
         add: function(p){ return '"' + p.name + '" added under "' + p.parent + '"' + (p.roleBits.length ? ' (' + p.roleBits.join(', ') + ')' : ''); },
         emp_transfer: function(p){ return p.name + ' (' + p.eid + '): "' + p.from + '" → "' + p.to + '"' + (p.reportsToAfter ? ', reports-to "' + (p.reportsToBefore||STR.en.empty) + '" → "' + p.reportsToAfter + '"' : ''); },
@@ -304,11 +312,18 @@
   var rootId = 'root';
 
   var nodes, employees, log, selectedId, viewRootId, orientation, logSeq, tempCounter, dragSrcId, dragMode, pendingEdit, activeTab, createDraft, rosterSelected, rosterBulkTarget, gmodalEmp, gmodalOrg, snapshotAt, unassignedId, unassignedTargets, collapsed, zoomPct;
-  // Consultants and shared/function accounts — visible in a department's roster for reference
-  // only. Deliberately kept out of `employees` everywhere: rollupHeadcount, CSV exports, and the
-  // Affected Employees/Unassigned views only ever read `employees`, so this list never touches
-  // any of that by construction, not by extra filtering at each call site.
+  // Consultants and shared/function accounts — visible in a department's roster for reference,
+  // and (via commitExtraTransfer/extra_transfer log entries) directly movable between departments
+  // from the 待安置员工 tab's sub-views. Deliberately kept out of `employees` everywhere:
+  // rollupHeadcount, CSV exports, and the Affected Employees/Unassigned views only ever read
+  // `employees`, so this list never touches any of that by construction, not by extra filtering
+  // at each call site.
   var extraPeople = [];
+  // Which of the 5 sub-views (unassigned/consultant/shared/pending/undefined) is showing inside
+  // the merged 待安置员工 tab, and each sub-view's own pending transfer-target picks (keyed by
+  // person id, shared across all four extraPeople kinds since ids are unique regardless of kind).
+  var activeExtraSubview = 'unassigned';
+  var extraTargets = {};
   // Other users' edits, pulled on demand from the shared "Change Log" Base table (never touched
   // by init()/the "刷新数据" refresh, which only re-reads the 3 org-source tables). Display-only —
   // CSV export still reads `log` alone, since it needs live local node state to build correct diffs.
@@ -316,7 +331,7 @@
   // Untouched copy of nodes/employees exactly as loaded, before this session's own edits mutate
   // the live `nodes`/`employees` in place. This is the baseline the cross-user combined CSV
   // replays everyone's shared history onto — never mutated after being set in init()/applyCombinedReplay().
-  var pristineNodes, pristineEmployees;
+  var pristineNodes, pristineEmployees, pristineExtraPeople;
 
   // ---------- local persistence ----------
   // Deliberately no localStorage persistence: a browser refresh or a "刷新编辑" click always
@@ -398,6 +413,12 @@
           if(fallback) p.nodeId = fallback.id;
         });
         extraPeople = extraPeople.filter(function(p){ return p.nodeId; });
+        // Independent copy, same rationale as pristineNodes/pristineEmployees above — captured
+        // after the BoD-fallback resolution so a person's baseline nodeId is whatever they
+        // actually resolved to, not the placeholder null a still-unresolved BoD row started with.
+        pristineExtraPeople = JSON.parse(JSON.stringify(extraPeople));
+        extraTargets = {};
+        activeExtraSubview = 'unassigned';
         unassignedId = data.unassignedId || null;
         unassignedTargets = {};
         // Default view: root + its direct children expanded, everything deeper starts
@@ -664,6 +685,10 @@
       var e = employees.filter(function(x){ return x.eid===l.params.eid; })[0];
       return !!e && !!l.params.toId && e.nodeId===l.params.toId;
     }
+    if(l.typeKey==='extra_transfer'){
+      var ep = extraPeople.filter(function(x){ return x.id===l.params.id; })[0];
+      return !!ep && !!l.params.toId && ep.nodeId===l.params.toId;
+    }
     return false;
   }
   // Drops the exact clicked entry from wherever it currently lives (local `log` if made this
@@ -713,6 +738,10 @@
         commitEmployeeTransfer(e, l.params.fromId, true);
         dropAndRetract(l);
       }
+    }
+    else if(l.typeKey==='extra_transfer'){
+      var ep = extraPeople.filter(function(x){ return x.id===l.params.id; })[0];
+      if(ep && l.params.fromId){ ep.nodeId = l.params.fromId; dropAndRetract(l); }
     }
   }
   function formatLogType(entry){ return t('logType')[entry.typeKey] || entry.typeKey; }
@@ -848,6 +877,18 @@
     if(reportsSynced) emp.reportsTo = newSupervisor;
     if(!silent) addLog('emp_transfer', {name:emp.name, eid:emp.eid, from:fromNode.name, to:toNode.name, fromId:fromNode.id, toId:toNode.id,
       reportsToBefore: reportsSynced ? reportsToBefore : null, reportsToAfter: reportsSynced ? newSupervisor : null});
+    return true;
+  }
+  // Consultants/shared accounts/pending-onboard/undefined Lark Users can be moved directly between
+  // departments from their tab, same interaction as unassigned employees — but there's no reports-to
+  // to sync (extraPeople never carries one) and no headcount/CSV exposure by construction (extraPeople
+  // is never merged into `employees`, so this stays invisible to computeImpacted and every CSV export).
+  function commitExtraTransfer(p, targetId){
+    var fromNode = getNode(p.nodeId);
+    var toNode = getNode(targetId);
+    if(!toNode || targetId===p.nodeId) return false;
+    p.nodeId = targetId;
+    addLog('extra_transfer', {id:p.id, name:p.name, from:fromNode.name, to:toNode.name, fromId:fromNode.id, toId:toNode.id});
     return true;
   }
   // Deleting a department with sub-departments now cascades: the whole subtree (n + all live
@@ -1613,11 +1654,16 @@
   // also re-fetches a fresher pristine baseline first).
   function applyCombinedReplay(){
     var entries = mergedLogForDisplay();
-    var replayed = replayAll(entries, pristineNodes, pristineEmployees);
+    var replayed = replayAll(entries, pristineNodes, pristineEmployees, pristineExtraPeople);
     var replayedByEid = {}; replayed.employees.forEach(function(e){ replayedByEid[e.eid] = e; });
     employees.forEach(function(e){
       var re = replayedByEid[e.eid];
       if(re){ e.nodeId = re.nodeId; e.reportsTo = re.reportsTo; }
+    });
+    var replayedExtraById = {}; replayed.extraPeople.forEach(function(p){ replayedExtraById[p.id] = p; });
+    extraPeople.forEach(function(p){
+      var rp = replayedExtraById[p.id];
+      if(rp) p.nodeId = rp.nodeId;
     });
     nodes = replayed.nodes;
     if(!getNode(viewRootId) || getNode(viewRootId).flags.isDeleted) viewRootId = rootId;
@@ -1791,7 +1837,7 @@
         var entry = entries[idx];
         if(!entry) return;
         undoLogEntry(entry);
-        renderTree(); renderLog(); renderEmployees(); renderUnassigned(); renderPanel();
+        renderTree(); renderLog(); renderEmployees(); renderUnassignedAndExtra(); renderPanel();
       });
     });
   }
@@ -1841,12 +1887,14 @@
   // the pristine baseline, in chronological order, to reconstruct everyone's combined final
   // state. This is what makes "1 person, 3 steps" and "3 people, 1 step each" produce the exact
   // same result: only the final before/after matters, not how many entries got there.
-  function replayAll(entries, baseNodes, baseEmployees){
+  function replayAll(entries, baseNodes, baseEmployees, baseExtraPeople){
     var workNodes = JSON.parse(JSON.stringify(baseNodes));
     var workEmployees = JSON.parse(JSON.stringify(baseEmployees));
+    var workExtraPeople = JSON.parse(JSON.stringify(baseExtraPeople||[]));
     function wGetNode(id){ for(var i=0;i<workNodes.length;i++) if(workNodes[i].id===id) return workNodes[i]; return null; }
     function wGetNodeByName(name){ for(var i=0;i<workNodes.length;i++) if(!workNodes[i].flags.isDeleted && workNodes[i].name===name) return workNodes[i]; return null; }
     function wGetEmp(eid){ for(var i=0;i<workEmployees.length;i++) if(workEmployees[i].eid===eid) return workEmployees[i]; return null; }
+    function wGetExtra(id){ for(var i=0;i<workExtraPeople.length;i++) if(workExtraPeople[i].id===id) return workExtraPeople[i]; return null; }
 
     entries.forEach(function(l){
       var p = l.params || {};
@@ -1905,9 +1953,13 @@
         }
       } else if(l.typeKey==='report_change'){
         var e = wGetEmp(l.key); if(e) e.reportsTo = p.to;
+      } else if(l.typeKey==='extra_transfer'){
+        var ep = wGetExtra(p.id);
+        var extraTarget = p.toId ? wGetNode(p.toId) : null;
+        if(ep && extraTarget) ep.nodeId = extraTarget.id;
       }
     });
-    return {nodes:workNodes, employees:workEmployees};
+    return {nodes:workNodes, employees:workEmployees, extraPeople:workExtraPeople};
   }
   function renderLog(){
     var merged = mergedLogForDisplay();
@@ -1960,21 +2012,10 @@
     renderEmployeesInto('changelogEmpBody', impacted);
   }
 
-  function renderUnassigned(){
-    var tabBtn = document.getElementById('viewUnassignedBtn');
-    var node = unassignedId ? getNode(unassignedId) : null;
-    if(!node){
-      tabBtn.style.display = 'none';
-      if(tabBtn.classList.contains('active')) switchView('chart');
-      return;
-    }
-    tabBtn.style.display = '';
-    var list = employees.filter(function(e){ return e.nodeId===unassignedId; });
-    document.getElementById('viewUnassignedCount').textContent = list.length;
-    document.getElementById('unassignedCount').textContent = list.length;
+  function renderUnassignedSub(node, list){
     var body = document.getElementById('unassignedBody');
     if(!list.length){ body.innerHTML = '<tr><td colspan="14" class="empty-note">'+escapeHtml(t('unassignedEmptyNote'))+'</td></tr>'; return; }
-    var targets = nodes.filter(function(x){ return x.id!==unassignedId && !x.flags.isDeleted; });
+    var targets = nodes.filter(function(x){ return x.id!==(node?node.id:null) && !x.flags.isDeleted; });
     function cell(v){ return '<td>'+(v?escapeHtml(v):'')+'</td>'; }
     body.innerHTML = list.map(function(e){
       return '<tr data-eid="'+e.eid+'">'+
@@ -1999,97 +2040,131 @@
         commitEmployeeTransfer(emp, target);
         delete unassignedTargets[eid];
         toast(t('toastTransferredName')(emp.name));
-        renderTree(); renderLog(); renderEmployees(); renderUnassigned();
+        renderTree(); renderLog(); renderEmployees(); renderUnassignedAndExtra();
       });
     });
   }
 
-  // Consultants and shared accounts don't get individually transferred inside this tool (no
-  // emp_transfer entries ever target them) — the only thing that can move them is their fixed
-  // department itself being renamed/moved elsewhere in this session's (or others', via "刷新编辑")
-  // plan, exactly like the Affected Employees table tracks for real employees. Only rows that
-  // actually changed are worth showing here — the point is a work list of who still needs their
-  // Lark record updated to match, not a full directory.
-  function computeAffectedExtraPeople(kind){
+  // Full roster for a given extraPeople kind (not just changed rows) — every one of the four
+  // kinds is now a place people can be picked up and moved from directly (commitExtraTransfer),
+  // so the table doubles as both a directory and the transfer UI, same pattern as 待安置员工's own
+  // table. Old/new path is diffed against pristineExtraPeople (this session's own load-time
+  // baseline) replayed through the shared history the same way employees/nodes are, so a person
+  // shows their real before/after even after a direct transfer, a department rename, or both.
+  function computeExtraKindRows(kind){
     var entries = mergedLogForDisplay();
-    var replayed = replayAll(entries, pristineNodes, pristineEmployees);
-    return extraPeople.filter(function(p){ return p.kind===kind; }).map(function(p){
-      var oldPath = pathLabelIn(pristineNodes, p.nodeId);
-      var newPath = pathLabelIn(replayed.nodes, p.nodeId);
-      if(oldPath===newPath) return null;
-      return {id:p.id, name:p.name, oldPath:oldPath, newPath:newPath};
-    }).filter(Boolean);
-  }
-  // No EID column here on purpose (per request) — these two tables are a change work-list, not
-  // an identity lookup, and most shared accounts don't carry a real EID anyway.
-  function renderExtraListInto(bodyId, list){
-    var body = document.getElementById(bodyId);
-    if(!list.length){ body.innerHTML = '<tr><td colspan="2" class="empty-note">'+escapeHtml(t('extraEmptyNote'))+'</td></tr>'; return; }
-    body.innerHTML = list.map(function(p){
-      return '<tr><td>'+escapeHtml(p.name)+'</td>'+
-        '<td><div class="path-old">'+escapeHtml(p.oldPath)+'</div><div class="path-new">'+escapeHtml(p.newPath)+'</div></td></tr>';
-    }).join('');
-  }
-  function extraCsvRows(list){
-    return [['Name', 'Old Org Path', 'New Org Path']].concat(list.map(function(p){ return [p.name, p.oldPath, p.newPath]; }));
-  }
-  // Unlike the two tables above, this isn't a change work-list — it's a data-quality list (every
-  // Lark account that looks like a real hire but has no Employee list/BIPO record at all, active
-  // or not-yet-onboarded alike), so it always shows everything currently in that state rather than
-  // only what changed this session. EID is kept here specifically since it's the join key back to
-  // BIPO once someone goes and adds the missing record.
-  function computeMissingExtraPeople(){
-    var entries = mergedLogForDisplay();
-    var replayed = replayAll(entries, pristineNodes, pristineEmployees);
-    return extraPeople.filter(function(p){ return p.kind==='pending' || p.kind==='missing'; }).map(function(p){
-      return {id:p.id, name:p.name, oldPath:pathLabelIn(pristineNodes, p.nodeId), newPath:pathLabelIn(replayed.nodes, p.nodeId), status:p.status||''};
+    var replayed = replayAll(entries, pristineNodes, pristineEmployees, pristineExtraPeople);
+    var replayedById = {}; replayed.extraPeople.forEach(function(p){ replayedById[p.id] = p; });
+    return pristineExtraPeople.filter(function(p){ return p.kind===kind; }).map(function(pp){
+      var rp = replayedById[pp.id] || pp;
+      return {
+        id: pp.id, name: pp.name, status: pp.status||'',
+        oldPath: pathLabelIn(pristineNodes, pp.nodeId),
+        newPath: pathLabelIn(replayed.nodes, rp.nodeId),
+      };
     });
   }
-  function renderMissingListInto(bodyId, list){
+  // EID column only for pending/undefined (per request) — consultant/shared accounts mostly don't
+  // carry a real EID anyway, and those two tables were already asked to drop it.
+  function renderExtraKindTable(bodyId, list, kind, emptyNoteKey){
     var body = document.getElementById(bodyId);
-    if(!list.length){ body.innerHTML = '<tr><td colspan="4" class="empty-note">'+escapeHtml(t('extraMissingEmptyNote'))+'</td></tr>'; return; }
+    var showEid = kind==='pending' || kind==='undefined';
+    if(!list.length){ body.innerHTML = '<tr><td colspan="'+(showEid?5:4)+'" class="empty-note">'+escapeHtml(t(emptyNoteKey))+'</td></tr>'; return; }
+    var targets = nodes.filter(function(x){ return !x.flags.isDeleted; });
     body.innerHTML = list.map(function(p){
-      return '<tr><td class="mono">'+escapeHtml(p.id)+'</td><td>'+escapeHtml(p.name)+'</td>'+
-        '<td><div class="path-old">'+escapeHtml(p.oldPath)+'</div><div class="path-new">'+escapeHtml(p.newPath)+'</div></td>'+
-        '<td>'+escapeHtml(p.status)+'</td></tr>';
+      var pathCell = p.oldPath===p.newPath
+        ? '<td>'+escapeHtml(p.newPath)+'</td>'
+        : '<td><div class="path-old">'+escapeHtml(p.oldPath)+'</div><div class="path-new">'+escapeHtml(p.newPath)+'</div></td>';
+      return '<tr>'+(showEid ? '<td class="mono">'+escapeHtml(p.id)+'</td>' : '')+
+        '<td>'+escapeHtml(p.name)+'</td>'+pathCell+
+        (canEdit() ? '<td><div class="reassign-picker" data-extra-id="'+escapeHtml(p.id)+'"></div></td><td><button class="btn" type="button" data-extra-transfer-id="'+escapeHtml(p.id)+'">'+escapeHtml(t('unassignedTransferBtn'))+'</button></td>' : '<td></td><td></td>')+
+        '</tr>';
     }).join('');
+    if(!canEdit()) return;
+    body.querySelectorAll('.reassign-picker').forEach(function(el){
+      var id = el.getAttribute('data-extra-id');
+      bindOrgPicker(el, targets, extraTargets[id], function(tid){ extraTargets[id] = tid; }, t('rosterTargetPlaceholder'));
+    });
+    body.querySelectorAll('[data-extra-transfer-id]').forEach(function(btn){
+      btn.addEventListener('click', function(){
+        var id = btn.getAttribute('data-extra-transfer-id');
+        var target = extraTargets[id];
+        if(!target){ toast(t('toastPickTransferTarget')); return; }
+        var person = extraPeople.filter(function(x){ return x.id===id; })[0];
+        if(!person) return;
+        commitExtraTransfer(person, target);
+        delete extraTargets[id];
+        toast(t('toastTransferredName')(person.name));
+        renderTree(); renderLog(); renderUnassignedAndExtra();
+      });
+    });
+  }
+  // No EID column (per request) — Name/Old path/New path only.
+  function extraCsvRows(list){
+    return [['Name', 'Old Org Path', 'New Org Path']].concat(list.map(function(p){ return [p.name, p.oldPath, p.newPath]; }));
   }
   function missingCsvRows(list){
     return [['EID', 'Name', 'Old Org Path', 'New Org Path', 'Status']].concat(list.map(function(p){ return [p.id, p.name, p.oldPath, p.newPath, p.status]; }));
   }
-  function renderExtraView(){
-    var tabBtn = document.getElementById('viewExtraBtn');
-    if(!extraPeople.length){
+  function applyExtraSubviewVisibility(){
+    document.querySelectorAll('#extraSubNav button').forEach(function(b){ b.classList.toggle('active', b.getAttribute('data-sub')===activeExtraSubview); });
+    document.getElementById('subViewUnassigned').style.display = activeExtraSubview==='unassigned' ? '' : 'none';
+    document.getElementById('subViewConsultant').style.display = activeExtraSubview==='consultant' ? '' : 'none';
+    document.getElementById('subViewShared').style.display = activeExtraSubview==='shared' ? '' : 'none';
+    document.getElementById('subViewPending').style.display = activeExtraSubview==='pending' ? '' : 'none';
+    document.getElementById('subViewUndefined').style.display = activeExtraSubview==='undefined' ? '' : 'none';
+  }
+  // Single tab hosting 待安置员工 plus the four Lark-User-classification kinds (顾问/公共账号/未入职/
+  // 未定义), switched via the #extraSubNav segmented control in the panel head — replaces the old
+  // standalone "顾问/公共账户" tab entirely.
+  function renderUnassignedAndExtra(){
+    var tabBtn = document.getElementById('viewUnassignedBtn');
+    var node = unassignedId ? getNode(unassignedId) : null;
+    if(!node && !extraPeople.length){
       tabBtn.style.display = 'none';
       if(tabBtn.classList.contains('active')) switchView('chart');
       return;
     }
     tabBtn.style.display = '';
-    var consultants = computeAffectedExtraPeople('consultant');
-    var shared = computeAffectedExtraPeople('shared');
-    var missing = computeMissingExtraPeople();
-    document.getElementById('extraConsultantCount').textContent = consultants.length;
-    document.getElementById('extraSharedCount').textContent = shared.length;
-    document.getElementById('extraMissingCount').textContent = missing.length;
-    renderExtraListInto('extraConsultantBody', consultants);
-    renderExtraListInto('extraSharedBody', shared);
-    renderMissingListInto('extraMissingBody', missing);
+    var unassignedList = node ? employees.filter(function(e){ return e.nodeId===unassignedId; }) : [];
+    document.getElementById('viewUnassignedCount').textContent = unassignedList.length;
+    renderUnassignedSub(node, unassignedList);
+
+    var consultants = computeExtraKindRows('consultant');
+    var shared = computeExtraKindRows('shared');
+    var pending = computeExtraKindRows('pending');
+    var undef = computeExtraKindRows('undefined');
+    renderExtraKindTable('extraConsultantBody', consultants, 'consultant', 'extraConsultantEmptyNote');
+    renderExtraKindTable('extraSharedBody', shared, 'shared', 'extraSharedEmptyNote');
+    renderExtraKindTable('extraPendingBody', pending, 'pending', 'extraPendingEmptyNote');
+    renderExtraKindTable('extraUndefinedBody', undef, 'undefined', 'extraUndefinedEmptyNote');
+
+    var counts = {unassigned:unassignedList.length, consultant:consultants.length, shared:shared.length, pending:pending.length, undefined:undef.length};
+    document.getElementById('unassignedCount').textContent = counts[activeExtraSubview] || 0;
+    applyExtraSubviewVisibility();
   }
+  document.getElementById('extraSubNav').addEventListener('click', function(ev){
+    var btn = ev.target.closest('button[data-sub]'); if(!btn) return;
+    activeExtraSubview = btn.getAttribute('data-sub');
+    renderUnassignedAndExtra();
+  });
   document.getElementById('downloadExtraConsultantBtn').addEventListener('click', function(){
-    downloadCsv(dateStampedFilename('consultants-affected.csv'), extraCsvRows(computeAffectedExtraPeople('consultant')));
+    downloadCsv(dateStampedFilename('consultants.csv'), extraCsvRows(computeExtraKindRows('consultant')));
   });
   document.getElementById('downloadExtraSharedBtn').addEventListener('click', function(){
-    downloadCsv(dateStampedFilename('shared-accounts-affected.csv'), extraCsvRows(computeAffectedExtraPeople('shared')));
+    downloadCsv(dateStampedFilename('shared-accounts.csv'), extraCsvRows(computeExtraKindRows('shared')));
   });
-  document.getElementById('downloadExtraMissingBtn').addEventListener('click', function(){
-    downloadCsv(dateStampedFilename('missing-from-employee-list.csv'), missingCsvRows(computeMissingExtraPeople()));
+  document.getElementById('downloadExtraPendingBtn').addEventListener('click', function(){
+    downloadCsv(dateStampedFilename('pending-onboard.csv'), missingCsvRows(computeExtraKindRows('pending')));
+  });
+  document.getElementById('downloadExtraUndefinedBtn').addEventListener('click', function(){
+    downloadCsv(dateStampedFilename('undefined-accounts.csv'), missingCsvRows(computeExtraKindRows('undefined')));
   });
 
   function switchView(view){
     document.querySelectorAll('#viewTabs button').forEach(function(b){ b.classList.toggle('active', b.getAttribute('data-view')===view); });
     document.getElementById('chartView').style.display = view==='chart' ? '' : 'none';
     document.getElementById('unassignedView').style.display = view==='unassigned' ? '' : 'none';
-    document.getElementById('extraView').style.display = view==='extra' ? '' : 'none';
     document.getElementById('changelogView').style.display = view==='changelog' ? '' : 'none';
     document.getElementById('adminView').style.display = view==='admin' ? '' : 'none';
     if(view==='admin'){ renderAdmin(); renderEditWindowSettings(); fetchExportWatermark().then(renderExportWatermark); }
@@ -2323,8 +2398,7 @@
     renderTree();
     renderLog();
     renderEmployees();
-    renderUnassigned();
-    renderExtraView();
+    renderUnassignedAndExtra();
     renderPanel();
     var pill = document.getElementById('focusPill');
     if(viewRootId!==rootId){ pill.classList.add('show'); document.getElementById('focusPillText').textContent = t('focusLabel')(getNode(viewRootId).name); }
