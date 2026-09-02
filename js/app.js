@@ -308,7 +308,14 @@
   }
 
   // ---------- live data (fetched from /api/org-data, which reads Lark Base on every call) ----------
+  // personPool: every Lark User identity (PIC picker, unfiltered — unchanged behavior).
+  // activePool: only currently-active Lark Users (Department Assistant picker).
+  // hrbpPool: active Lark Users whose own DeptFullPath sits under Human Resources (HRBP1/HRBP2/
+  // HRBP Lead pickers) — an HRBP is themselves HR staff, so this scopes the picker down from the
+  // whole company to just that branch.
   var personPool = [];
+  var activePool = [];
+  var hrbpPool = [];
   var rootId = 'root';
 
   var nodes, employees, log, selectedId, viewRootId, orientation, logSeq, tempCounter, dragSrcId, dragMode, pendingEdit, activeTab, createDraft, rosterSelected, rosterBulkTarget, gmodalEmp, gmodalOrg, snapshotAt, unassignedId, unassignedTargets, collapsed, zoomPct;
@@ -399,6 +406,8 @@
         pristineNodes = hydrateNodes(data.nodes);
         pristineEmployees = data.employees.map(function(e){ return {eid:e.eid, name:e.name, nodeId:e.nodeId, reportsTo:e.reportsTo||''}; });
         personPool = data.personPool || [];
+        activePool = data.activePool || [];
+        hrbpPool = data.hrbpPool || [];
         extraPeople = data.extraPeople || [];
         // "Group Strategy Center Office" only exists in this session's (or another user's shared)
         // local restructuring plan, never in live Structures — buildOrgData can't resolve it
@@ -1372,8 +1381,9 @@
         row.appendChild(picker);
         var input = picker.querySelector('input');
         var opts = picker.querySelector('.options');
+        var pool = (field==='hrbp1' || field==='hrbp2' || field==='hrbpLead') ? hrbpPool : field==='da' ? activePool : personPool;
         function renderOpts(q){
-          var list = personPool.filter(function(p){ return p.toLowerCase().indexOf((q||'').toLowerCase())>=0; });
+          var list = pool.filter(function(p){ return p.toLowerCase().indexOf((q||'').toLowerCase())>=0; });
           sortByRelevance(list, q, function(p){ return p; });
           list = list.slice(0, SEARCH_RESULT_CAP);
           opts.innerHTML = list.length ? list.map(function(p){ return '<button type="button" data-name="'+escapeHtml(p)+'">'+escapeHtml(p)+'</button>'; }).join('') + '<button type="button" data-name="" style="color:var(--warn-text);">'+escapeHtml(t('clearRoleOption'))+'</button>'
