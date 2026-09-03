@@ -108,7 +108,7 @@
       toastUndoDeleted:'已撤销删除', toastMovePending:'已选定目标，点击"保存"确认这次移动',
       toastReorderDone:'已调整排序（仅保存在本地浏览器）',
       toastTransferredName:function(name){ return '已转移 ' + name; },
-      toastPngFailed:'导出失败，请改用浏览器自带的截图功能', toastPngDone:'已下载 PNG',
+      toastPngDone:'已下载 PNG',
       toastPngError:function(msg){ return '导出失败：' + msg; },
       toastPngNeedsChartView:'请先切换到"组织架构图"页面，再下载', toastPngTooLarge:'组织架构图展开范围太大，已自动缩小导出比例；如仍失败，请先折叠部分分支再试',
       toastPngTooLargeToRead:'展开范围太大，缩小后文字会小到无法辨认，因此未生成图片。请先用左上角搜索框聚焦到某个具体部门（或折叠部分分支）后再导出。',
@@ -239,7 +239,7 @@
       toastUndoDeleted:'Deletion undone', toastMovePending:'Target selected — click "Save" to confirm the move',
       toastReorderDone:'Order updated (saved to this browser only)',
       toastTransferredName:function(name){ return 'Transferred ' + name; },
-      toastPngFailed:'Export failed — please use your browser’s screenshot tool instead', toastPngDone:'PNG downloaded',
+      toastPngDone:'PNG downloaded',
       toastPngError:function(msg){ return 'Export failed: ' + msg; },
       toastPngNeedsChartView:'Switch to the "Org Chart" tab before downloading', toastPngTooLarge:'The expanded chart is very large — export scale was reduced automatically; collapse some branches first if it still fails',
       toastPngTooLargeToRead:"The expanded chart is too large — shrinking it to fit would make the text unreadably small, so no image was generated. Use the search box to focus on a specific department (or collapse some branches) before exporting.",
@@ -2911,34 +2911,51 @@
     });
     return canvas;
   }
-  // Common browsers cap a canvas at roughly 16384px per side (some lower); a fully expanded
-  // chart with thousands of employees can exceed that at the normal 2x export scale, which
-  // makes toBlob silently resolve null instead of throwing. Scale down first if needed.
-  var PNG_MAX_DIM = 14000;
-  // Below this, the scale-down needed just to fit PNG_MAX_DIM shrinks the fixed-size canvas text
-  // (drawn inside the same ctx.scale() as everything else) to a fraction of a raw pixel tall —
-  // technically a valid PNG, but with no readable content at all. Refuse outright in that case
-  // instead of silently handing over a blank-looking image: a company-wide Expand All can reach
-  // scale ~0.04-0.09, which is exactly this case (confirmed with a synthetic 1400+ leaf tree).
+  // The real per-side/area canvas cap varies a lot by browser (desktop Chrome/Firefox commonly
+  // ~16384-32767px per side, mobile Safari far lower) — hardcoding one "safe" constant either
+  // fails charts a capable browser could actually render at full quality (this is exactly what
+  // happened: a hardcoded 14000px cap forced a ~5MB, readable export down to a blurry ~250KB one
+  // that didn't even need shrinking), or still overflows on a browser with a lower real cap.
+  // So instead of guessing, this PROBES: start close to full native resolution and only shrink,
+  // one halving at a time, when the browser itself actually rejects that size (drawChartToCanvas
+  // throwing, or toBlob resolving null) — landing on whatever the largest safely renderable scale
+  // actually is, never sacrificing quality that wasn't necessary to sacrifice.
+  // Below this floor, canvas-drawn text (scaled by the same ctx.scale() as everything else) would
+  // shrink to a fraction of a raw pixel — a technically valid but blank-looking PNG — so give up
+  // and say why instead of handing over an unreadable image.
   var PNG_MIN_LEGIBLE_SCALE = 0.25;
+  function attemptPngExport(scale, everScaledDown){
+    // Checked on every attempt, not just as a retry floor — a starting guess that's already this
+    // small (a company-wide Expand All) would otherwise still succeed technically (the browser
+    // has no trouble rasterizing it) and silently hand over a blank-looking image.
+    if(scale < PNG_MIN_LEGIBLE_SCALE){ toast(t('toastPngTooLargeToRead')); return; }
+    var canvas;
+    try{
+      canvas = drawChartToCanvas(scale);
+    }catch(e){
+      attemptPngExport(scale/2, true);
+      return;
+    }
+    canvas.toBlob(function(blob){
+      if(!blob){ attemptPngExport(scale/2, true); return; }
+      var a = document.createElement('a');
+      a.href = URL.createObjectURL(blob);
+      a.download = dateStampedFilename(LANG==='zh' ? '组织架构图.png' : 'org-chart.png');
+      document.body.appendChild(a); a.click(); document.body.removeChild(a);
+      toast(everScaledDown ? t('toastPngTooLarge') : t('toastPngDone'));
+    }, 'image/png');
+  }
   document.getElementById('downloadPngBtn').addEventListener('click', function(){
     try{
       var wrap = document.getElementById('treeWrap');
       if(!wrap.scrollWidth || !wrap.scrollHeight){ toast(t('toastPngNeedsChartView')); return; }
-      var scale = 2;
+      // Never start above the 2x retina baseline, but also never start so large the first
+      // attempt is a guaranteed, time/memory-wasting failure — cap the opening guess so the long
+      // side tops out around 20000px (comfortably above every common per-side cap), then let real
+      // failures (if any) shrink it from there.
       var longSide = Math.max(wrap.scrollWidth, wrap.scrollHeight);
-      var scaledDown = false;
-      if(longSide*scale > PNG_MAX_DIM){ scale = Math.min(1, PNG_MAX_DIM/longSide); scaledDown = true; }
-      if(scale < PNG_MIN_LEGIBLE_SCALE){ toast(t('toastPngTooLargeToRead')); return; }
-      var canvas = drawChartToCanvas(scale);
-      canvas.toBlob(function(blob){
-        if(!blob){ toast(t('toastPngFailed')); return; }
-        var a = document.createElement('a');
-        a.href = URL.createObjectURL(blob);
-        a.download = dateStampedFilename(LANG==='zh' ? '组织架构图.png' : 'org-chart.png');
-        document.body.appendChild(a); a.click(); document.body.removeChild(a);
-        toast(scaledDown ? t('toastPngTooLarge') : t('toastPngDone'));
-      }, 'image/png');
+      var scale = Math.min(2, 20000/longSide);
+      attemptPngExport(scale, scale < 2);
     }catch(e){
       toast(t('toastPngError')(e.message));
     }
