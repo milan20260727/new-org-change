@@ -2920,7 +2920,7 @@
       var scale = 2;
       var longSide = Math.max(wrap.scrollWidth, wrap.scrollHeight);
       var scaledDown = false;
-      if(longSide*scale > PNG_MAX_DIM){ scale = Math.max(1, PNG_MAX_DIM/longSide); scaledDown = true; }
+      if(longSide*scale > PNG_MAX_DIM){ scale = Math.min(1, PNG_MAX_DIM/longSide); scaledDown = true; }
       var canvas = drawChartToCanvas(scale);
       canvas.toBlob(function(blob){
         if(!blob){ toast(t('toastPngFailed')); return; }
