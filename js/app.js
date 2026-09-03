@@ -108,12 +108,9 @@
       toastUndoDeleted:'已撤销删除', toastMovePending:'已选定目标，点击"保存"确认这次移动',
       toastReorderDone:'已调整排序（仅保存在本地浏览器）',
       toastTransferredName:function(name){ return '已转移 ' + name; },
-      toastPngDone:'已下载 PNG',
+      toastPngFailed:'导出失败，请改用浏览器自带的截图功能', toastPngDone:'已下载 PNG',
       toastPngError:function(msg){ return '导出失败：' + msg; },
       toastPngNeedsChartView:'请先切换到"组织架构图"页面，再下载', toastPngTooLarge:'组织架构图展开范围太大，已自动缩小导出比例；如仍失败，请先折叠部分分支再试',
-      toastPngTooLargeToRead:'展开范围太大，即使按部门拆开也还是看不清，因此未生成文件。请先折叠部分分支，或用左上角搜索框聚焦到更小的部门后再导出。',
-      toastPngBatchDone:function(n){ return '已导出 ' + n + ' 个部门到一份 PDF'; },
-      toastPngBatchPartial:function(p){ return '已导出 ' + p.done + ' 个部门到一份 PDF；以下部门范围仍太大，已跳过：' + p.skipped; },
       deletedPanelNote:'该部门已标记删除。删除时涉及的员工已安置到其他部门；撤销删除会把他们迁回来。',
       undoDeleteBtn:'撤销删除',
 
@@ -241,12 +238,9 @@
       toastUndoDeleted:'Deletion undone', toastMovePending:'Target selected — click "Save" to confirm the move',
       toastReorderDone:'Order updated (saved to this browser only)',
       toastTransferredName:function(name){ return 'Transferred ' + name; },
-      toastPngDone:'PNG downloaded',
+      toastPngFailed:'Export failed — please use your browser’s screenshot tool instead', toastPngDone:'PNG downloaded',
       toastPngError:function(msg){ return 'Export failed: ' + msg; },
       toastPngNeedsChartView:'Switch to the "Org Chart" tab before downloading', toastPngTooLarge:'The expanded chart is very large — export scale was reduced automatically; collapse some branches first if it still fails',
-      toastPngTooLargeToRead:"The expanded chart is too large — even split by department it's still unreadable, so nothing was generated. Collapse some branches, or use the search box to focus on a smaller department, before exporting.",
-      toastPngBatchDone:function(n){ return 'Exported ' + n + ' department(s) into one PDF'; },
-      toastPngBatchPartial:function(p){ return 'Exported ' + p.done + ' department(s) into one PDF; skipped (still too large): ' + p.skipped; },
       deletedPanelNote:'This department is marked as deleted. Employees affected by this deletion were reassigned; undoing the deletion moves them back.',
       undoDeleteBtn:'Undo delete',
 
@@ -314,14 +308,7 @@
   }
 
   // ---------- live data (fetched from /api/org-data, which reads Lark Base on every call) ----------
-  // personPool: every Lark User identity (PIC picker, unfiltered — unchanged behavior).
-  // activePool: only currently-active Lark Users (Department Assistant picker).
-  // hrbpPool: active Lark Users whose own DeptFullPath sits under Human Resources (HRBP1/HRBP2/
-  // HRBP Lead pickers) — an HRBP is themselves HR staff, so this scopes the picker down from the
-  // whole company to just that branch.
   var personPool = [];
-  var activePool = [];
-  var hrbpPool = [];
   var rootId = 'root';
 
   var nodes, employees, log, selectedId, viewRootId, orientation, logSeq, tempCounter, dragSrcId, dragMode, pendingEdit, activeTab, createDraft, rosterSelected, rosterBulkTarget, gmodalEmp, gmodalOrg, snapshotAt, unassignedId, unassignedTargets, collapsed, zoomPct;
@@ -412,8 +399,6 @@
         pristineNodes = hydrateNodes(data.nodes);
         pristineEmployees = data.employees.map(function(e){ return {eid:e.eid, name:e.name, nodeId:e.nodeId, reportsTo:e.reportsTo||''}; });
         personPool = data.personPool || [];
-        activePool = data.activePool || [];
-        hrbpPool = data.hrbpPool || [];
         extraPeople = data.extraPeople || [];
         // "Group Strategy Center Office" only exists in this session's (or another user's shared)
         // local restructuring plan, never in live Structures — buildOrgData can't resolve it
@@ -1387,9 +1372,8 @@
         row.appendChild(picker);
         var input = picker.querySelector('input');
         var opts = picker.querySelector('.options');
-        var pool = (field==='hrbp1' || field==='hrbp2' || field==='hrbpLead') ? hrbpPool : field==='da' ? activePool : personPool;
         function renderOpts(q){
-          var list = pool.filter(function(p){ return p.toLowerCase().indexOf((q||'').toLowerCase())>=0; });
+          var list = personPool.filter(function(p){ return p.toLowerCase().indexOf((q||'').toLowerCase())>=0; });
           sortByRelevance(list, q, function(p){ return p; });
           list = list.slice(0, SEARCH_RESULT_CAP);
           opts.innerHTML = list.length ? list.map(function(p){ return '<button type="button" data-name="'+escapeHtml(p)+'">'+escapeHtml(p)+'</button>'; }).join('') + '<button type="button" data-name="" style="color:var(--warn-text);">'+escapeHtml(t('clearRoleOption'))+'</button>'
@@ -2915,137 +2899,27 @@
     });
     return canvas;
   }
-  // The real per-side/area canvas cap varies a lot by browser (desktop Chrome/Firefox commonly
-  // ~16384-32767px per side, mobile Safari far lower) — hardcoding one "safe" constant either
-  // fails charts a capable browser could actually render at full quality (this is exactly what
-  // happened: a hardcoded 14000px cap forced a ~5MB, readable export down to a blurry ~250KB one
-  // that didn't even need shrinking), or still overflows on a browser with a lower real cap.
-  // So instead of guessing, this PROBES: start close to full native resolution and only shrink,
-  // one halving at a time, when the browser itself actually rejects that size (drawChartToCanvas
-  // throwing, or toBlob resolving null) — landing on whatever the largest safely renderable scale
-  // actually is, never sacrificing quality that wasn't necessary to sacrifice.
-  // Below this floor, canvas-drawn text (scaled by the same ctx.scale() as everything else) would
-  // shrink to a fraction of a raw pixel — a technically valid but blank-looking PNG — so give up
-  // and say why instead of handing over an unreadable image.
-  var PNG_MIN_LEGIBLE_SCALE = 0.25;
-  // onResult(status, canvas, blob) — status is 'ok' (native scale), 'scaled' (had to shrink but
-  // still legible), or 'unreadable' (gave up below PNG_MIN_LEGIBLE_SCALE; canvas/blob are null).
-  // Hands back both the raw canvas (for jsPDF's addImage, which takes a canvas directly — no need
-  // to round-trip through a base64 data URL) and the blob (for a plain single-file download) —
-  // shared by the single-chart button below and the per-department batch export, which needs to
-  // react per department (add a PDF page) instead of always triggering a download/toast itself.
-  function attemptPngCanvas(scale, everScaledDown, onResult){
-    // Checked on every attempt, not just as a retry floor — a starting guess that's already this
-    // small (a company-wide Expand All) would otherwise still succeed technically (the browser
-    // has no trouble rasterizing it) and silently hand over a blank-looking image.
-    if(scale < PNG_MIN_LEGIBLE_SCALE){ onResult('unreadable', null, null); return; }
-    var canvas;
-    try{
-      canvas = drawChartToCanvas(scale);
-    }catch(e){
-      attemptPngCanvas(scale/2, true, onResult);
-      return;
-    }
-    canvas.toBlob(function(blob){
-      if(!blob){ attemptPngCanvas(scale/2, true, onResult); return; }
-      onResult(everScaledDown ? 'scaled' : 'ok', canvas, blob);
-    }, 'image/png');
-  }
-  function downloadBlob(blob, filename){
-    var a = document.createElement('a');
-    a.href = URL.createObjectURL(blob);
-    a.download = filename;
-    document.body.appendChild(a); a.click(); document.body.removeChild(a);
-  }
-  // The real per-side/area canvas cap varies a lot by browser (desktop Chrome/Firefox commonly
-  // ~16384-32767px per side, mobile Safari far lower) — hardcoding one "safe" constant either
-  // fails charts a capable browser could actually render at full quality, or still overflows on a
-  // browser with a lower real cap. So instead of guessing, never start above the 2x retina
-  // baseline, but also never start so large the first attempt is a guaranteed, time/memory-wasting
-  // failure — cap the opening guess so the long side tops out around 20000px (comfortably above
-  // every common per-side cap), then let attemptPngCanvas's own retries shrink it from there.
-  function startingScaleFor(longSide){ return Math.min(2, 20000/longSide); }
-  // The PDF format itself caps a page at 14400 "user units" (points, since jsPDF's internal model
-  // is always points regardless of the constructor's `unit` option — 200in @ 72dpi) — a spec
-  // limit, independent of whatever the canvas itself could otherwise render. Declaring the page in
-  // 'px' with the canvas's own (much larger) pixel dimensions doesn't dodge this: jsPDF still
-  // converts to points internally and silently clamps, without also shrinking a same-sized
-  // addImage() call — cropping the image against the clamped page. Confirmed via jsPDF's own
-  // console warning ("can not be wider or taller than 14400 userUnit").
-  // The fix is to stop conflating "how many pixels the embedded image carries" (quality/zoom, only
-  // limited by the browser's own canvas cap — see startingScaleFor above) with "how physically
-  // large the PDF page is declared" (an arbitrary print-size choice, unrelated to pixel count): a
-  // page a fraction of PDF_PAGE_MAX_PT points on its long side can still hold a full-resolution
-  // image, the same way a high-DPI photo fits on a normal sheet of paper without losing detail.
-  var PDF_PAGE_MAX_PT = 5000; // ~69in — comfortably under the 14400pt spec ceiling either way
-  // Fallback for when the current view genuinely can't fit in one legible PNG (see
-  // PNG_MIN_LEGIBLE_SCALE above): split into one page per direct child of whatever's currently
-  // focused (the whole company at the default view, or just that division/department if the user
-  // had already focused in) and land them together as pages of one PDF (via jsPDF, loaded in
-  // index.html), instead of failing outright. Temporarily hijacks viewRootId/collapsed to
-  // render+capture each child in turn, then restores whatever the user actually had on screen.
-  function exportByChildDepartmentsPdf(scopeRootId){
-    var children = nodes.filter(function(n){ return n.parentId===scopeRootId && !n.flags.isDeleted; });
-    if(!children.length){ toast(t('toastPngTooLargeToRead')); return; }
-    var savedViewRootId = viewRootId, savedCollapsed = collapsed;
-    var pdf = null;
-    var okCount = 0, skipped = [];
-    function finish(){
-      viewRootId = savedViewRootId; collapsed = savedCollapsed; render();
-      if(!okCount){ toast(t('toastPngTooLargeToRead')); return; }
-      pdf.save(dateStampedFilename(LANG==='zh' ? '组织架构图-分部门.pdf' : 'org-chart-by-department.pdf'));
-      toast(skipped.length ? t('toastPngBatchPartial')({done:okCount, skipped:skipped.join('、')}) : t('toastPngBatchDone')(okCount));
-    }
-    function processNext(i){
-      if(i >= children.length){ finish(); return; }
-      var dept = children[i];
-      viewRootId = dept.id;
-      collapsed = new Set();
-      // render()/renderTree()/drawConnectors() are all synchronous — no internal rAF/setTimeout
-      // deferral anywhere in this file — so scrollWidth/scrollHeight below already reflect the
-      // fully updated layout the instant render() returns (reading a layout-dependent property
-      // forces the browser to flush any pending reflow synchronously). An earlier version waited
-      // on two nested requestAnimationFrame calls "to be safe", but rAF is throttled/paused in a
-      // backgrounded or non-visible tab, which stalled this whole export indefinitely — waiting
-      // on a signal render() never actually needed in the first place.
-      render();
-      var wrap = document.getElementById('treeWrap');
-      if(!wrap.scrollWidth || !wrap.scrollHeight){ skipped.push(dept.name); processNext(i+1); return; }
-      var longSide = Math.max(wrap.scrollWidth, wrap.scrollHeight);
-      attemptPngCanvas(startingScaleFor(longSide), false, function(status, canvas){
-        if(status==='unreadable'){ skipped.push(dept.name); processNext(i+1); return; }
-        // Page is sized in points, capped at PDF_PAGE_MAX_PT on its long side and scaled down to
-        // match the canvas's own aspect ratio on the short side — deliberately NOT the canvas's
-        // raw pixel dimensions (see the comment above PDF_PAGE_MAX_PT). addImage still draws the
-        // full-resolution canvas into that page, so opening the PDF and zooming in shows real
-        // detail; the page's nominal "size" just isn't literally the pixel count.
-        var longPx = Math.max(canvas.width, canvas.height);
-        var pageLong = Math.min(PDF_PAGE_MAX_PT, longPx);
-        var pageW, pageH;
-        if(canvas.width >= canvas.height){ pageW = pageLong; pageH = pageLong * canvas.height/canvas.width; }
-        else { pageH = pageLong; pageW = pageLong * canvas.width/canvas.height; }
-        var orient = canvas.width >= canvas.height ? 'l' : 'p';
-        if(!pdf){ pdf = new jspdf.jsPDF({orientation:orient, unit:'pt', format:[pageW, pageH]}); }
-        else { pdf.addPage([pageW, pageH], orient); }
-        pdf.addImage(canvas, 'PNG', 0, 0, pageW, pageH);
-        okCount++;
-        processNext(i+1);
-      });
-    }
-    processNext(0);
-  }
+  // Common browsers cap a canvas at roughly 16384px per side (some lower); a fully expanded
+  // chart with thousands of employees can exceed that at the normal 2x export scale, which
+  // makes toBlob silently resolve null instead of throwing. Scale down first if needed.
+  var PNG_MAX_DIM = 14000;
   document.getElementById('downloadPngBtn').addEventListener('click', function(){
     try{
       var wrap = document.getElementById('treeWrap');
       if(!wrap.scrollWidth || !wrap.scrollHeight){ toast(t('toastPngNeedsChartView')); return; }
+      var scale = 2;
       var longSide = Math.max(wrap.scrollWidth, wrap.scrollHeight);
-      var scale = startingScaleFor(longSide);
-      var scopeRootId = viewRootId;
-      attemptPngCanvas(scale, scale < 2, function(status, canvas, blob){
-        if(status==='unreadable'){ exportByChildDepartmentsPdf(scopeRootId); return; }
-        downloadBlob(blob, dateStampedFilename(LANG==='zh' ? '组织架构图.png' : 'org-chart.png'));
-        toast(status==='scaled' ? t('toastPngTooLarge') : t('toastPngDone'));
-      });
+      var scaledDown = false;
+      if(longSide*scale > PNG_MAX_DIM){ scale = Math.max(1, PNG_MAX_DIM/longSide); scaledDown = true; }
+      var canvas = drawChartToCanvas(scale);
+      canvas.toBlob(function(blob){
+        if(!blob){ toast(t('toastPngFailed')); return; }
+        var a = document.createElement('a');
+        a.href = URL.createObjectURL(blob);
+        a.download = dateStampedFilename(LANG==='zh' ? '组织架构图.png' : 'org-chart.png');
+        document.body.appendChild(a); a.click(); document.body.removeChild(a);
+        toast(scaledDown ? t('toastPngTooLarge') : t('toastPngDone'));
+      }, 'image/png');
     }catch(e){
       toast(t('toastPngError')(e.message));
     }
