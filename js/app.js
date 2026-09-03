@@ -111,6 +111,7 @@
       toastPngFailed:'导出失败，请改用浏览器自带的截图功能', toastPngDone:'已下载 PNG',
       toastPngError:function(msg){ return '导出失败：' + msg; },
       toastPngNeedsChartView:'请先切换到"组织架构图"页面，再下载', toastPngTooLarge:'组织架构图展开范围太大，已自动缩小导出比例；如仍失败，请先折叠部分分支再试',
+      toastPngTooLargeToRead:'展开范围太大，缩小后文字会小到无法辨认，因此未生成图片。请先用左上角搜索框聚焦到某个具体部门（或折叠部分分支）后再导出。',
       deletedPanelNote:'该部门已标记删除。删除时涉及的员工已安置到其他部门；撤销删除会把他们迁回来。',
       undoDeleteBtn:'撤销删除',
 
@@ -241,6 +242,7 @@
       toastPngFailed:'Export failed — please use your browser’s screenshot tool instead', toastPngDone:'PNG downloaded',
       toastPngError:function(msg){ return 'Export failed: ' + msg; },
       toastPngNeedsChartView:'Switch to the "Org Chart" tab before downloading', toastPngTooLarge:'The expanded chart is very large — export scale was reduced automatically; collapse some branches first if it still fails',
+      toastPngTooLargeToRead:"The expanded chart is too large — shrinking it to fit would make the text unreadably small, so no image was generated. Use the search box to focus on a specific department (or collapse some branches) before exporting.",
       deletedPanelNote:'This department is marked as deleted. Employees affected by this deletion were reassigned; undoing the deletion moves them back.',
       undoDeleteBtn:'Undo delete',
 
@@ -2913,6 +2915,12 @@
   // chart with thousands of employees can exceed that at the normal 2x export scale, which
   // makes toBlob silently resolve null instead of throwing. Scale down first if needed.
   var PNG_MAX_DIM = 14000;
+  // Below this, the scale-down needed just to fit PNG_MAX_DIM shrinks the fixed-size canvas text
+  // (drawn inside the same ctx.scale() as everything else) to a fraction of a raw pixel tall —
+  // technically a valid PNG, but with no readable content at all. Refuse outright in that case
+  // instead of silently handing over a blank-looking image: a company-wide Expand All can reach
+  // scale ~0.04-0.09, which is exactly this case (confirmed with a synthetic 1400+ leaf tree).
+  var PNG_MIN_LEGIBLE_SCALE = 0.25;
   document.getElementById('downloadPngBtn').addEventListener('click', function(){
     try{
       var wrap = document.getElementById('treeWrap');
@@ -2921,6 +2929,7 @@
       var longSide = Math.max(wrap.scrollWidth, wrap.scrollHeight);
       var scaledDown = false;
       if(longSide*scale > PNG_MAX_DIM){ scale = Math.min(1, PNG_MAX_DIM/longSide); scaledDown = true; }
+      if(scale < PNG_MIN_LEGIBLE_SCALE){ toast(t('toastPngTooLargeToRead')); return; }
       var canvas = drawChartToCanvas(scale);
       canvas.toBlob(function(blob){
         if(!blob){ toast(t('toastPngFailed')); return; }
