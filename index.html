@@ -108,6 +108,7 @@
     <div class="panel-head">
       <div class="seg" id="extraSubNav">
         <button type="button" data-sub="changelog" class="active" data-i18n="extraSubChangelog">变更记录</button>
+        <button type="button" data-sub="l2depts" data-i18n="extraSubL2Depts">二级部门变更</button>
         <button type="button" data-sub="affectedemp" data-i18n="extraSubAffectedEmp">受影响员工</button>
         <button type="button" data-sub="unassigned" data-i18n="extraSubUnassigned">待安置员工</button>
         <button type="button" data-sub="consultant" data-i18n="extraSubConsultant">顾问</button>
@@ -127,6 +128,17 @@
         </div>
         <div class="btn-row" style="margin-top:10px;">
           <button class="btn primary" id="downloadChangelogBtn" data-i18n="downloadCsvBtn">下载 CSV</button>
+        </div>
+      </div>
+      <div id="subViewL2Depts" style="display:none;">
+        <div class="scroll-table unassigned-scroll">
+          <table class="emptbl">
+            <thead><tr><th data-i18n="colDeptName">部门</th><th data-i18n="colType">类型</th><th data-i18n="colPathChange">原组织架构 → 新组织架构</th><th data-i18n="colRoleChange">角色变更</th></tr></thead>
+            <tbody id="l2DeptsBody"><tr><td colspan="4" class="empty-note" data-i18n="l2DeptsEmptyNote">暂无二级部门变更</td></tr></tbody>
+          </table>
+        </div>
+        <div class="btn-row" style="margin-top:10px;">
+          <button class="btn primary" id="downloadL2DeptsBtn" data-i18n="downloadCsvBtn">下载 CSV</button>
         </div>
       </div>
       <div id="subViewAffectedEmp" style="display:none;">
@@ -345,7 +357,7 @@
 
 <div class="toast" id="toast"></div>
 
-<script src="js/app.js?v=20260908-2"></script>
+<script src="js/app.js?v=20260908-3"></script>
 
 </body>
 </html>

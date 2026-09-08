@@ -52,10 +52,11 @@
       changeLogTitle:'变更记录', unitRecords:'条', colType:'类型', colDetail:'详情', colEditor:'编辑人', colEditTime:'编辑时间', colAction:'操作', undoLogBtn:'撤销',
       logEmptyNote:'暂无变更，点一个部门框试试', downloadCsvBtn:'下载 CSV',
       affectedEmpTitle:'受影响员工', unitPeople:'人', colName:'姓名', colPathChange:'原组织架构 → 新组织架构', colReportsTo:'汇报对象',
+      colDeptName:'部门', colRoleChange:'角色变更', l2DeptsEmptyNote:'暂无二级部门变更',
       colDivision:'Division', colBusinessUnit:'Business Unit', colDepartment:'Department', colTeam:'Team', colSubTeam:'Sub Team', colSection:'Section', colStatus:'Status', colHrbpLead:'HRBP Lead',
       empEmptyNote:'还没有员工受影响',
       unassignedTitle:'待安置员工', unassignedEmptyNote:'暂无待安置员工', unassignedTransferBtn:'转移',
-      extraSubChangelog:'变更记录', extraSubAffectedEmp:'受影响员工', extraSubUnassigned:'待安置员工', extraSubConsultant:'顾问', extraSubShared:'公共账号', extraSubPending:'未入职', extraSubUndefined:'未定义',
+      extraSubChangelog:'变更记录', extraSubL2Depts:'二级部门变更', extraSubAffectedEmp:'受影响员工', extraSubUnassigned:'待安置员工', extraSubConsultant:'顾问', extraSubShared:'公共账号', extraSubPending:'未入职', extraSubUndefined:'未定义',
       extraConsultantTitle:'顾问', extraConsultantEmptyNote:'暂无顾问账号',
       extraSharedTitle:'公共账号', extraSharedEmptyNote:'暂无公共账号',
       extraPendingTitle:'未入职', extraPendingEmptyNote:'暂无未入职账号',
@@ -182,10 +183,11 @@
       changeLogTitle:'Change log', unitRecords:'', colType:'Type', colDetail:'Detail', colEditor:'Editor', colEditTime:'Edit time', colAction:'Action', undoLogBtn:'Undo',
       logEmptyNote:'No changes yet — try clicking a department box', downloadCsvBtn:'Download CSV',
       affectedEmpTitle:'Affected employees', unitPeople:'', colName:'Name', colPathChange:'Old org → New org', colReportsTo:'Direct Manager',
+      colDeptName:'Department', colRoleChange:'Role Change', l2DeptsEmptyNote:'No level-2 department changes',
       colDivision:'Division', colBusinessUnit:'Business Unit', colDepartment:'Department', colTeam:'Team', colSubTeam:'Sub Team', colSection:'Section', colStatus:'Status', colHrbpLead:'HRBP Lead',
       empEmptyNote:'No employees affected yet',
       unassignedTitle:'Unassigned employees', unassignedEmptyNote:'No unassigned employees', unassignedTransferBtn:'Transfer',
-      extraSubChangelog:'Change Log', extraSubAffectedEmp:'Affected Employees', extraSubUnassigned:'Unassigned', extraSubConsultant:'Consultants', extraSubShared:'Shared Accounts', extraSubPending:'Pending Onboard', extraSubUndefined:'Undefined',
+      extraSubChangelog:'Change Log', extraSubL2Depts:'L2 Department Changes', extraSubAffectedEmp:'Affected Employees', extraSubUnassigned:'Unassigned', extraSubConsultant:'Consultants', extraSubShared:'Shared Accounts', extraSubPending:'Pending Onboard', extraSubUndefined:'Undefined',
       extraConsultantTitle:'Consultants', extraConsultantEmptyNote:'No consultant accounts',
       extraSharedTitle:'Shared Accounts', extraSharedEmptyNote:'No shared accounts',
       extraPendingTitle:'Pending Onboard', extraPendingEmptyNote:'No pending-onboard accounts',
@@ -1999,6 +2001,78 @@
     }).filter(Boolean);
   }
 
+  // One row per level-2 department (a grandchild of root — child of a top-level division like
+  // Central/Operations) whose own name/parent/role fields changed, same replay-and-diff approach
+  // as computeImpacted above. Only currently-level-2 nodes are considered — depth is resolved
+  // against the replayed final tree, so a department that moved into or out of level 2 is judged
+  // by where it ended up, not where it started. Skips anything with no net change, same as the
+  // CSV-only combined org-change export this mirrors (kept separate from it since that one always
+  // renders in forced English regardless of the UI language toggle).
+  function computeL2DeptRows(){
+    var entries = mergedLogForDisplay();
+    var replayed = replayAll(entries, pristineNodes, pristineEmployees);
+    var finalById = {}; replayed.nodes.forEach(function(n){ finalById[n.id] = n; });
+    var pristineById = {}; pristineNodes.forEach(function(n){ pristineById[n.id] = n; });
+    function depthOfFinal(id){
+      var d = 0, cur = finalById[id];
+      while(cur && cur.parentId){ d++; cur = finalById[cur.parentId]; }
+      return d;
+    }
+    var rows = [];
+    replayed.nodes.forEach(function(fn){
+      if(depthOfFinal(fn.id) !== 2) return;
+      var pn = pristineById[fn.id];
+      var wasNew = !pn;
+      var isDeletedNow = !!fn.flags.isDeleted;
+      var wasDeletedBefore = pn ? !!pn.flags.isDeleted : false;
+      if(wasDeletedBefore) return;
+      if(wasNew && isDeletedNow) return;
+
+      var typeLabels = [], roleChangeLabel = '', beforeName, afterName, beforeRoles, afterRoles;
+      if(wasNew){
+        typeLabels.push(t('logType').add);
+        beforeName = ''; beforeRoles = {};
+        afterName = pathLabelIn(replayed.nodes, fn.id);
+        afterRoles = nodeRolesAfter(fn);
+      } else if(isDeletedNow){
+        typeLabels.push(t('logType').delete);
+        beforeName = pathLabelIn(pristineNodes, fn.id);
+        beforeRoles = nodeRolesAfter(pn);
+        afterName = ''; afterRoles = {};
+      } else {
+        if(fn.name !== pn.name) typeLabels.push(t('logType').rename);
+        if(fn.parentId !== pn.parentId) typeLabels.push(t('logType').move);
+        beforeName = pathLabelIn(pristineNodes, fn.id);
+        afterName = pathLabelIn(replayed.nodes, fn.id);
+        beforeRoles = nodeRolesAfter(pn);
+        afterRoles = nodeRolesAfter(fn);
+        roleChangeLabel = ROLE_FIELDS.filter(function(f){ return (beforeRoles[f]||'') !== (afterRoles[f]||''); })
+          .map(function(f){ return t('role_' + f); }).join(', ');
+      }
+      if(!typeLabels.length && !roleChangeLabel) return;
+      rows.push({name: fn.name, typeLabel: typeLabels.join(', '), oldPath: beforeName, newPath: afterName, roleChangeLabel: roleChangeLabel});
+    });
+    rows.sort(function(a,b){
+      var an = a.newPath||a.oldPath, bn = b.newPath||b.oldPath;
+      return an<bn ? -1 : an>bn ? 1 : 0;
+    });
+    return rows;
+  }
+  function renderL2DeptsTable(list){
+    var body = document.getElementById('l2DeptsBody');
+    if(!list.length){ body.innerHTML = '<tr><td colspan="4" class="empty-note">'+escapeHtml(t('l2DeptsEmptyNote'))+'</td></tr>'; return; }
+    body.innerHTML = list.map(function(r){
+      var pathCell = r.oldPath===r.newPath
+        ? '<td>'+escapeHtml(r.newPath||r.oldPath)+'</td>'
+        : '<td><div class="path-old">'+escapeHtml(r.oldPath)+'</div><div class="path-new">'+escapeHtml(r.newPath)+'</div></td>';
+      return '<tr><td>'+escapeHtml(r.name)+'</td><td>'+escapeHtml(r.typeLabel)+'</td>'+pathCell+'<td>'+escapeHtml(r.roleChangeLabel)+'</td></tr>';
+    }).join('');
+  }
+  function l2DeptsCsvRows(list){
+    return [['Department', 'Change Type', 'Old Org Path', 'New Org Path', 'Role Change']]
+      .concat(list.map(function(r){ return [r.name, r.typeLabel, r.oldPath, r.newPath, r.roleChangeLabel]; }));
+  }
+
   function renderEmployeesInto(bodyId, impacted){
     var body = document.getElementById(bodyId);
     if(!impacted.length){ body.innerHTML = '<tr><td colspan="4" class="empty-note">'+escapeHtml(t('empEmptyNote'))+'</td></tr>'; return; }
@@ -2115,6 +2189,7 @@
   function applyExtraSubviewVisibility(){
     document.querySelectorAll('#extraSubNav button').forEach(function(b){ b.classList.toggle('active', b.getAttribute('data-sub')===activeExtraSubview); });
     document.getElementById('subViewChangelog').style.display = activeExtraSubview==='changelog' ? '' : 'none';
+    document.getElementById('subViewL2Depts').style.display = activeExtraSubview==='l2depts' ? '' : 'none';
     document.getElementById('subViewAffectedEmp').style.display = activeExtraSubview==='affectedemp' ? '' : 'none';
     document.getElementById('subViewUnassigned').style.display = activeExtraSubview==='unassigned' ? '' : 'none';
     document.getElementById('subViewConsultant').style.display = activeExtraSubview==='consultant' ? '' : 'none';
@@ -2127,11 +2202,14 @@
   // segmented control in the panel head — replaces the old standalone "变更记录" tab and the old
   // standalone "顾问/公共账户" tab entirely. Always visible (变更记录/受影响员工 always were) since
   // it's never truly empty — worst case its other sub-views are just empty tables.
-  var EXTRA_SUBVIEW_LABEL_KEY = {changelog:'extraSubChangelog', affectedemp:'extraSubAffectedEmp', unassigned:'extraSubUnassigned', consultant:'extraSubConsultant', shared:'extraSubShared', pending:'extraSubPending', undefined:'extraSubUndefined'};
+  var EXTRA_SUBVIEW_LABEL_KEY = {changelog:'extraSubChangelog', l2depts:'extraSubL2Depts', affectedemp:'extraSubAffectedEmp', unassigned:'extraSubUnassigned', consultant:'extraSubConsultant', shared:'extraSubShared', pending:'extraSubPending', undefined:'extraSubUndefined'};
   function renderUnassignedAndExtra(){
     var node = unassignedId ? getNode(unassignedId) : null;
     var unassignedList = node ? employees.filter(function(e){ return e.nodeId===unassignedId; }) : [];
     renderUnassignedSub(node, unassignedList);
+
+    var l2Depts = computeL2DeptRows();
+    renderL2DeptsTable(l2Depts);
 
     var consultants = computeExtraKindRows('consultant');
     var shared = computeExtraKindRows('shared');
@@ -2142,7 +2220,7 @@
     renderExtraKindTable('extraPendingBody', pending, 'pending', 'extraPendingEmptyNote');
     renderExtraKindTable('extraUndefinedBody', undef, 'undefined', 'extraUndefinedEmptyNote');
 
-    var counts = {changelog:mergedLogForDisplay().length, affectedemp:computeImpacted().length, unassigned:unassignedList.length, consultant:consultants.length, shared:shared.length, pending:pending.length, undefined:undef.length};
+    var counts = {changelog:mergedLogForDisplay().length, l2depts:l2Depts.length, affectedemp:computeImpacted().length, unassigned:unassignedList.length, consultant:consultants.length, shared:shared.length, pending:pending.length, undefined:undef.length};
     var activeCount = counts[activeExtraSubview] || 0;
     document.getElementById('unassignedCount').textContent = activeCount;
     document.getElementById('viewUnassignedCount').textContent = activeCount;
@@ -2153,6 +2231,9 @@
     var btn = ev.target.closest('button[data-sub]'); if(!btn) return;
     activeExtraSubview = btn.getAttribute('data-sub');
     renderUnassignedAndExtra();
+  });
+  document.getElementById('downloadL2DeptsBtn').addEventListener('click', function(){
+    downloadCsv(dateStampedFilename('level2-department-changes.csv'), l2DeptsCsvRows(computeL2DeptRows()));
   });
   document.getElementById('downloadExtraConsultantBtn').addEventListener('click', function(){
     downloadCsv(dateStampedFilename('consultants.csv'), extraCsvRows(computeExtraKindRows('consultant')));
