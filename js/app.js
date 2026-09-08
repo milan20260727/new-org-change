@@ -1975,7 +1975,6 @@
     var merged = mergedLogForDisplay();
     var countText = merged.length + (t('unitRecords') ? ' ' + t('unitRecords') : '');
     document.getElementById('changelogCount').textContent = countText;
-    document.getElementById('viewChangelogCount').textContent = merged.length;
     // mergedLogForDisplay() stays chronological (oldest first) for replayAll() elsewhere — only
     // the on-screen table shows newest first, which is what people actually want to scan.
     var newestFirst = merged.slice().reverse();
@@ -2179,7 +2178,6 @@
   function switchView(view){
     document.querySelectorAll('#viewTabs button').forEach(function(b){ b.classList.toggle('active', b.getAttribute('data-view')===view); });
     document.getElementById('chartView').style.display = view==='chart' ? '' : 'none';
-    document.getElementById('changelogView').style.display = view==='changelog' ? '' : 'none';
     document.getElementById('affectedEmpView').style.display = view==='affectedemp' ? '' : 'none';
     document.getElementById('unassignedView').style.display = view==='unassigned' ? '' : 'none';
     document.getElementById('adminView').style.display = view==='admin' ? '' : 'none';
