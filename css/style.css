@@ -120,7 +120,14 @@
 
   .layout{display:grid; grid-template-columns:1fr; gap:18px; align-items:start;}
 
-  .scroll-table.unassigned-scroll{max-height:calc(100vh - 260px); overflow:auto;}
+  /* This tab used to sit below the always-visible toolbar (.controls-row); now that the toolbar
+     hides on every non-chart tab, this offset was left over from when it did, and it was
+     significantly overshooting the actual chrome height above/below this scroll area — leaving a
+     gap between the table and the panel's bottom edge. Also note the generic .scroll-table rule
+     below (max-height:230px) has LOWER specificity than this one, but a stray // comment here once
+     broke this whole rule's parsing and let that fallback silently win instead — worth remembering
+     if this ever again renders shorter than expected. */
+  .scroll-table.unassigned-scroll{max-height:calc(100vh - 210px); overflow:auto;}
 
   /* ---------- admin panel ---------- */
   .admin-layout{display:grid; grid-template-columns:3fr 2fr; gap:18px; align-items:start;}
