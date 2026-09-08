@@ -55,7 +55,7 @@
       colDivision:'Division', colBusinessUnit:'Business Unit', colDepartment:'Department', colTeam:'Team', colSubTeam:'Sub Team', colSection:'Section', colStatus:'Status', colHrbpLead:'HRBP Lead',
       empEmptyNote:'还没有员工受影响',
       unassignedTitle:'待安置员工', unassignedEmptyNote:'暂无待安置员工', unassignedTransferBtn:'转移',
-      extraSubChangelog:'变更记录', extraSubUnassigned:'待安置员工', extraSubConsultant:'顾问', extraSubShared:'公共账号', extraSubPending:'未入职', extraSubUndefined:'未定义',
+      extraSubUnassigned:'待安置员工', extraSubConsultant:'顾问', extraSubShared:'公共账号', extraSubPending:'未入职', extraSubUndefined:'未定义',
       extraConsultantTitle:'顾问', extraConsultantEmptyNote:'暂无顾问账号',
       extraSharedTitle:'公共账号', extraSharedEmptyNote:'暂无公共账号',
       extraPendingTitle:'未入职', extraPendingEmptyNote:'暂无未入职账号',
@@ -185,7 +185,7 @@
       colDivision:'Division', colBusinessUnit:'Business Unit', colDepartment:'Department', colTeam:'Team', colSubTeam:'Sub Team', colSection:'Section', colStatus:'Status', colHrbpLead:'HRBP Lead',
       empEmptyNote:'No employees affected yet',
       unassignedTitle:'Unassigned employees', unassignedEmptyNote:'No unassigned employees', unassignedTransferBtn:'Transfer',
-      extraSubChangelog:'Change Log', extraSubUnassigned:'Unassigned', extraSubConsultant:'Consultants', extraSubShared:'Shared Accounts', extraSubPending:'Pending Onboard', extraSubUndefined:'Undefined',
+      extraSubUnassigned:'Unassigned', extraSubConsultant:'Consultants', extraSubShared:'Shared Accounts', extraSubPending:'Pending Onboard', extraSubUndefined:'Undefined',
       extraConsultantTitle:'Consultants', extraConsultantEmptyNote:'No consultant accounts',
       extraSharedTitle:'Shared Accounts', extraSharedEmptyNote:'No shared accounts',
       extraPendingTitle:'Pending Onboard', extraPendingEmptyNote:'No pending-onboard accounts',
@@ -1975,6 +1975,7 @@
     var merged = mergedLogForDisplay();
     var countText = merged.length + (t('unitRecords') ? ' ' + t('unitRecords') : '');
     document.getElementById('changelogCount').textContent = countText;
+    document.getElementById('viewChangelogCount').textContent = merged.length;
     // mergedLogForDisplay() stays chronological (oldest first) for replayAll() elsewhere — only
     // the on-screen table shows newest first, which is what people actually want to scan.
     var newestFirst = merged.slice().reverse();
@@ -2018,6 +2019,7 @@
     var impacted = computeImpacted();
     var countText = impacted.length + (t('unitPeople') ? ' ' + t('unitPeople') : '');
     document.getElementById('changelogEmpCount').textContent = countText;
+    document.getElementById('viewAffectedEmpCount').textContent = impacted.length;
     renderEmployeesInto('changelogEmpBody', impacted);
   }
 
@@ -2117,21 +2119,26 @@
   }
   function applyExtraSubviewVisibility(){
     document.querySelectorAll('#extraSubNav button').forEach(function(b){ b.classList.toggle('active', b.getAttribute('data-sub')===activeExtraSubview); });
-    document.getElementById('subViewChangelog').style.display = activeExtraSubview==='changelog' ? '' : 'none';
     document.getElementById('subViewUnassigned').style.display = activeExtraSubview==='unassigned' ? '' : 'none';
     document.getElementById('subViewConsultant').style.display = activeExtraSubview==='consultant' ? '' : 'none';
     document.getElementById('subViewShared').style.display = activeExtraSubview==='shared' ? '' : 'none';
     document.getElementById('subViewPending').style.display = activeExtraSubview==='pending' ? '' : 'none';
     document.getElementById('subViewUndefined').style.display = activeExtraSubview==='undefined' ? '' : 'none';
   }
-  // Single tab hosting 变更记录, 待安置员工, and the four Lark-User-classification kinds (顾问/公共
-  // 账号/未入职/未定义), switched via the #extraSubNav segmented control in the panel head — this
-  // replaces both the old standalone "变更记录" tab and the old standalone "顾问/公共账户" tab.
-  // Always visible now (matching 变更记录's own old unconditional visibility) since it's never
-  // truly empty — worst case its 待安置员工/顾问/etc. sub-views are just empty tables.
-  var EXTRA_SUBVIEW_LABEL_KEY = {changelog:'extraSubChangelog', unassigned:'extraSubUnassigned', consultant:'extraSubConsultant', shared:'extraSubShared', pending:'extraSubPending', undefined:'extraSubUndefined'};
+  // Single tab hosting 待安置员工 plus the four Lark-User-classification kinds (顾问/公共账号/未入职/
+  // 未定义), switched via the #extraSubNav segmented control in the panel head — replaces the old
+  // standalone "顾问/公共账户" tab entirely. 变更记录/受影响员工 are their own separate tabs, not
+  // nested in here — they were briefly merged into this tab too, but that made them harder to find.
+  var EXTRA_SUBVIEW_LABEL_KEY = {unassigned:'extraSubUnassigned', consultant:'extraSubConsultant', shared:'extraSubShared', pending:'extraSubPending', undefined:'extraSubUndefined'};
   function renderUnassignedAndExtra(){
+    var tabBtn = document.getElementById('viewUnassignedBtn');
     var node = unassignedId ? getNode(unassignedId) : null;
+    if(!node && !extraPeople.length){
+      tabBtn.style.display = 'none';
+      if(tabBtn.classList.contains('active')) switchView('chart');
+      return;
+    }
+    tabBtn.style.display = '';
     var unassignedList = node ? employees.filter(function(e){ return e.nodeId===unassignedId; }) : [];
     renderUnassignedSub(node, unassignedList);
 
@@ -2144,7 +2151,7 @@
     renderExtraKindTable('extraPendingBody', pending, 'pending', 'extraPendingEmptyNote');
     renderExtraKindTable('extraUndefinedBody', undef, 'undefined', 'extraUndefinedEmptyNote');
 
-    var counts = {changelog:mergedLogForDisplay().length, unassigned:unassignedList.length, consultant:consultants.length, shared:shared.length, pending:pending.length, undefined:undef.length};
+    var counts = {unassigned:unassignedList.length, consultant:consultants.length, shared:shared.length, pending:pending.length, undefined:undef.length};
     var activeCount = counts[activeExtraSubview] || 0;
     document.getElementById('unassignedCount').textContent = activeCount;
     document.getElementById('viewUnassignedCount').textContent = activeCount;
@@ -2172,6 +2179,8 @@
   function switchView(view){
     document.querySelectorAll('#viewTabs button').forEach(function(b){ b.classList.toggle('active', b.getAttribute('data-view')===view); });
     document.getElementById('chartView').style.display = view==='chart' ? '' : 'none';
+    document.getElementById('changelogView').style.display = view==='changelog' ? '' : 'none';
+    document.getElementById('affectedEmpView').style.display = view==='affectedemp' ? '' : 'none';
     document.getElementById('unassignedView').style.display = view==='unassigned' ? '' : 'none';
     document.getElementById('adminView').style.display = view==='admin' ? '' : 'none';
     // The search/transfer/expand/zoom/orientation toolbar only means anything against the org
