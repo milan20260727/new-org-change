@@ -1975,6 +1975,7 @@
     var merged = mergedLogForDisplay();
     var countText = merged.length + (t('unitRecords') ? ' ' + t('unitRecords') : '');
     document.getElementById('changelogCount').textContent = countText;
+    document.getElementById('viewChangelogCount').textContent = merged.length;
     // mergedLogForDisplay() stays chronological (oldest first) for replayAll() elsewhere — only
     // the on-screen table shows newest first, which is what people actually want to scan.
     var newestFirst = merged.slice().reverse();
@@ -2018,7 +2019,6 @@
     var impacted = computeImpacted();
     var countText = impacted.length + (t('unitPeople') ? ' ' + t('unitPeople') : '');
     document.getElementById('changelogEmpCount').textContent = countText;
-    document.getElementById('viewAffectedEmpCount').textContent = impacted.length;
     renderEmployeesInto('changelogEmpBody', impacted);
   }
 
@@ -2126,9 +2126,7 @@
   }
   // Single tab hosting 待安置员工 plus the four Lark-User-classification kinds (顾问/公共账号/未入职/
   // 未定义), switched via the #extraSubNav segmented control in the panel head — replaces the old
-  // standalone "顾问/公共账户" tab entirely. 变更记录/受影响员工 are their own separate tabs, not
-  // nested in here — they were briefly merged into this tab too, but that made them harder to find.
-  var EXTRA_SUBVIEW_LABEL_KEY = {unassigned:'extraSubUnassigned', consultant:'extraSubConsultant', shared:'extraSubShared', pending:'extraSubPending', undefined:'extraSubUndefined'};
+  // standalone "顾问/公共账户" tab entirely.
   function renderUnassignedAndExtra(){
     var tabBtn = document.getElementById('viewUnassignedBtn');
     var node = unassignedId ? getNode(unassignedId) : null;
@@ -2139,6 +2137,7 @@
     }
     tabBtn.style.display = '';
     var unassignedList = node ? employees.filter(function(e){ return e.nodeId===unassignedId; }) : [];
+    document.getElementById('viewUnassignedCount').textContent = unassignedList.length;
     renderUnassignedSub(node, unassignedList);
 
     var consultants = computeExtraKindRows('consultant');
@@ -2151,10 +2150,7 @@
     renderExtraKindTable('extraUndefinedBody', undef, 'undefined', 'extraUndefinedEmptyNote');
 
     var counts = {unassigned:unassignedList.length, consultant:consultants.length, shared:shared.length, pending:pending.length, undefined:undef.length};
-    var activeCount = counts[activeExtraSubview] || 0;
-    document.getElementById('unassignedCount').textContent = activeCount;
-    document.getElementById('viewUnassignedCount').textContent = activeCount;
-    document.getElementById('mergedTabLabel').textContent = t(EXTRA_SUBVIEW_LABEL_KEY[activeExtraSubview]);
+    document.getElementById('unassignedCount').textContent = counts[activeExtraSubview] || 0;
     applyExtraSubviewVisibility();
   }
   document.getElementById('extraSubNav').addEventListener('click', function(ev){
@@ -2178,12 +2174,9 @@
   function switchView(view){
     document.querySelectorAll('#viewTabs button').forEach(function(b){ b.classList.toggle('active', b.getAttribute('data-view')===view); });
     document.getElementById('chartView').style.display = view==='chart' ? '' : 'none';
-    document.getElementById('affectedEmpView').style.display = view==='affectedemp' ? '' : 'none';
     document.getElementById('unassignedView').style.display = view==='unassigned' ? '' : 'none';
+    document.getElementById('changelogView').style.display = view==='changelog' ? '' : 'none';
     document.getElementById('adminView').style.display = view==='admin' ? '' : 'none';
-    // The search/transfer/expand/zoom/orientation toolbar only means anything against the org
-    // chart itself — hide it everywhere else instead of leaving it sitting above an unrelated tab.
-    document.querySelector('.controls-row').style.display = view==='chart' ? '' : 'none';
     if(view==='admin'){ renderAdmin(); renderEditWindowSettings(); fetchExportWatermark().then(renderExportWatermark); }
     // The real cause of the "connectors go blank" report: any render (e.g. clicking Undo, which
     // lives on the Change log tab) that happens while chartView is display:none computes every

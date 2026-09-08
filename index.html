@@ -37,8 +37,8 @@
         <h1 data-i18n="pageTitle">组织架构调整工具</h1>
         <div class="seg view-tabs" id="viewTabs">
           <button data-view="chart" class="active" data-i18n="viewChart">组织架构图</button>
-          <button data-view="affectedemp" id="viewAffectedEmpBtn"><span data-i18n="affectedEmpTitle">受影响员工</span> (<span id="viewAffectedEmpCount">0</span>)</button>
-          <button data-view="unassigned" id="viewUnassignedBtn"><span id="mergedTabLabel" data-i18n="extraSubUnassigned">待安置员工</span> (<span id="viewUnassignedCount">0</span>)</button>
+          <button data-view="changelog" id="viewChangelogBtn"><span data-i18n="changeLogTitle">变更记录</span> (<span id="viewChangelogCount">0</span>)</button>
+          <button data-view="unassigned" id="viewUnassignedBtn" style="display:none;"><span data-i18n="viewUnassigned">待安置员工</span> (<span id="viewUnassignedCount">0</span>)</button>
           <button data-view="admin" id="viewAdminBtn" style="display:none;" data-i18n="viewAdmin">管理员</button>
         </div>
       </div>
@@ -188,7 +188,7 @@
     </div>
   </div>
 
-  <div class="admin-layout" id="affectedEmpView" style="display:none; grid-template-columns:4fr 5fr;">
+  <div class="admin-layout" id="changelogView" style="display:none; grid-template-columns:4fr 5fr;">
     <div class="panel">
       <div class="panel-head">
         <h2 data-i18n="changeLogTitle">变更记录</h2>
@@ -359,7 +359,7 @@
 
 <div class="toast" id="toast"></div>
 
-<script src="js/app.js?v=20260908-1"></script>
+<script src="js/app.js?v=20260828-1"></script>
 
 </body>
 </html>
