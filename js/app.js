@@ -55,7 +55,7 @@
       colDivision:'Division', colBusinessUnit:'Business Unit', colDepartment:'Department', colTeam:'Team', colSubTeam:'Sub Team', colSection:'Section', colStatus:'Status', colHrbpLead:'HRBP Lead',
       empEmptyNote:'还没有员工受影响',
       unassignedTitle:'待安置员工', unassignedEmptyNote:'暂无待安置员工', unassignedTransferBtn:'转移',
-      extraSubUnassigned:'待安置员工', extraSubConsultant:'顾问', extraSubShared:'公共账号', extraSubPending:'未入职', extraSubUndefined:'未定义',
+      extraSubChangelog:'变更记录', extraSubAffectedEmp:'受影响员工', extraSubUnassigned:'待安置员工', extraSubConsultant:'顾问', extraSubShared:'公共账号', extraSubPending:'未入职', extraSubUndefined:'未定义',
       extraConsultantTitle:'顾问', extraConsultantEmptyNote:'暂无顾问账号',
       extraSharedTitle:'公共账号', extraSharedEmptyNote:'暂无公共账号',
       extraPendingTitle:'未入职', extraPendingEmptyNote:'暂无未入职账号',
@@ -185,7 +185,7 @@
       colDivision:'Division', colBusinessUnit:'Business Unit', colDepartment:'Department', colTeam:'Team', colSubTeam:'Sub Team', colSection:'Section', colStatus:'Status', colHrbpLead:'HRBP Lead',
       empEmptyNote:'No employees affected yet',
       unassignedTitle:'Unassigned employees', unassignedEmptyNote:'No unassigned employees', unassignedTransferBtn:'Transfer',
-      extraSubUnassigned:'Unassigned', extraSubConsultant:'Consultants', extraSubShared:'Shared Accounts', extraSubPending:'Pending Onboard', extraSubUndefined:'Undefined',
+      extraSubChangelog:'Change Log', extraSubAffectedEmp:'Affected Employees', extraSubUnassigned:'Unassigned', extraSubConsultant:'Consultants', extraSubShared:'Shared Accounts', extraSubPending:'Pending Onboard', extraSubUndefined:'Undefined',
       extraConsultantTitle:'Consultants', extraConsultantEmptyNote:'No consultant accounts',
       extraSharedTitle:'Shared Accounts', extraSharedEmptyNote:'No shared accounts',
       extraPendingTitle:'Pending Onboard', extraPendingEmptyNote:'No pending-onboard accounts',
@@ -326,10 +326,11 @@
   // `employees`, so this list never touches any of that by construction, not by extra filtering
   // at each call site.
   var extraPeople = [];
-  // Which of the 5 sub-views (unassigned/consultant/shared/pending/undefined) is showing inside
-  // the merged 待安置员工 tab, and each sub-view's own pending transfer-target picks (keyed by
-  // person id, shared across all four extraPeople kinds since ids are unique regardless of kind).
-  var activeExtraSubview = 'unassigned';
+  // Which of the 7 sub-views (changelog/affectedemp/unassigned/consultant/shared/pending/undefined)
+  // is showing inside the single merged tab, and each sub-view's own pending transfer-target picks
+  // (keyed by person id, shared across all four extraPeople kinds since ids are unique regardless
+  // of kind).
+  var activeExtraSubview = 'changelog';
   var extraTargets = {};
   // Other users' edits, pulled on demand from the shared "Change Log" Base table (never touched
   // by init()/the "刷新数据" refresh, which only re-reads the 3 org-source tables). Display-only —
@@ -1975,7 +1976,6 @@
     var merged = mergedLogForDisplay();
     var countText = merged.length + (t('unitRecords') ? ' ' + t('unitRecords') : '');
     document.getElementById('changelogCount').textContent = countText;
-    document.getElementById('viewChangelogCount').textContent = merged.length;
     // mergedLogForDisplay() stays chronological (oldest first) for replayAll() elsewhere — only
     // the on-screen table shows newest first, which is what people actually want to scan.
     var newestFirst = merged.slice().reverse();
@@ -2118,26 +2118,23 @@
   }
   function applyExtraSubviewVisibility(){
     document.querySelectorAll('#extraSubNav button').forEach(function(b){ b.classList.toggle('active', b.getAttribute('data-sub')===activeExtraSubview); });
+    document.getElementById('subViewChangelog').style.display = activeExtraSubview==='changelog' ? '' : 'none';
+    document.getElementById('subViewAffectedEmp').style.display = activeExtraSubview==='affectedemp' ? '' : 'none';
     document.getElementById('subViewUnassigned').style.display = activeExtraSubview==='unassigned' ? '' : 'none';
     document.getElementById('subViewConsultant').style.display = activeExtraSubview==='consultant' ? '' : 'none';
     document.getElementById('subViewShared').style.display = activeExtraSubview==='shared' ? '' : 'none';
     document.getElementById('subViewPending').style.display = activeExtraSubview==='pending' ? '' : 'none';
     document.getElementById('subViewUndefined').style.display = activeExtraSubview==='undefined' ? '' : 'none';
   }
-  // Single tab hosting 待安置员工 plus the four Lark-User-classification kinds (顾问/公共账号/未入职/
-  // 未定义), switched via the #extraSubNav segmented control in the panel head — replaces the old
-  // standalone "顾问/公共账户" tab entirely.
+  // Single tab hosting 变更记录/受影响员工/待安置员工 plus the four Lark-User-classification kinds
+  // (顾问/公共账号/未入职/未定义), each independently switchable (not paired) via the #extraSubNav
+  // segmented control in the panel head — replaces the old standalone "变更记录" tab and the old
+  // standalone "顾问/公共账户" tab entirely. Always visible (变更记录/受影响员工 always were) since
+  // it's never truly empty — worst case its other sub-views are just empty tables.
+  var EXTRA_SUBVIEW_LABEL_KEY = {changelog:'extraSubChangelog', affectedemp:'extraSubAffectedEmp', unassigned:'extraSubUnassigned', consultant:'extraSubConsultant', shared:'extraSubShared', pending:'extraSubPending', undefined:'extraSubUndefined'};
   function renderUnassignedAndExtra(){
-    var tabBtn = document.getElementById('viewUnassignedBtn');
     var node = unassignedId ? getNode(unassignedId) : null;
-    if(!node && !extraPeople.length){
-      tabBtn.style.display = 'none';
-      if(tabBtn.classList.contains('active')) switchView('chart');
-      return;
-    }
-    tabBtn.style.display = '';
     var unassignedList = node ? employees.filter(function(e){ return e.nodeId===unassignedId; }) : [];
-    document.getElementById('viewUnassignedCount').textContent = unassignedList.length;
     renderUnassignedSub(node, unassignedList);
 
     var consultants = computeExtraKindRows('consultant');
@@ -2149,8 +2146,11 @@
     renderExtraKindTable('extraPendingBody', pending, 'pending', 'extraPendingEmptyNote');
     renderExtraKindTable('extraUndefinedBody', undef, 'undefined', 'extraUndefinedEmptyNote');
 
-    var counts = {unassigned:unassignedList.length, consultant:consultants.length, shared:shared.length, pending:pending.length, undefined:undef.length};
-    document.getElementById('unassignedCount').textContent = counts[activeExtraSubview] || 0;
+    var counts = {changelog:mergedLogForDisplay().length, affectedemp:computeImpacted().length, unassigned:unassignedList.length, consultant:consultants.length, shared:shared.length, pending:pending.length, undefined:undef.length};
+    var activeCount = counts[activeExtraSubview] || 0;
+    document.getElementById('unassignedCount').textContent = activeCount;
+    document.getElementById('viewUnassignedCount').textContent = activeCount;
+    document.getElementById('mergedTabLabel').textContent = t(EXTRA_SUBVIEW_LABEL_KEY[activeExtraSubview]);
     applyExtraSubviewVisibility();
   }
   document.getElementById('extraSubNav').addEventListener('click', function(ev){
@@ -2175,8 +2175,10 @@
     document.querySelectorAll('#viewTabs button').forEach(function(b){ b.classList.toggle('active', b.getAttribute('data-view')===view); });
     document.getElementById('chartView').style.display = view==='chart' ? '' : 'none';
     document.getElementById('unassignedView').style.display = view==='unassigned' ? '' : 'none';
-    document.getElementById('changelogView').style.display = view==='changelog' ? '' : 'none';
     document.getElementById('adminView').style.display = view==='admin' ? '' : 'none';
+    // The search/transfer/expand/zoom/orientation toolbar only means anything against the org
+    // chart itself — hide it everywhere else instead of leaving it sitting above an unrelated tab.
+    document.querySelector('.controls-row').style.display = view==='chart' ? '' : 'none';
     if(view==='admin'){ renderAdmin(); renderEditWindowSettings(); fetchExportWatermark().then(renderExportWatermark); }
     // The real cause of the "connectors go blank" report: any render (e.g. clicking Undo, which
     // lives on the Change log tab) that happens while chartView is display:none computes every
