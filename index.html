@@ -37,8 +37,7 @@
         <h1 data-i18n="pageTitle">组织架构调整工具</h1>
         <div class="seg view-tabs" id="viewTabs">
           <button data-view="chart" class="active" data-i18n="viewChart">组织架构图</button>
-          <button data-view="changelog" id="viewChangelogBtn"><span data-i18n="changeLogTitle">变更记录</span> (<span id="viewChangelogCount">0</span>)</button>
-          <button data-view="unassigned" id="viewUnassignedBtn" style="display:none;"><span data-i18n="viewUnassigned">待安置员工</span> (<span id="viewUnassignedCount">0</span>)</button>
+          <button data-view="unassigned" id="viewUnassignedBtn"><span id="mergedTabLabel" data-i18n="extraSubUnassigned">待安置员工</span> (<span id="viewUnassignedCount">0</span>)</button>
           <button data-view="admin" id="viewAdminBtn" style="display:none;" data-i18n="viewAdmin">管理员</button>
         </div>
       </div>
@@ -108,6 +107,7 @@
   <div class="panel" id="unassignedView" style="display:none;">
     <div class="panel-head">
       <div class="seg" id="extraSubNav">
+        <button type="button" data-sub="changelog" data-i18n="extraSubChangelog">变更记录</button>
         <button type="button" data-sub="unassigned" class="active" data-i18n="extraSubUnassigned">待安置员工</button>
         <button type="button" data-sub="consultant" data-i18n="extraSubConsultant">顾问</button>
         <button type="button" data-sub="shared" data-i18n="extraSubShared">公共账号</button>
@@ -117,6 +117,42 @@
       <span class="count mono" id="unassignedCount">0</span>
     </div>
     <div class="panel-body">
+      <div id="subViewChangelog" class="admin-layout" style="display:none; grid-template-columns:4fr 5fr;">
+        <div class="panel">
+          <div class="panel-head">
+            <h2 data-i18n="changeLogTitle">变更记录</h2>
+            <span class="count mono" id="changelogCount">0</span>
+          </div>
+          <div class="panel-body">
+            <div class="scroll-table" style="max-height:calc(100vh - 320px);">
+              <table class="logtbl">
+                <thead><tr><th style="width:34px;">#</th><th style="width:100px;" data-i18n="colType">类型</th><th data-i18n="colDetail">详情</th><th style="width:90px;" data-i18n="colEditor">编辑人</th><th style="width:200px;" data-i18n="colEditTime">编辑时间</th><th style="width:70px;" data-i18n="colAction">操作</th></tr></thead>
+                <tbody id="changelogBody"><tr><td colspan="6" class="empty-note" data-i18n="logEmptyNote">暂无变更，点一个部门框试试</td></tr></tbody>
+              </table>
+            </div>
+            <div class="btn-row" style="margin-top:10px;">
+              <button class="btn primary" id="downloadChangelogBtn" data-i18n="downloadCsvBtn">下载 CSV</button>
+            </div>
+          </div>
+        </div>
+        <div class="panel">
+          <div class="panel-head">
+            <h2 data-i18n="affectedEmpTitle">受影响员工</h2>
+            <span class="count mono" id="changelogEmpCount">0</span>
+          </div>
+          <div class="panel-body">
+            <div class="scroll-table" style="max-height:calc(100vh - 320px);">
+              <table class="emptbl">
+                <thead><tr><th style="width:56px;">EID</th><th data-i18n="colName">姓名</th><th data-i18n="colPathChange">原组织架构 → 新组织架构</th><th data-i18n="colReportsTo">汇报对象</th></tr></thead>
+                <tbody id="changelogEmpBody"><tr><td colspan="4" class="empty-note" data-i18n="empEmptyNote">还没有员工受影响</td></tr></tbody>
+              </table>
+            </div>
+            <div class="btn-row" style="margin-top:10px;">
+              <button class="btn primary" id="downloadChangelogEmpBtn" data-i18n="downloadCsvBtn">下载 CSV</button>
+            </div>
+          </div>
+        </div>
+      </div>
       <div id="subViewUnassigned">
         <div class="scroll-table unassigned-scroll">
           <table class="emptbl">
@@ -183,43 +219,6 @@
         </div>
         <div class="btn-row" style="margin-top:10px;">
           <button class="btn primary" id="downloadExtraUndefinedBtn" data-i18n="downloadCsvBtn">下载 CSV</button>
-        </div>
-      </div>
-    </div>
-  </div>
-
-  <div class="admin-layout" id="changelogView" style="display:none; grid-template-columns:4fr 5fr;">
-    <div class="panel">
-      <div class="panel-head">
-        <h2 data-i18n="changeLogTitle">变更记录</h2>
-        <span class="count mono" id="changelogCount">0</span>
-      </div>
-      <div class="panel-body">
-        <div class="scroll-table" style="max-height:calc(100vh - 260px);">
-          <table class="logtbl">
-            <thead><tr><th style="width:34px;">#</th><th style="width:100px;" data-i18n="colType">类型</th><th data-i18n="colDetail">详情</th><th style="width:90px;" data-i18n="colEditor">编辑人</th><th style="width:200px;" data-i18n="colEditTime">编辑时间</th><th style="width:70px;" data-i18n="colAction">操作</th></tr></thead>
-            <tbody id="changelogBody"><tr><td colspan="6" class="empty-note" data-i18n="logEmptyNote">暂无变更，点一个部门框试试</td></tr></tbody>
-          </table>
-        </div>
-        <div class="btn-row" style="margin-top:10px;">
-          <button class="btn primary" id="downloadChangelogBtn" data-i18n="downloadCsvBtn">下载 CSV</button>
-        </div>
-      </div>
-    </div>
-    <div class="panel">
-      <div class="panel-head">
-        <h2 data-i18n="affectedEmpTitle">受影响员工</h2>
-        <span class="count mono" id="changelogEmpCount">0</span>
-      </div>
-      <div class="panel-body">
-        <div class="scroll-table" style="max-height:calc(100vh - 260px);">
-          <table class="emptbl">
-            <thead><tr><th style="width:56px;">EID</th><th data-i18n="colName">姓名</th><th data-i18n="colPathChange">原组织架构 → 新组织架构</th><th data-i18n="colReportsTo">汇报对象</th></tr></thead>
-            <tbody id="changelogEmpBody"><tr><td colspan="4" class="empty-note" data-i18n="empEmptyNote">还没有员工受影响</td></tr></tbody>
-          </table>
-        </div>
-        <div class="btn-row" style="margin-top:10px;">
-          <button class="btn primary" id="downloadChangelogEmpBtn" data-i18n="downloadCsvBtn">下载 CSV</button>
         </div>
       </div>
     </div>
@@ -359,7 +358,7 @@
 
 <div class="toast" id="toast"></div>
 
-<script src="js/app.js?v=20260828-1"></script>
+<script src="js/app.js?v=20260908-1"></script>
 
 </body>
 </html>
