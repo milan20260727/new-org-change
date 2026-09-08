@@ -428,7 +428,7 @@
         // actually resolved to, not the placeholder null a still-unresolved BoD row started with.
         pristineExtraPeople = JSON.parse(JSON.stringify(extraPeople));
         extraTargets = {};
-        activeExtraSubview = 'unassigned';
+        activeExtraSubview = 'changelog';
         unassignedId = data.unassignedId || null;
         unassignedTargets = {};
         // Default view: root + its direct children expanded, everything deeper starts
@@ -1974,8 +1974,6 @@
   }
   function renderLog(){
     var merged = mergedLogForDisplay();
-    var countText = merged.length + (t('unitRecords') ? ' ' + t('unitRecords') : '');
-    document.getElementById('changelogCount').textContent = countText;
     // mergedLogForDisplay() stays chronological (oldest first) for replayAll() elsewhere — only
     // the on-screen table shows newest first, which is what people actually want to scan.
     var newestFirst = merged.slice().reverse();
@@ -2017,8 +2015,6 @@
   }
   function renderEmployees(){
     var impacted = computeImpacted();
-    var countText = impacted.length + (t('unitPeople') ? ' ' + t('unitPeople') : '');
-    document.getElementById('changelogEmpCount').textContent = countText;
     renderEmployeesInto('changelogEmpBody', impacted);
   }
 
