@@ -304,6 +304,12 @@
   .roster-row .rr-info{flex:1; min-width:0;}
   .roster-row .rr-name{font-size:12.5px; font-weight:600;}
   .roster-row .rr-eid{font-size:10.5px; color:var(--ink-muted); font-family:var(--font-mono);}
+  /* Inline direct-manager value + edit trigger inside .rr-eid — deliberately lighter than
+     .role-value (a bordered, padded box meant to stand alone under a role label): this one has to
+     sit inline in a small metadata line instead. */
+  .rr-reports-value{display:inline-flex; align-items:center; gap:4px; cursor:pointer;}
+  .rr-reports-value .rv-name.empty{color:var(--ink-muted); font-style:italic;}
+  .rr-reports-value .rv-edit{font-size:10px; color:var(--accent); font-weight:700;}
 
   .reassign-box{margin-top:10px; padding:10px; border:1px solid var(--warn-border); border-radius:8px; background:var(--warn-bg);}
   .reassign-box .rb-title{font-size:11.5px; font-weight:700; color:var(--warn-text); margin-bottom:8px;}

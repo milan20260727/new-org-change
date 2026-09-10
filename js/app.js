@@ -74,6 +74,7 @@
       selectAllLabel:function(n){ return '全选（' + n + ' 人）'; },
       transferSelectedBtn:function(n){ return '转移已选员工（' + n + '）'; },
       reportsToPrefix:' · 汇报对象：',
+      reportsToMismatchTooltip:'直属上级与本部门 PIC 不一致',
       nowAtPrefix:' — 现在：',
       extraPersonSuffix:{consultant:' (consultant)', shared:' (shared account)', pending:' (pending onboarding)', undefined:' (undefined)'},
       matchLabel:function(eid){ return eid; },
@@ -205,6 +206,7 @@
       selectAllLabel:function(n){ return 'Select all (' + n + ')'; },
       transferSelectedBtn:function(n){ return 'Transfer selected (' + n + ')'; },
       reportsToPrefix:' · Direct Manager: ',
+      reportsToMismatchTooltip:"Direct manager doesn't match this department's PIC",
       nowAtPrefix:' — currently: ',
       extraPersonSuffix:{consultant:' (consultant)', shared:' (shared account)', pending:' (pending onboarding)', undefined:' (undefined)'},
       matchLabel:function(eid){ return eid; },
@@ -701,6 +703,7 @@
       var ep = extraPeople.filter(function(x){ return x.id===l.params.id; })[0];
       return !!ep && !!l.params.toId && ep.nodeId===l.params.toId;
     }
+    if(l.typeKey==='report_change'){ return !!employees.filter(function(x){ return x.eid===l.key; })[0]; }
     return false;
   }
   // Drops the exact clicked entry from wherever it currently lives (local `log` if made this
@@ -754,6 +757,11 @@
     else if(l.typeKey==='extra_transfer'){
       var ep = extraPeople.filter(function(x){ return x.id===l.params.id; })[0];
       if(ep && l.params.fromId){ ep.nodeId = l.params.fromId; dropAndRetract(l); }
+    }
+    else if(l.typeKey==='report_change'){
+      var repE = employees.filter(function(x){ return x.eid===l.key; })[0];
+      if(repE) commitReportsToChange(repE, repE.origReportsTo||'');
+      dropAndRetractIfStillPresent(l);
     }
   }
   function formatLogType(entry){ return t('logType')[entry.typeKey] || entry.typeKey; }
@@ -902,6 +910,23 @@
     p.nodeId = targetId;
     addLog('extra_transfer', {id:p.id, name:p.name, from:fromNode.name, to:toNode.name, fromId:fromNode.id, toId:toNode.id});
     return true;
+  }
+  // Direct manager is otherwise only ever set as a side effect of a department transfer (synced to
+  // the destination's PIC) — this is the one place it can be corrected by hand, e.g. someone whose
+  // reports-to was never right to begin with, or who legitimately reports to someone other than
+  // their department's own PIC. Same upsert/undo shape as commitRoleChange: logged as this
+  // session's original value -> current, so reverting back to the original removes the log entry
+  // instead of leaving a "changed it and changed it back" trail. origReportsTo is set once at load
+  // (see init()) and never touched again, so it stays a stable baseline across edits.
+  function commitReportsToChange(emp, val){
+    if((val||'') === (emp.reportsTo||'')) return;
+    emp.reportsTo = val;
+    var key = emp.eid;
+    if((emp.reportsTo||'') === (emp.origReportsTo||'')){
+      removeLog('report_change', key);
+    } else {
+      upsertLog('report_change', key, {name:emp.name, from:emp.origReportsTo||'', to:emp.reportsTo});
+    }
   }
   // Deleting a department with sub-departments now cascades: the whole subtree (n + all live
   // descendants) goes together in one commit. The only remaining gate is headcount — every
@@ -1320,9 +1345,20 @@
       '<label style="display:flex; align-items:center; gap:6px; font-size:11.5px; color:var(--ink-muted);"><input type="checkbox" id="rosterSelectAll" '+(allSelected?'checked':'')+'> '+escapeHtml(t('selectAllLabel')(direct.length))+'</label>'+
       '</div>') : '';
     direct.forEach(function(e){
+      // Flags when this employee's direct manager doesn't match their own department's PIC — the
+      // system never checked for this before; most of the time it's simply because reports-to is
+      // only ever auto-synced as a side effect of a department transfer, so it can go stale the
+      // moment a department's PIC changes without anyone having moved. Not itself an error (some
+      // people legitimately report to someone other than their PIC), just worth surfacing.
+      var mismatch = !!(n.pic && (e.reportsTo||'') !== n.pic);
+      var reportsToValue = e.reportsTo ? escapeHtml(e.reportsTo) : escapeHtml(t('notSet'));
+      var reportsToHtml = canEdit()
+        ? '<span class="rr-reports-value" data-eid="'+e.eid+'"><span class="rv-name '+(e.reportsTo?'':'empty')+'">'+reportsToValue+'</span><span class="rv-edit">'+escapeHtml(t('changeBtn'))+'</span></span>'
+        : '<span>'+reportsToValue+'</span>';
       html += '<div class="roster-row" data-eid="'+e.eid+'">'+
         '<input type="checkbox" class="roster-cb" data-eid="'+e.eid+'" '+(rosterSelected[e.eid]?'checked':'')+'>'+
-        '<div class="rr-info"><div class="rr-name">'+escapeHtml(e.name)+'</div><div class="rr-eid">EID '+e.eid+escapeHtml(t('reportsToPrefix'))+(e.reportsTo?escapeHtml(e.reportsTo):escapeHtml(t('notSet')))+'</div></div>'+
+        '<div class="rr-info"><div class="rr-name">'+escapeHtml(e.name)+(mismatch?' <span style="color:var(--warn-text);" title="'+escapeHtml(t('reportsToMismatchTooltip'))+'">⚠</span>':'')+'</div>'+
+        '<div class="rr-eid">EID '+e.eid+escapeHtml(t('reportsToPrefix'))+reportsToHtml+'</div></div>'+
         '</div>';
     });
     directExtra.forEach(function(p){
@@ -1342,6 +1378,7 @@
 
     if(!direct.length) return;
 
+    bindReportsToPickers(direct);
     document.getElementById('rosterSelectAll').addEventListener('change', function(){
       var newVal = !allSelected;
       direct.forEach(function(e){ rosterSelected[e.eid] = newVal; });
@@ -1401,6 +1438,47 @@
           if(isRealNode){ commitRoleChange(target, field, val); renderTree(); renderLog(); }
           else target[field] = val;
           renderPanel();
+        });
+        document.addEventListener('click', function onDoc(ev){
+          if(!row.contains(ev.target)){ picker.remove(); document.removeEventListener('click', onDoc); }
+        });
+      });
+    });
+  }
+  // Same inline searchable-picker pattern as bindRolePickers above, scoped to one roster row's
+  // direct-manager value instead of a department's own role fields. Draws from the full personPool
+  // (same as PIC) since a direct manager isn't restricted to any particular branch the way HRBP is.
+  function bindReportsToPickers(direct){
+    document.querySelectorAll('.rr-reports-value').forEach(function(el){
+      el.addEventListener('click', function(){
+        var emp = direct.filter(function(x){ return x.eid===el.getAttribute('data-eid'); })[0];
+        if(!emp) return;
+        var row = el.closest('.roster-row');
+        // Appended into .rr-info (a plain block column), not .roster-row itself (a flex row) — a
+        // block-level picker dropped straight into the flex row would sit beside .rr-info as its
+        // own shrink-to-content flex item instead of stacking full-width underneath it.
+        var infoBox = el.closest('.rr-info');
+        if(infoBox.querySelector('.role-picker')) return;
+        var picker = document.createElement('div');
+        picker.className = 'role-picker';
+        picker.innerHTML = '<input type="text" placeholder="'+escapeHtml(t('pickerSearchPh'))+'" autocomplete="off"><div class="options"></div>';
+        infoBox.appendChild(picker);
+        var input = picker.querySelector('input');
+        var opts = picker.querySelector('.options');
+        function renderOpts(q){
+          var list = personPool.filter(function(p){ return p.toLowerCase().indexOf((q||'').toLowerCase())>=0; });
+          sortByRelevance(list, q, function(p){ return p; });
+          list = list.slice(0, SEARCH_RESULT_CAP);
+          opts.innerHTML = list.length ? list.map(function(p){ return '<button type="button" data-name="'+escapeHtml(p)+'">'+escapeHtml(p)+'</button>'; }).join('') + '<button type="button" data-name="" style="color:var(--warn-text);">'+escapeHtml(t('clearRoleOption'))+'</button>'
+            : '<button type="button" disabled style="color:var(--ink-muted);">'+escapeHtml(t('noMatchResult'))+'</button>';
+        }
+        renderOpts('');
+        input.focus();
+        input.addEventListener('input', function(){ renderOpts(input.value); });
+        opts.addEventListener('click', function(ev){
+          var btn = ev.target.closest('button[data-name]'); if(!btn) return;
+          commitReportsToChange(emp, btn.getAttribute('data-name'));
+          renderLog(); renderEmployees(); renderPanel();
         });
         document.addEventListener('click', function onDoc(ev){
           if(!row.contains(ev.target)){ picker.remove(); document.removeEventListener('click', onDoc); }
