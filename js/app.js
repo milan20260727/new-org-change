@@ -1476,7 +1476,7 @@
         // IS that PIC — see the mismatch check above), without having to search and pick it by
         // hand. Shown whenever there's a resolvable expected value, not just on an actual mismatch,
         // since it's a harmless no-op when reports-to already matches.
-        var matchBtnHtml = expected ? '<button type="button" class="btn ghost match-org-btn" style="width:100%; margin-bottom:6px; white-space:normal; text-align:left; color:var(--accent);">'+escapeHtml(t('matchOrgStructureBtn')(expected))+'</button>' : '';
+        var matchBtnHtml = (expected && expected!==(emp.reportsTo||'')) ? '<button type="button" class="btn ghost match-org-btn" style="width:100%; margin-bottom:6px; white-space:normal; text-align:left; color:var(--accent);">'+escapeHtml(t('matchOrgStructureBtn')(expected))+'</button>' : '';
         picker.innerHTML = matchBtnHtml + '<input type="text" placeholder="'+escapeHtml(t('pickerSearchPh'))+'" autocomplete="off"><div class="options"></div>';
         infoBox.appendChild(picker);
         var input = picker.querySelector('input');
