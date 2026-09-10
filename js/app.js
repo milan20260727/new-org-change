@@ -75,6 +75,7 @@
       transferSelectedBtn:function(n){ return '转移已选员工（' + n + '）'; },
       reportsToPrefix:' · 汇报对象：',
       reportsToMismatchTooltip:function(expected){ return '直属上级应为「' + expected + '」'; },
+      matchOrgStructureBtn:function(name){ return '匹配组织架构（设为「' + name + '」）'; },
       nowAtPrefix:' — 现在：',
       extraPersonSuffix:{consultant:' (consultant)', shared:' (shared account)', pending:' (pending onboarding)', undefined:' (undefined)'},
       matchLabel:function(eid){ return eid; },
@@ -207,6 +208,7 @@
       transferSelectedBtn:function(n){ return 'Transfer selected (' + n + ')'; },
       reportsToPrefix:' · Direct Manager: ',
       reportsToMismatchTooltip:function(expected){ return 'Direct manager should be: ' + expected; },
+      matchOrgStructureBtn:function(name){ return 'Match org structure (set to ' + name + ')'; },
       nowAtPrefix:' — currently: ',
       extraPersonSuffix:{consultant:' (consultant)', shared:' (shared account)', pending:' (pending onboarding)', undefined:' (undefined)'},
       matchLabel:function(eid){ return eid; },
@@ -1360,7 +1362,7 @@
       var mismatch = !!(expectedManager && (e.reportsTo||'') !== expectedManager);
       var reportsToValue = e.reportsTo ? escapeHtml(e.reportsTo) : escapeHtml(t('notSet'));
       var reportsToHtml = canEdit()
-        ? '<span class="rr-reports-value" data-eid="'+e.eid+'"><span class="rv-name '+(e.reportsTo?'':'empty')+'">'+reportsToValue+'</span><span class="rv-edit">'+escapeHtml(t('changeBtn'))+'</span></span>'
+        ? '<span class="rr-reports-value" data-eid="'+e.eid+'" data-expected="'+escapeHtml(expectedManager)+'"><span class="rv-name '+(e.reportsTo?'':'empty')+'">'+reportsToValue+'</span><span class="rv-edit">'+escapeHtml(t('changeBtn'))+'</span></span>'
         : '<span>'+reportsToValue+'</span>';
       html += '<div class="roster-row" data-eid="'+e.eid+'">'+
         '<input type="checkbox" class="roster-cb" data-eid="'+e.eid+'" '+(rosterSelected[e.eid]?'checked':'')+'>'+
@@ -1460,6 +1462,7 @@
       el.addEventListener('click', function(){
         var emp = direct.filter(function(x){ return x.eid===el.getAttribute('data-eid'); })[0];
         if(!emp) return;
+        var expected = el.getAttribute('data-expected') || '';
         var row = el.closest('.roster-row');
         // Appended into .rr-info (a plain block column), not .roster-row itself (a flex row) — a
         // block-level picker dropped straight into the flex row would sit beside .rr-info as its
@@ -1468,7 +1471,13 @@
         if(infoBox.querySelector('.role-picker')) return;
         var picker = document.createElement('div');
         picker.className = 'role-picker';
-        picker.innerHTML = '<input type="text" placeholder="'+escapeHtml(t('pickerSearchPh'))+'" autocomplete="off"><div class="options"></div>';
+        // One-click fix sitting above the search box — sets reports-to to whatever the org
+        // hierarchy actually implies (the department's own PIC, or the parent's if this employee
+        // IS that PIC — see the mismatch check above), without having to search and pick it by
+        // hand. Shown whenever there's a resolvable expected value, not just on an actual mismatch,
+        // since it's a harmless no-op when reports-to already matches.
+        var matchBtnHtml = expected ? '<button type="button" class="btn ghost match-org-btn" style="width:100%; margin-bottom:6px; white-space:normal; text-align:left;">'+escapeHtml(t('matchOrgStructureBtn')(expected))+'</button>' : '';
+        picker.innerHTML = matchBtnHtml + '<input type="text" placeholder="'+escapeHtml(t('pickerSearchPh'))+'" autocomplete="off"><div class="options"></div>';
         infoBox.appendChild(picker);
         var input = picker.querySelector('input');
         var opts = picker.querySelector('.options');
@@ -1482,6 +1491,13 @@
         renderOpts('');
         input.focus();
         input.addEventListener('input', function(){ renderOpts(input.value); });
+        var matchBtn = picker.querySelector('.match-org-btn');
+        if(matchBtn){
+          matchBtn.addEventListener('click', function(){
+            commitReportsToChange(emp, expected);
+            renderLog(); renderEmployees(); renderPanel();
+          });
+        }
         opts.addEventListener('click', function(ev){
           var btn = ev.target.closest('button[data-name]'); if(!btn) return;
           commitReportsToChange(emp, btn.getAttribute('data-name'));
