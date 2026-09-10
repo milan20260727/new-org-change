@@ -74,7 +74,7 @@
       selectAllLabel:function(n){ return '全选（' + n + ' 人）'; },
       transferSelectedBtn:function(n){ return '转移已选员工（' + n + '）'; },
       reportsToPrefix:' · 汇报对象：',
-      reportsToMismatchTooltip:'直属上级与本部门 PIC 不一致',
+      reportsToMismatchTooltip:function(expected){ return '直属上级应为「' + expected + '」'; },
       nowAtPrefix:' — 现在：',
       extraPersonSuffix:{consultant:' (consultant)', shared:' (shared account)', pending:' (pending onboarding)', undefined:' (undefined)'},
       matchLabel:function(eid){ return eid; },
@@ -206,7 +206,7 @@
       selectAllLabel:function(n){ return 'Select all (' + n + ')'; },
       transferSelectedBtn:function(n){ return 'Transfer selected (' + n + ')'; },
       reportsToPrefix:' · Direct Manager: ',
-      reportsToMismatchTooltip:"Direct manager doesn't match this department's PIC",
+      reportsToMismatchTooltip:function(expected){ return 'Direct manager should be: ' + expected; },
       nowAtPrefix:' — currently: ',
       extraPersonSuffix:{consultant:' (consultant)', shared:' (shared account)', pending:' (pending onboarding)', undefined:' (undefined)'},
       matchLabel:function(eid){ return eid; },
@@ -1345,19 +1345,26 @@
       '<label style="display:flex; align-items:center; gap:6px; font-size:11.5px; color:var(--ink-muted);"><input type="checkbox" id="rosterSelectAll" '+(allSelected?'checked':'')+'> '+escapeHtml(t('selectAllLabel')(direct.length))+'</label>'+
       '</div>') : '';
     direct.forEach(function(e){
-      // Flags when this employee's direct manager doesn't match their own department's PIC — the
-      // system never checked for this before; most of the time it's simply because reports-to is
-      // only ever auto-synced as a side effect of a department transfer, so it can go stale the
-      // moment a department's PIC changes without anyone having moved. Not itself an error (some
-      // people legitimately report to someone other than their PIC), just worth surfacing.
-      var mismatch = !!(n.pic && (e.reportsTo||'') !== n.pic);
+      // Flags when this employee's direct manager doesn't match the PIC they should actually be
+      // reporting to — the system never checked for this before; most of the time it's simply
+      // because reports-to is only ever auto-synced as a side effect of a department transfer, so
+      // it can go stale the moment a department's PIC changes without anyone having moved. Not
+      // itself an error (some people legitimately report to someone other than their PIC), just
+      // worth surfacing.
+      // The department's own head is the one real exception: their manager is the PARENT
+      // department's PIC, not their own department's (that would mean reporting to themselves) —
+      // resolved the same precise way syncPicReportsTo does, by open_id when this department's PIC
+      // resolved to one, falling back to name matching only when it didn't.
+      var isThisDeptsPic = n.pic && (n.picEid ? e.eid===n.picEid : matchesPersonName(e.name, n.pic));
+      var expectedManager = isThisDeptsPic ? ((n.parentId && getNode(n.parentId)) ? getNode(n.parentId).pic : '') : n.pic;
+      var mismatch = !!(expectedManager && (e.reportsTo||'') !== expectedManager);
       var reportsToValue = e.reportsTo ? escapeHtml(e.reportsTo) : escapeHtml(t('notSet'));
       var reportsToHtml = canEdit()
         ? '<span class="rr-reports-value" data-eid="'+e.eid+'"><span class="rv-name '+(e.reportsTo?'':'empty')+'">'+reportsToValue+'</span><span class="rv-edit">'+escapeHtml(t('changeBtn'))+'</span></span>'
         : '<span>'+reportsToValue+'</span>';
       html += '<div class="roster-row" data-eid="'+e.eid+'">'+
         '<input type="checkbox" class="roster-cb" data-eid="'+e.eid+'" '+(rosterSelected[e.eid]?'checked':'')+'>'+
-        '<div class="rr-info"><div class="rr-name">'+escapeHtml(e.name)+(mismatch?' <span style="color:var(--warn-text);" title="'+escapeHtml(t('reportsToMismatchTooltip'))+'">⚠</span>':'')+'</div>'+
+        '<div class="rr-info"><div class="rr-name">'+escapeHtml(e.name)+(mismatch?' <span style="color:var(--warn-text);" title="'+escapeHtml(t('reportsToMismatchTooltip')(expectedManager))+'">⚠</span>':'')+'</div>'+
         '<div class="rr-eid">EID '+e.eid+escapeHtml(t('reportsToPrefix'))+reportsToHtml+'</div></div>'+
         '</div>';
     });
@@ -1678,7 +1685,11 @@
     return html;
   }
 
-  function escapeHtml(s){ return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
+  // Also escapes quote characters, not just the three "always unsafe in text content" ones — this
+  // is used for `title="..."`/other double-quoted attribute values in several places (department
+  // names, tooltips), and a literal " in the source text (e.g. a nickname like John "JJ" Smith)
+  // would otherwise break out of the attribute instead of just displaying as a quote mark.
+  function escapeHtml(s){ return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&#39;'); }
 
   function renderTree(){
     headcountCache = null; // rebuild once for this pass, not once per node/comparison
