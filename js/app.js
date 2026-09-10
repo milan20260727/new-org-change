@@ -1327,6 +1327,24 @@
     });
   }
 
+  // Who this employee should actually be reporting to, per the org hierarchy: their own
+  // department's PIC — except when THEY are that PIC (reporting to themselves makes no sense), in
+  // which case it's the parent department's PIC instead. The same person can head several nested
+  // departments in a row (e.g. a placeholder/rollup structure, or one person covering a whole
+  // branch), so this doesn't stop at just one level up — it keeps walking up the ancestor chain
+  // past every department this same employee also heads, stopping at the first ancestor whose PIC
+  // is genuinely someone else. Returns '' if that never happens all the way to root (nothing above
+  // them to compare against).
+  function expectedManagerFor(e, startNode){
+    var cur = startNode, guard = 0;
+    while(cur && guard++ < 50){
+      var isCurPic = !!(cur.pic && (cur.picEid ? e.eid===cur.picEid : matchesPersonName(e.name, cur.pic)));
+      if(!isCurPic) return cur.pic || '';
+      if(!cur.parentId) return '';
+      cur = getNode(cur.parentId);
+    }
+    return '';
+  }
   function renderRosterTab(n, body, foot){
     var direct = employees.filter(function(e){ return e.nodeId===n.id; });
     // Consultants/shared accounts — display-only alongside the real roster; never selectable for
@@ -1348,17 +1366,12 @@
       '</div>') : '';
     direct.forEach(function(e){
       // Flags when this employee's direct manager doesn't match the PIC they should actually be
-      // reporting to — the system never checked for this before; most of the time it's simply
-      // because reports-to is only ever auto-synced as a side effect of a department transfer, so
-      // it can go stale the moment a department's PIC changes without anyone having moved. Not
-      // itself an error (some people legitimately report to someone other than their PIC), just
-      // worth surfacing.
-      // The department's own head is the one real exception: their manager is the PARENT
-      // department's PIC, not their own department's (that would mean reporting to themselves) —
-      // resolved the same precise way syncPicReportsTo does, by open_id when this department's PIC
-      // resolved to one, falling back to name matching only when it didn't.
-      var isThisDeptsPic = n.pic && (n.picEid ? e.eid===n.picEid : matchesPersonName(e.name, n.pic));
-      var expectedManager = isThisDeptsPic ? ((n.parentId && getNode(n.parentId)) ? getNode(n.parentId).pic : '') : n.pic;
+      // reporting to (see expectedManagerFor above) — the system never checked for this before;
+      // most of the time it's simply because reports-to is only ever auto-synced as a side effect
+      // of a department transfer, so it can go stale the moment a department's PIC changes without
+      // anyone having moved. Not itself an error (some people legitimately report to someone other
+      // than their PIC), just worth surfacing.
+      var expectedManager = expectedManagerFor(e, n);
       var mismatch = !!(expectedManager && (e.reportsTo||'') !== expectedManager);
       var reportsToValue = e.reportsTo ? escapeHtml(e.reportsTo) : escapeHtml(t('notSet'));
       var reportsToHtml = canEdit()
