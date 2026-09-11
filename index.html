@@ -133,12 +133,13 @@
       <div id="subViewL2Depts" style="display:none;">
         <div class="scroll-table unassigned-scroll">
           <table class="emptbl">
-            <thead><tr><th data-i18n="colDeptName">部门</th><th data-i18n="colType">类型</th><th data-i18n="colPathChange">原组织架构 → 新组织架构</th><th data-i18n="colRoleChange">角色变更</th></tr></thead>
-            <tbody id="l2DeptsBody"><tr><td colspan="4" class="empty-note" data-i18n="l2DeptsEmptyNote">暂无二级部门变更</td></tr></tbody>
+            <thead><tr><th data-i18n="colDeptName">部门</th><th style="width:130px;" data-i18n="role_pic">PIC</th><th style="width:100px;" data-i18n="colLevel">等级</th><th style="width:100px;" data-i18n="colType">类型</th><th data-i18n="colPathChange">原组织架构 → 新组织架构</th><th data-i18n="colRoleChange">角色变更</th></tr></thead>
+            <tbody id="l2DeptsBody"><tr><td colspan="6" class="empty-note" data-i18n="l2DeptsEmptyNote">暂无二级部门变更</td></tr></tbody>
           </table>
         </div>
         <div class="btn-row" style="margin-top:10px;">
           <button class="btn primary" id="downloadL2DeptsBtn" data-i18n="downloadCsvBtn">下载 CSV</button>
+          <button class="btn ghost" id="downloadDeptToSectionBtn" data-i18n="downloadDeptToSectionBtn">Dept to Section</button>
         </div>
       </div>
       <div id="subViewAffectedEmp" style="display:none;">
@@ -357,7 +358,7 @@
 
 <div class="toast" id="toast"></div>
 
-<script src="js/app.js?v=20260911-1"></script>
+<script src="js/app.js?v=20260911-2"></script>
 
 </body>
 </html>

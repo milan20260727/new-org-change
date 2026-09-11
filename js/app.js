@@ -53,6 +53,7 @@
       logEmptyNote:'暂无变更，点一个部门框试试', downloadCsvBtn:'下载 CSV',
       affectedEmpTitle:'受影响员工', unitPeople:'人', colName:'姓名', colPathChange:'原组织架构 → 新组织架构', colReportsTo:'汇报对象',
       colDeptName:'部门', colRoleChange:'角色变更', l2DeptsEmptyNote:'暂无二级部门变更',
+      colLevel:'等级', l2LevelDept:'部门', l2LevelSubdept:'子部门', downloadDeptToSectionBtn:'Dept to Section',
       colDivision:'Division', colBusinessUnit:'Business Unit', colDepartment:'Department', colTeam:'Team', colSubTeam:'Sub Team', colSection:'Section', colStatus:'Status', colHrbpLead:'HRBP Lead',
       empEmptyNote:'还没有员工受影响',
       unassignedTitle:'待安置员工', unassignedEmptyNote:'暂无待安置员工', unassignedTransferBtn:'转移',
@@ -185,7 +186,8 @@
       changeLogTitle:'Change log', unitRecords:'', colType:'Type', colDetail:'Detail', colEditor:'Editor', colEditTime:'Edit time', colAction:'Action', undoLogBtn:'Undo',
       logEmptyNote:'No changes yet — try clicking a department box', downloadCsvBtn:'Download CSV',
       affectedEmpTitle:'Affected employees', unitPeople:'', colName:'Name', colPathChange:'Old org → New org', colReportsTo:'Direct Manager',
-      colDeptName:'Department', colRoleChange:'Role Change', l2DeptsEmptyNote:'No level-2 department changes',
+      colDeptName:'Department', colRoleChange:'Role Change', l2DeptsEmptyNote:'No level-2/level-3 department changes',
+      colLevel:'Level', l2LevelDept:'Dept', l2LevelSubdept:'Sub-dept', downloadDeptToSectionBtn:'Dept to Section',
       colDivision:'Division', colBusinessUnit:'Business Unit', colDepartment:'Department', colTeam:'Team', colSubTeam:'Sub Team', colSection:'Section', colStatus:'Status', colHrbpLead:'HRBP Lead',
       empEmptyNote:'No employees affected yet',
       unassignedTitle:'Unassigned employees', unassignedEmptyNote:'No unassigned employees', unassignedTransferBtn:'Transfer',
@@ -2138,7 +2140,8 @@
     }
     var rows = [];
     replayed.nodes.forEach(function(fn){
-      if(depthOfFinal(fn.id) !== 2) return;
+      var depth = depthOfFinal(fn.id);
+      if(depth !== 2 && depth !== 3) return;
       var pn = pristineById[fn.id];
       var wasNew = !pn;
       var isDeletedNow = !!fn.flags.isDeleted;
@@ -2168,7 +2171,7 @@
           .map(function(f){ return t('role_' + f); }).join(', ');
       }
       if(!typeLabels.length && !roleChangeLabel) return;
-      rows.push({name: fn.name, typeLabel: typeLabels.join(', '), oldPath: beforeName, newPath: afterName, roleChangeLabel: roleChangeLabel, currentRoles: afterRoles});
+      rows.push({name: fn.name, level: depth===2 ? t('l2LevelDept') : t('l2LevelSubdept'), pic: afterRoles.pic||beforeRoles.pic||'', typeLabel: typeLabels.join(', '), oldPath: beforeName, newPath: afterName, roleChangeLabel: roleChangeLabel, currentRoles: afterRoles});
     });
     rows.sort(function(a,b){
       var an = a.newPath||a.oldPath, bn = b.newPath||b.oldPath;
@@ -2178,12 +2181,12 @@
   }
   function renderL2DeptsTable(list){
     var body = document.getElementById('l2DeptsBody');
-    if(!list.length){ body.innerHTML = '<tr><td colspan="4" class="empty-note">'+escapeHtml(t('l2DeptsEmptyNote'))+'</td></tr>'; return; }
+    if(!list.length){ body.innerHTML = '<tr><td colspan="6" class="empty-note">'+escapeHtml(t('l2DeptsEmptyNote'))+'</td></tr>'; return; }
     body.innerHTML = list.map(function(r){
       var pathCell = r.oldPath===r.newPath
         ? '<td>'+escapeHtml(r.newPath||r.oldPath)+'</td>'
         : '<td><div class="path-old">'+escapeHtml(r.oldPath)+'</div><div class="path-new">'+escapeHtml(r.newPath)+'</div></td>';
-      return '<tr><td>'+escapeHtml(r.name)+'</td><td>'+escapeHtml(r.typeLabel)+'</td>'+pathCell+'<td>'+escapeHtml(r.roleChangeLabel)+'</td></tr>';
+      return '<tr><td>'+escapeHtml(r.name)+'</td><td>'+escapeHtml(r.pic)+'</td><td>'+escapeHtml(r.level)+'</td><td>'+escapeHtml(r.typeLabel)+'</td>'+pathCell+'<td>'+escapeHtml(r.roleChangeLabel)+'</td></tr>';
     }).join('');
   }
   // PIC/HRBP1/HRBP2/HRBP Lead/Department Assistant here are the CURRENT (post-change) values —
@@ -2191,11 +2194,41 @@
   // are these roles right now" for a quick glance. Blank for a deleted department (no current role
   // to show once it's gone).
   function l2DeptsCsvRows(list){
-    return [['Department', 'Change Type', 'Old Org Path', 'New Org Path', 'Role Change', 'PIC', 'HRBP1', 'HRBP2', 'HRBP Lead', 'Department Assistant']]
+    return [['Department', 'Level', 'Change Type', 'Old Org Path', 'New Org Path', 'Role Change', 'PIC', 'HRBP1', 'HRBP2', 'HRBP Lead', 'Department Assistant']]
       .concat(list.map(function(r){
         var cr = r.currentRoles || {};
-        return [r.name, r.typeLabel, r.oldPath, r.newPath, r.roleChangeLabel, cr.pic||'', cr.hrbp1||'', cr.hrbp2||'', cr.hrbpLead||'', cr.da||''];
+        return [r.name, r.level, r.typeLabel, r.oldPath, r.newPath, r.roleChangeLabel, cr.pic||'', cr.hrbp1||'', cr.hrbp2||'', cr.hrbpLead||'', cr.da||''];
       }));
+  }
+  // Full current-state directory (not a change list — every live level-2/3/4 unit, changed or
+  // not), flattened one row per deepest unit reached: Department (level 2) -> Sub-Department
+  // (level 3) -> Section (level 4), each with its own current PIC. A branch that doesn't go all
+  // the way to level 4 still gets a row, just with the deeper columns left blank, so it isn't
+  // silently missing from the export. Reads the live `nodes` directly (already the combined
+  // post-replay state — see applyCombinedReplay), not a fresh replay of its own.
+  function computeDeptToSectionRows(){
+    function liveChildrenOf(id){
+      return nodes.filter(function(n){ return n.parentId===id && !n.flags.isDeleted; })
+        .sort(function(a,b){ return a.name<b.name ? -1 : a.name>b.name ? 1 : 0; });
+    }
+    var rows = [];
+    nodes.filter(function(n){ return !n.flags.isDeleted && depthOf(n.id)===2; })
+      .sort(function(a,b){ return a.name<b.name ? -1 : a.name>b.name ? 1 : 0; })
+      .forEach(function(dept){
+        var subs = liveChildrenOf(dept.id);
+        if(!subs.length){ rows.push([dept.name, dept.pic||'', '', '', '', '']); return; }
+        subs.forEach(function(sub){
+          var sections = liveChildrenOf(sub.id);
+          if(!sections.length){ rows.push([dept.name, dept.pic||'', sub.name, sub.pic||'', '', '']); return; }
+          sections.forEach(function(sec){
+            rows.push([dept.name, dept.pic||'', sub.name, sub.pic||'', sec.name, sec.pic||'']);
+          });
+        });
+      });
+    return rows;
+  }
+  function deptToSectionCsvRows(){
+    return [['Department', 'Dept PIC', 'Sub-Department', 'Sub-Dept PIC', 'Section', 'Section PIC']].concat(computeDeptToSectionRows());
   }
 
   function renderEmployeesInto(bodyId, impacted){
@@ -2358,7 +2391,10 @@
     renderUnassignedAndExtra();
   });
   document.getElementById('downloadL2DeptsBtn').addEventListener('click', function(){
-    downloadCsv(dateStampedFilename('level2-department-changes.csv'), l2DeptsCsvRows(computeL2DeptRows()));
+    downloadCsv(dateStampedFilename('level2-3-department-changes.csv'), l2DeptsCsvRows(computeL2DeptRows()));
+  });
+  document.getElementById('downloadDeptToSectionBtn').addEventListener('click', function(){
+    downloadCsv(dateStampedFilename('dept-to-section.csv'), deptToSectionCsvRows());
   });
   document.getElementById('downloadExtraConsultantBtn').addEventListener('click', function(){
     downloadCsv(dateStampedFilename('consultants.csv'), extraCsvRows(computeExtraKindRows('consultant')));
