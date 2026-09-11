@@ -2168,7 +2168,7 @@
           .map(function(f){ return t('role_' + f); }).join(', ');
       }
       if(!typeLabels.length && !roleChangeLabel) return;
-      rows.push({name: fn.name, typeLabel: typeLabels.join(', '), oldPath: beforeName, newPath: afterName, roleChangeLabel: roleChangeLabel});
+      rows.push({name: fn.name, typeLabel: typeLabels.join(', '), oldPath: beforeName, newPath: afterName, roleChangeLabel: roleChangeLabel, currentRoles: afterRoles});
     });
     rows.sort(function(a,b){
       var an = a.newPath||a.oldPath, bn = b.newPath||b.oldPath;
@@ -2186,9 +2186,16 @@
       return '<tr><td>'+escapeHtml(r.name)+'</td><td>'+escapeHtml(r.typeLabel)+'</td>'+pathCell+'<td>'+escapeHtml(r.roleChangeLabel)+'</td></tr>';
     }).join('');
   }
+  // PIC/HRBP1/HRBP2/HRBP Lead/Department Assistant here are the CURRENT (post-change) values —
+  // deliberately not before/after pairs like the Base archive export, since the ask was just "what
+  // are these roles right now" for a quick glance. Blank for a deleted department (no current role
+  // to show once it's gone).
   function l2DeptsCsvRows(list){
-    return [['Department', 'Change Type', 'Old Org Path', 'New Org Path', 'Role Change']]
-      .concat(list.map(function(r){ return [r.name, r.typeLabel, r.oldPath, r.newPath, r.roleChangeLabel]; }));
+    return [['Department', 'Change Type', 'Old Org Path', 'New Org Path', 'Role Change', 'PIC', 'HRBP1', 'HRBP2', 'HRBP Lead', 'Department Assistant']]
+      .concat(list.map(function(r){
+        var cr = r.currentRoles || {};
+        return [r.name, r.typeLabel, r.oldPath, r.newPath, r.roleChangeLabel, cr.pic||'', cr.hrbp1||'', cr.hrbp2||'', cr.hrbpLead||'', cr.da||''];
+      }));
   }
 
   function renderEmployeesInto(bodyId, impacted){
