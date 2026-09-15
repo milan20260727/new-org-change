@@ -54,7 +54,7 @@
       affectedEmpTitle:'受影响员工', unitPeople:'人', colName:'姓名', colPathChange:'原组织架构 → 新组织架构', colReportsTo:'汇报对象',
       colDeptName:'部门', colRoleChange:'角色变更', l2DeptsEmptyNote:'暂无二级部门变更',
       colLevel:'等级', l2LevelDept:'部门', l2LevelSubdept:'子部门', downloadDeptToSectionBtn:'Dept to Section',
-      colDivision:'Division', colDepartment:'Department', colSubDepartment:'Sub Department', colTeam:'Team', colSubTeam:'Sub Team', colSection:'Section', colStatus:'Status', colHrbpLead:'HRBP Lead',
+      colDivision:'Division', colDepartment:'Department', colSubDepartment:'Sub Department', colTeam:'Team', colSubTeam:'Sub Team', colSection:'Section', colHrbpLead:'HRBP Lead',
       empEmptyNote:'还没有员工受影响',
       unassignedTitle:'待安置员工', unassignedEmptyNote:'暂无待安置员工', unassignedTransferBtn:'转移',
       extraSubChangelog:'变更记录', extraSubL2Depts:'二级部门变更', extraSubAffectedEmp:'受影响员工', extraSubUnassigned:'待安置员工', extraSubConsultant:'顾问', extraSubShared:'公共账号', extraSubPending:'未入职', extraSubUndefined:'未定义',
@@ -188,7 +188,7 @@
       affectedEmpTitle:'Affected employees', unitPeople:'', colName:'Name', colPathChange:'Old org → New org', colReportsTo:'Direct Manager',
       colDeptName:'Department', colRoleChange:'Role Change', l2DeptsEmptyNote:'No level-2/level-3 department changes',
       colLevel:'Level', l2LevelDept:'Dept', l2LevelSubdept:'Sub-dept', downloadDeptToSectionBtn:'Dept to Section',
-      colDivision:'Division', colDepartment:'Department', colSubDepartment:'Sub Department', colTeam:'Team', colSubTeam:'Sub Team', colSection:'Section', colStatus:'Status', colHrbpLead:'HRBP Lead',
+      colDivision:'Division', colDepartment:'Department', colSubDepartment:'Sub Department', colTeam:'Team', colSubTeam:'Sub Team', colSection:'Section', colHrbpLead:'HRBP Lead',
       empEmptyNote:'No employees affected yet',
       unassignedTitle:'Unassigned employees', unassignedEmptyNote:'No unassigned employees', unassignedTransferBtn:'Transfer',
       extraSubChangelog:'Change Log', extraSubL2Depts:'L2 Department Changes', extraSubAffectedEmp:'Affected Employees', extraSubUnassigned:'Unassigned', extraSubConsultant:'Consultants', extraSubShared:'Shared Accounts', extraSubPending:'Pending Onboard', extraSubUndefined:'Undefined',
@@ -2252,14 +2252,14 @@
 
   function renderUnassignedSub(node, list){
     var body = document.getElementById('unassignedBody');
-    if(!list.length){ body.innerHTML = '<tr><td colspan="14" class="empty-note">'+escapeHtml(t('unassignedEmptyNote'))+'</td></tr>'; return; }
+    if(!list.length){ body.innerHTML = '<tr><td colspan="13" class="empty-note">'+escapeHtml(t('unassignedEmptyNote'))+'</td></tr>'; return; }
     var targets = nodes.filter(function(x){ return x.id!==(node?node.id:null) && !x.flags.isDeleted; });
     function cell(v){ return '<td>'+(v?escapeHtml(v):'')+'</td>'; }
     body.innerHTML = list.map(function(e){
       return '<tr data-eid="'+e.eid+'">'+
         '<td class="mono">'+e.eid+'</td>'+
         '<td>'+escapeHtml(e.name)+'</td>'+
-        cell(e.division)+cell(e.department)+cell(e.subDepartment)+cell(e.team)+cell(e.subTeam)+cell(e.section)+cell(e.status)+cell(e.hrbp1)+cell(e.hrbp2)+cell(e.hrbpLead)+
+        cell(e.division)+cell(e.department)+cell(e.subDepartment)+cell(e.section)+cell(e.team)+cell(e.subTeam)+cell(e.hrbp1)+cell(e.hrbp2)+cell(e.hrbpLead)+
         '<td>'+(e.reportsTo?escapeHtml(e.reportsTo):escapeHtml(t('notSet')))+'</td>'+
         (canEdit() ? '<td><div class="reassign-picker" data-eid="'+e.eid+'"></div></td><td><button class="btn" type="button" data-transfer-eid="'+e.eid+'">'+escapeHtml(t('unassignedTransferBtn'))+'</button></td>' : '<td></td><td></td>')+
         '</tr>';
@@ -2364,6 +2364,18 @@
   function renderUnassignedAndExtra(){
     var node = unassignedId ? getNode(unassignedId) : null;
     var unassignedList = node ? employees.filter(function(e){ return e.nodeId===unassignedId; }) : [];
+    // Grouped by their raw BIPO org fields (broad -> narrow) so people from the same
+    // division/department end up next to each other instead of in whatever order the source
+    // table happened to return them — much easier to scan/triage a large Unassigned list.
+    var UNASSIGNED_SORT_FIELDS = ['division','department','subDepartment','section','team','subTeam','name'];
+    unassignedList = unassignedList.slice().sort(function(a,b){
+      for(var i=0;i<UNASSIGNED_SORT_FIELDS.length;i++){
+        var f = UNASSIGNED_SORT_FIELDS[i];
+        var av = a[f]||'', bv = b[f]||'';
+        if(av!==bv) return av.localeCompare(bv);
+      }
+      return 0;
+    });
     renderUnassignedSub(node, unassignedList);
 
     var l2Depts = computeL2DeptRows();
