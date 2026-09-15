@@ -54,7 +54,7 @@
       affectedEmpTitle:'受影响员工', unitPeople:'人', colName:'姓名', colPathChange:'原组织架构 → 新组织架构', colReportsTo:'汇报对象',
       colDeptName:'部门', colRoleChange:'角色变更', l2DeptsEmptyNote:'暂无二级部门变更',
       colLevel:'等级', l2LevelDept:'部门', l2LevelSubdept:'子部门', downloadDeptToSectionBtn:'Dept to Section',
-      colDivision:'Division', colBusinessUnit:'Business Unit', colDepartment:'Department', colTeam:'Team', colSubTeam:'Sub Team', colSection:'Section', colStatus:'Status', colHrbpLead:'HRBP Lead',
+      colDivision:'Division', colDepartment:'Department', colSubDepartment:'Sub Department', colTeam:'Team', colSubTeam:'Sub Team', colSection:'Section', colStatus:'Status', colHrbpLead:'HRBP Lead',
       empEmptyNote:'还没有员工受影响',
       unassignedTitle:'待安置员工', unassignedEmptyNote:'暂无待安置员工', unassignedTransferBtn:'转移',
       extraSubChangelog:'变更记录', extraSubL2Depts:'二级部门变更', extraSubAffectedEmp:'受影响员工', extraSubUnassigned:'待安置员工', extraSubConsultant:'顾问', extraSubShared:'公共账号', extraSubPending:'未入职', extraSubUndefined:'未定义',
@@ -188,7 +188,7 @@
       affectedEmpTitle:'Affected employees', unitPeople:'', colName:'Name', colPathChange:'Old org → New org', colReportsTo:'Direct Manager',
       colDeptName:'Department', colRoleChange:'Role Change', l2DeptsEmptyNote:'No level-2/level-3 department changes',
       colLevel:'Level', l2LevelDept:'Dept', l2LevelSubdept:'Sub-dept', downloadDeptToSectionBtn:'Dept to Section',
-      colDivision:'Division', colBusinessUnit:'Business Unit', colDepartment:'Department', colTeam:'Team', colSubTeam:'Sub Team', colSection:'Section', colStatus:'Status', colHrbpLead:'HRBP Lead',
+      colDivision:'Division', colDepartment:'Department', colSubDepartment:'Sub Department', colTeam:'Team', colSubTeam:'Sub Team', colSection:'Section', colStatus:'Status', colHrbpLead:'HRBP Lead',
       empEmptyNote:'No employees affected yet',
       unassignedTitle:'Unassigned employees', unassignedEmptyNote:'No unassigned employees', unassignedTransferBtn:'Transfer',
       extraSubChangelog:'Change Log', extraSubL2Depts:'L2 Department Changes', extraSubAffectedEmp:'Affected Employees', extraSubUnassigned:'Unassigned', extraSubConsultant:'Consultants', extraSubShared:'Shared Accounts', extraSubPending:'Pending Onboard', extraSubUndefined:'Undefined',
@@ -407,7 +407,7 @@
         nodes = hydrateNodes(data.nodes);
         employees = data.employees.map(function(e){
           return {eid:e.eid, name:e.name, nodeId:e.nodeId, origPath: pathLabel(e.nodeId), reportsTo:e.reportsTo||'', origReportsTo:e.reportsTo||'',
-            division:e.division||'', businessUnit:e.businessUnit||'', department:e.department||'', team:e.team||'', subTeam:e.subTeam||'', section:e.section||'',
+            division:e.division||'', department:e.department||'', subDepartment:e.subDepartment||'', team:e.team||'', subTeam:e.subTeam||'', section:e.section||'',
             status:e.status||'', hrbp1:e.hrbp1||'', hrbp2:e.hrbp2||'', hrbpLead:e.hrbpLead||''};
         });
         // Independent copies (hydrateNodes/.map build fresh objects each call) — this session's
@@ -1826,7 +1826,7 @@
           var freshPristineEmployees = data.employees.map(function(e){ return {eid:e.eid, name:e.name, nodeId:e.nodeId, reportsTo:e.reportsTo||''}; });
           var freshFullEmployees = data.employees.map(function(e){
             return {eid:e.eid, name:e.name, nodeId:e.nodeId, origPath: pathLabelIn(freshPristineNodes, e.nodeId), reportsTo:e.reportsTo||'', origReportsTo:e.reportsTo||'',
-              division:e.division||'', businessUnit:e.businessUnit||'', department:e.department||'', team:e.team||'', subTeam:e.subTeam||'', section:e.section||'',
+              division:e.division||'', department:e.department||'', subDepartment:e.subDepartment||'', team:e.team||'', subTeam:e.subTeam||'', section:e.section||'',
               status:e.status||'', hrbp1:e.hrbp1||'', hrbp2:e.hrbp2||'', hrbpLead:e.hrbpLead||''};
           });
           return fetchRemoteChangeLog().then(function(){
@@ -2259,7 +2259,7 @@
       return '<tr data-eid="'+e.eid+'">'+
         '<td class="mono">'+e.eid+'</td>'+
         '<td>'+escapeHtml(e.name)+'</td>'+
-        cell(e.division)+cell(e.businessUnit)+cell(e.department)+cell(e.team)+cell(e.subTeam)+cell(e.section)+cell(e.status)+cell(e.hrbp1)+cell(e.hrbp2)+cell(e.hrbpLead)+
+        cell(e.division)+cell(e.department)+cell(e.subDepartment)+cell(e.team)+cell(e.subTeam)+cell(e.section)+cell(e.status)+cell(e.hrbp1)+cell(e.hrbp2)+cell(e.hrbpLead)+
         '<td>'+(e.reportsTo?escapeHtml(e.reportsTo):escapeHtml(t('notSet')))+'</td>'+
         (canEdit() ? '<td><div class="reassign-picker" data-eid="'+e.eid+'"></div></td><td><button class="btn" type="button" data-transfer-eid="'+e.eid+'">'+escapeHtml(t('unassignedTransferBtn'))+'</button></td>' : '<td></td><td></td>')+
         '</tr>';
