@@ -326,7 +326,7 @@
   var hrbpPool = [];
   var rootId = 'root';
 
-  var nodes, employees, log, selectedId, viewRootId, orientation, logSeq, tempCounter, dragSrcId, dragMode, pendingEdit, activeTab, createDraft, rosterSelected, rosterBulkTarget, gmodalEmp, gmodalOrg, snapshotAt, unassignedId, unassignedTargets, collapsed, zoomPct;
+  var nodes, employees, log, selectedId, viewRootId, orientation, logSeq, tempCounter, dragSrcId, dragMode, pendingEdit, activeTab, createDraft, rosterSelected, rosterSelectedExtra, rosterBulkTarget, gmodalEmp, gmodalOrg, snapshotAt, unassignedId, unassignedTargets, collapsed, zoomPct;
   // Consultants and shared/function accounts — visible in a department's roster for reference,
   // and (via commitExtraTransfer/extra_transfer log entries) directly movable between departments
   // from the 待安置员工 tab's sub-views. Deliberately kept out of `employees` everywhere:
@@ -456,6 +456,7 @@
         pendingEdit = null;
         createDraft = null;
         rosterSelected = {};
+        rosterSelectedExtra = {};
         rosterBulkTarget = '';
         activeTab = 'structure';
         document.getElementById('adminSnapshotTime').textContent = formatSnapshotTime(snapshotAt);
@@ -1056,6 +1057,7 @@
       del:{on:false, assignments:{}, bulkTarget:''}
     };
     rosterSelected = {};
+    rosterSelectedExtra = {};
     rosterBulkTarget = '';
     render();
   }
@@ -1066,7 +1068,7 @@
     render();
   }
   function closePanel(){
-    selectedId = null; pendingEdit = null; createDraft = null; rosterSelected = {}; rosterBulkTarget = '';
+    selectedId = null; pendingEdit = null; createDraft = null; rosterSelected = {}; rosterSelectedExtra = {}; rosterBulkTarget = '';
     document.getElementById('editDrawer').classList.remove('show');
     document.getElementById('panelBackdrop').classList.remove('show');
   }
@@ -1349,12 +1351,17 @@
   }
   function renderRosterTab(n, body, foot){
     var direct = employees.filter(function(e){ return e.nodeId===n.id; });
-    // Consultants/shared accounts — display-only alongside the real roster; never selectable for
-    // bulk transfer (they're not headcount, and don't carry a moveable org record here at all).
+    // Consultants/shared accounts/etc — shown alongside the real roster and selectable for the
+    // same bulk transfer (via commitExtraTransfer), just without a reports-to (extraPeople never
+    // carries one — that concept doesn't apply to a shared account or consultant).
     var directExtra = extraPeople.filter(function(p){ return p.nodeId===n.id; });
     var otherNodes = nodes.filter(function(x){ return x.id!==n.id && !x.flags.isDeleted; });
-    var selCount = Object.keys(rosterSelected).filter(function(k){ return rosterSelected[k]; }).length;
-    var allSelected = direct.length>0 && direct.every(function(e){ return rosterSelected[e.eid]; });
+    var selCount = Object.keys(rosterSelected).filter(function(k){ return rosterSelected[k]; }).length
+      + Object.keys(rosterSelectedExtra).filter(function(k){ return rosterSelectedExtra[k]; }).length;
+    var totalCount = direct.length + directExtra.length;
+    var allSelected = totalCount>0
+      && direct.every(function(e){ return rosterSelected[e.eid]; })
+      && directExtra.every(function(p){ return rosterSelectedExtra[p.id]; });
 
     if(!direct.length && !directExtra.length){
       body.innerHTML = '<div class="empty-note">'+escapeHtml(t('rosterEmptyNote'))+'</div>';
@@ -1363,8 +1370,8 @@
       return;
     }
 
-    var html = direct.length ? ('<div class="roster-toolbar">'+
-      '<label style="display:flex; align-items:center; gap:6px; font-size:11.5px; color:var(--ink-muted);"><input type="checkbox" id="rosterSelectAll" '+(allSelected?'checked':'')+'> '+escapeHtml(t('selectAllLabel')(direct.length))+'</label>'+
+    var html = totalCount ? ('<div class="roster-toolbar">'+
+      '<label style="display:flex; align-items:center; gap:6px; font-size:11.5px; color:var(--ink-muted);"><input type="checkbox" id="rosterSelectAll" '+(allSelected?'checked':'')+'> '+escapeHtml(t('selectAllLabel')(totalCount))+'</label>'+
       '</div>') : '';
     direct.forEach(function(e){
       // Flags when this employee's direct manager doesn't match the PIC they should actually be
@@ -1387,10 +1394,11 @@
     });
     directExtra.forEach(function(p){
       html += '<div class="roster-row" data-extra-id="'+escapeHtml(p.id)+'">'+
+        '<input type="checkbox" class="roster-cb-extra" data-extra-id="'+escapeHtml(p.id)+'" '+(rosterSelectedExtra[p.id]?'checked':'')+'>'+
         '<div class="rr-info"><div class="rr-name" style="color:var(--ink-muted);">'+escapeHtml(p.name)+escapeHtml(t('extraPersonSuffix')[p.kind]||'')+'</div></div>'+
         '</div>';
     });
-    if(direct.length){
+    if(totalCount){
       html += '<div class="roster-toolbar" style="margin-top:12px; padding-top:12px; border-top:1px solid var(--line);">'+
         '<div id="rosterBulkPicker" style="flex:1;"></div>'+
         '<button class="btn primary" id="rosterBulkApply" type="button" '+(selCount?'':'disabled')+'>'+escapeHtml(t('transferSelectedBtn')(selCount))+'</button></div>';
@@ -1400,16 +1408,20 @@
     foot.innerHTML = '<button class="btn ghost" id="cancelEditBtn">'+escapeHtml(t('closeBtn'))+'</button>';
     document.getElementById('cancelEditBtn').addEventListener('click', closePanel);
 
-    if(!direct.length) return;
+    if(!totalCount) return;
 
     bindReportsToPickers(direct);
     document.getElementById('rosterSelectAll').addEventListener('change', function(){
       var newVal = !allSelected;
       direct.forEach(function(e){ rosterSelected[e.eid] = newVal; });
+      directExtra.forEach(function(p){ rosterSelectedExtra[p.id] = newVal; });
       renderPanel();
     });
     body.querySelectorAll('.roster-cb').forEach(function(cb){
       cb.addEventListener('change', function(){ rosterSelected[cb.getAttribute('data-eid')] = cb.checked; renderPanel(); });
+    });
+    body.querySelectorAll('.roster-cb-extra').forEach(function(cb){
+      cb.addEventListener('change', function(){ rosterSelectedExtra[cb.getAttribute('data-extra-id')] = cb.checked; renderPanel(); });
     });
     bindOrgPicker(document.getElementById('rosterBulkPicker'), otherNodes, rosterBulkTarget, function(id){ rosterBulkTarget = id; }, t('rosterTargetPlaceholder'));
     document.getElementById('rosterBulkApply').addEventListener('click', function(){
@@ -1417,10 +1429,12 @@
       if(!target){ toast(t('toastPickTransferTarget')); return; }
       var moved = 0;
       direct.forEach(function(e){ if(rosterSelected[e.eid]){ commitEmployeeTransfer(e, target); moved++; } });
+      directExtra.forEach(function(p){ if(rosterSelectedExtra[p.id]){ commitExtraTransfer(p, target); moved++; } });
       rosterSelected = {};
+      rosterSelectedExtra = {};
       rosterBulkTarget = '';
       toast(t('toastTransferredN')(moved));
-      renderTree(); renderLog(); renderEmployees(); renderPanel();
+      renderTree(); renderLog(); renderEmployees(); renderUnassignedAndExtra(); renderPanel();
     });
   }
 
