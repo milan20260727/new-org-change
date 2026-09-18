@@ -41,7 +41,7 @@
       loggedInAs:'已登录：', logoutBtn:'退出',
       snapshotLabel:'数据快照时间：', refreshBtn:'刷新数据', refreshBtnLoading:'刷新中…',
       searchPlaceholder:'搜索组织架构名称…', searchEmpNamePlaceholder:'搜索员工姓名…', focusPrefix:'聚焦于「', focusSuffix:'」',
-      globalTransferBtn:'转移员工', viewChart:'组织架构图', viewUnassigned:'待安置员工',
+      globalTransferBtn:'转移员工', requestEditAccessBtn:'申请编辑权限', viewChart:'组织架构图', viewUnassigned:'待安置员工',
       expandAllBtn:'全部展开', collapseAllBtn:'全部折叠', expandTitle:'展开', collapseTitle:'折叠',
       refreshEditsBtn:'刷新编辑', refreshEditsBtnLoading:'刷新中…', toastEditsRefreshed:'已拉取最新的变更记录', toastEditsRefreshFailed:'拉取变更记录失败',
       refreshEditsConfirmDiscard:'你还有尚未同步的本地编辑草稿，刷新会丢弃这些草稿（已同步的变更不受影响）。确定继续吗？',
@@ -175,7 +175,7 @@
       loggedInAs:'Signed in as: ', logoutBtn:'Sign out',
       snapshotLabel:'Data snapshot: ', refreshBtn:'Refresh data', refreshBtnLoading:'Refreshing…',
       searchPlaceholder:'Search org unit name…', searchEmpNamePlaceholder:'Search employee name…', focusPrefix:'Focused on "', focusSuffix:'"',
-      globalTransferBtn:'Transfer employee', viewChart:'Org Chart', viewUnassigned:'Unassigned',
+      globalTransferBtn:'Transfer employee', requestEditAccessBtn:'Request edit access', viewChart:'Org Chart', viewUnassigned:'Unassigned',
       expandAllBtn:'Expand All', collapseAllBtn:'Collapse All', expandTitle:'Expand', collapseTitle:'Collapse',
       refreshEditsBtn:'Refresh edits', refreshEditsBtnLoading:'Refreshing…', toastEditsRefreshed:'Pulled the latest change log', toastEditsRefreshFailed:'Failed to pull the change log',
       refreshEditsConfirmDiscard:"You have local edits that haven't been synced yet — refreshing will discard them (already-synced changes are unaffected). Continue?",
@@ -2462,6 +2462,9 @@
   function applyRoleGating(){
     document.getElementById('viewAdminBtn').style.display = isAdminRole() ? '' : 'none';
     document.getElementById('globalTransferBtn').style.display = canEdit() ? '' : 'none';
+    // Viewer-only: Editor+ can already edit, and a locked edit window is a different, temporary
+    // situation (surfaced by editWindowBanner below) rather than a role someone needs to request.
+    document.getElementById('requestEditAccessBtn').style.display = currentUserRole==='Viewer' ? '' : 'none';
     var roleAllowsEdit = currentUserRole==='Editor' || currentUserRole==='Senior Admin' || currentUserRole==='Owner';
     var banner = document.getElementById('editWindowBanner');
     if(roleAllowsEdit && !isWithinEditWindow()){
