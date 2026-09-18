@@ -6,7 +6,7 @@
     zh: {
       loginTitle:'组织架构调整工具', loginSubtitle:'需要登录后才能查看组织架构与员工数据',
       loginBtnText:'使用飞书账号登录', loginBtnTextLoading:'登录中…',
-      noAccessTitle:'暂无访问权限', noAccessSubtitle:'你的飞书账号还没有被授权使用这个工具，请联系管理员开通访问权限。',
+      noAccessTitle:'暂无访问权限', noAccessSubtitle:'你的飞书账号还没有被授权使用这个工具，请联系管理员开通访问权限。', noAccessRequestBtn:'申请权限',
       viewAdmin:'权限设置', adminTitle:'权限设置',
       adminEmailPh:'邮箱', adminNamePh:'姓名（可选）', adminAddBtn:'添加',
       adminColEmail:'邮箱', adminColRole:'角色',
@@ -140,7 +140,7 @@
     en: {
       loginTitle:'Org Structure Change Tool', loginSubtitle:'Sign in to view the org structure and employee data',
       loginBtnText:'Sign in with Lark', loginBtnTextLoading:'Signing in…',
-      noAccessTitle:'No access yet', noAccessSubtitle:"Your Lark account hasn't been granted access to this tool yet — ask an admin to add you.",
+      noAccessTitle:'No access yet', noAccessSubtitle:"Your Lark account hasn't been granted access to this tool yet — ask an admin to add you.", noAccessRequestBtn:'Request access',
       viewAdmin:'Permission Setting', adminTitle:'Permission Setting',
       adminEmailPh:'Email', adminNamePh:'Name (optional)', adminAddBtn:'Add',
       adminColEmail:'Email', adminColRole:'Role',
