@@ -123,7 +123,7 @@
      though its content can still wrap onto a second line on narrow viewports. */
   /* Horizontal padding matches .controls-row and .legend below (all 14px) so the tab/search/legend
      content lines up along a shared left edge instead of each bar indenting by a different amount. */
-  .topbar{display:flex; align-items:center; justify-content:space-between; gap:16px; padding:7px 14px; margin:0 0 8px; flex-wrap:wrap;
+  .topbar{display:flex; align-items:center; justify-content:space-between; gap:16px; padding:4px 14px; margin:0 0 6px; flex-wrap:wrap;
     background:var(--chrome-bg); border-radius:8px; box-shadow:var(--shadow);}
   .topbar-title-row{display:flex; flex-direction:row; flex-wrap:wrap; align-items:center; gap:12px;}
   .topbar-title-inner{display:flex; flex-wrap:wrap; align-items:center; gap:12px;}
@@ -214,7 +214,7 @@
   .focus-pill button{background:none; border:none; color:inherit; font-weight:800; cursor:pointer; font-size:13px; line-height:1;}
 
   .view-tabs{margin-bottom:0;}
-  .view-tabs button{padding:6px 14px;}
+  .view-tabs button{padding:4px 14px;}
 
   .edit-window-banner{background:var(--warn-bg); border:1px solid var(--warn-border); color:var(--warn-text); border-radius:9px; padding:8px 12px; font-size:12.5px; margin:0 0 14px;}
 
