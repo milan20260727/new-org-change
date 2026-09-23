@@ -1715,6 +1715,7 @@
     var levelIdx = Math.min(depthOf(n.id), LEVEL_NAMES.length-1);
     var levelTag = '<span class="level-tag lvl-'+levelIdx+'">'+escapeHtml(LEVEL_NAMES[levelIdx])+'</span>';
     return '<div class="'+nodeClasses(n)+'" draggable="'+draggable+'" data-id="'+n.id+'" title="'+escapeHtml(titleAttr)+'">'+
+      '<span class="level-bar lvl-'+levelIdx+'"></span>'+
       addBtn+toggleBtn+reorderHandle+
       '<div class="name-row"><span class="name">'+escapeHtml(n.name)+'</span>'+warnIco+'</div>'+
       '<div class="meta-line">'+escapeHtml(t('picPrefix'))+(n.pic?escapeHtml(n.pic):escapeHtml(t('notSet')))+'</div>'+

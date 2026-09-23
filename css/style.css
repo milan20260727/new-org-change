@@ -320,7 +320,7 @@
   .tree[data-orient="horizontal"] ul.tlevel > li{display:flex; flex-direction:row; align-items:center; padding:12px 0; position:relative;}
   .tree[data-orient="horizontal"] .children-wrap{position:relative; padding-left:34px; display:flex; flex-direction:column;}
 
-  .node{display:flex; flex-direction:column; gap:2px; min-width:168px; max-width:206px; padding:10px 12px; border-radius:9px; border:1.5px solid var(--line); background:var(--surface); cursor:pointer; text-align:left; position:relative; z-index:1; transition:border-color .12s, box-shadow .12s; box-shadow:var(--node-shadow);}
+  .node{display:flex; flex-direction:column; gap:2px; min-width:168px; max-width:206px; padding:14px 12px 10px; border-radius:9px; border:1.5px solid var(--line); background:var(--surface); cursor:pointer; text-align:left; position:relative; z-index:1; transition:border-color .12s, box-shadow .12s; box-shadow:var(--node-shadow);}
   .node:hover{border-color:var(--accent); box-shadow:var(--node-shadow-hover);}
   .node-add-btn{position:absolute; top:-8px; right:-8px; width:19px; height:19px; border-radius:50%; border:1px solid var(--line); background:var(--surface); color:var(--accent); font-size:13px; font-weight:800; line-height:1; display:flex; align-items:center; justify-content:center; cursor:pointer; z-index:2; box-shadow:var(--shadow); opacity:0; transition:opacity .12s, border-color .12s;}
   .node:hover .node-add-btn{opacity:1;}
@@ -346,6 +346,18 @@
      depth→name ladder and per-depth color coding as the sibling digiplus-org-chart project's node
      cards. Semi-transparent bg/border (rather than a solid pastel fill) so the same rule reads
      correctly on both the white/dark card surface without needing separate dark-theme colors. */
+  /* Per-level color bar along the card's top edge, like the sibling digiplus-org-chart's node
+     cards. The card itself can't be overflow:hidden (its +/toggle/reorder buttons poke out past
+     the corners), so the bar rounds its own top corners to sit flush inside the 1.5px border. */
+  .level-bar{position:absolute; top:0; left:0; right:0; height:5px; border-radius:7.5px 7.5px 0 0; pointer-events:none;}
+  .level-bar.lvl-0{background:#64748B;}
+  .level-bar.lvl-1{background:#D97706;}
+  .level-bar.lvl-2{background:#16A34A;}
+  .level-bar.lvl-3{background:#2563EB;}
+  .level-bar.lvl-4{background:#9333EA;}
+  .level-bar.lvl-5{background:#DB2777;}
+  .level-bar.lvl-6{background:#EA580C;}
+  .level-bar.lvl-7{background:#475569;}
   .level-tag{flex:none; font-size:9px; font-weight:700; padding:1px 6px; border-radius:999px; line-height:1.5; border:1px solid; white-space:nowrap;}
   .level-tag.lvl-0{background:rgba(100,116,139,.16); color:#64748B; border-color:rgba(100,116,139,.4);}
   .level-tag.lvl-1{background:rgba(217,119,6,.16); color:#D97706; border-color:rgba(217,119,6,.4);}
