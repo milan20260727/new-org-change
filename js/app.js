@@ -48,6 +48,7 @@
       zoomInTitle:'放大', zoomOutTitle:'缩小',
       orientLabel:'查看方向', orientVertical:'纵向', orientHorizontal:'横向',
       langLabel:'语言', downloadPngBtn:'下载组织架构图（PNG）',
+      toolbarCollapseTitle:'收起工具栏', toolbarExpandTitle:'展开工具栏',
       legendNew:'新增', legendDelete:'删除', legendMoved:'移动', legendRenamed:'已改名', legendRoleWarn:'⚠ 角色不一致',
       changeLogTitle:'变更记录', unitRecords:'条', colType:'类型', colDetail:'详情', colEditor:'编辑人', colEditTime:'编辑时间', colAction:'操作', undoLogBtn:'撤销',
       logEmptyNote:'暂无变更，点一个部门框试试', downloadCsvBtn:'下载 CSV',
@@ -182,6 +183,7 @@
       zoomInTitle:'Zoom in', zoomOutTitle:'Zoom out',
       orientLabel:'Layout', orientVertical:'Vertical', orientHorizontal:'Horizontal',
       langLabel:'Language', downloadPngBtn:'Download chart (PNG)',
+      toolbarCollapseTitle:'Collapse toolbar', toolbarExpandTitle:'Expand toolbar',
       legendNew:'New', legendDelete:'Deleted', legendMoved:'Moved', legendRenamed:'Renamed', legendRoleWarn:'⚠ Role inconsistent',
       changeLogTitle:'Change log', unitRecords:'', colType:'Type', colDetail:'Detail', colEditor:'Editor', colEditTime:'Edit time', colAction:'Action', undoLogBtn:'Undo',
       logEmptyNote:'No changes yet — try clicking a department box', downloadCsvBtn:'Download CSV',
@@ -1781,6 +1783,25 @@
   }
   document.getElementById('zoomInBtn').addEventListener('click', function(){ zoomPct = Math.min(200, zoomPct+10); applyZoom(); });
   document.getElementById('zoomOutBtn').addEventListener('click', function(){ zoomPct = Math.max(30, zoomPct-10); applyZoom(); });
+
+  // ---------- collapsible toolbar (frees up canvas space, remembered per browser) ----------
+  var TOOLBAR_COLLAPSE_KEY = 'orgToolCollapsed';
+  function setToolbarCollapsed(collapsed){
+    document.getElementById('app').classList.toggle('toolbar-collapsed', collapsed);
+    var btn = document.getElementById('toolbarToggleBtn');
+    var key = collapsed ? 'toolbarExpandTitle' : 'toolbarCollapseTitle';
+    btn.setAttribute('data-i18n-title', key);
+    btn.title = t(key);
+    try{ localStorage.setItem(TOOLBAR_COLLAPSE_KEY, collapsed ? '1' : '0'); }catch(e){}
+  }
+  document.getElementById('toolbarToggleBtn').addEventListener('click', function(){
+    setToolbarCollapsed(!document.getElementById('app').classList.contains('toolbar-collapsed'));
+  });
+  (function(){
+    var saved = '0';
+    try{ saved = localStorage.getItem(TOOLBAR_COLLAPSE_KEY) || '0'; }catch(e){}
+    if (saved === '1') setToolbarCollapsed(true);
+  })();
 
   // ---------- expand / collapse ----------
   function depthOf(id){
