@@ -82,7 +82,12 @@
   }
 
   *{box-sizing:border-box;}
-  body{margin:0; background:var(--bg); color:var(--ink); font-family:var(--font-ui); font-size:14px; line-height:1.5;}
+  /* Page background is the same fixed navy as the chrome bars (topbar/toolbar/legend/panel-head)
+     so the gaps around them read as one continuous surface instead of showing the theme's --bg
+     through the seams — deliberately NOT the --bg variable itself, since --bg is still used all
+     over as the subtle input-field background inside white/dark panels (settings fields, modals,
+     the edit drawer, etc.) and must keep following the light/dark theme there. */
+  body{margin:0; background:var(--chrome-bg); color:var(--ink); font-family:var(--font-ui); font-size:14px; line-height:1.5;}
   ::selection{background:var(--accent-soft);}
   button{font-family:inherit;}
 
@@ -106,13 +111,16 @@
   .wrap.ready{display:block;}
 
   /* ---------- chrome (dark-navy frame around the canvas: topbar, toolbar, legend, panel heads) ---------- */
-  .topbar{display:flex; align-items:flex-start; justify-content:space-between; gap:16px; padding:12px 16px; margin:0 0 10px; flex-wrap:wrap;
-    background:var(--chrome-bg); border-radius:10px; box-shadow:var(--shadow);}
-  .topbar-title-row{display:flex; flex-direction:row; flex-wrap:wrap; align-items:flex-start; gap:12px;}
+  /* Slim, single-strip nav bar (like the reference breadcrumb bar) rather than the old two-row,
+     generously-padded header — tight vertical padding and centered alignment keep it thin even
+     though its content can still wrap onto a second line on narrow viewports. */
+  .topbar{display:flex; align-items:center; justify-content:space-between; gap:16px; padding:7px 16px; margin:0 0 8px; flex-wrap:wrap;
+    background:var(--chrome-bg); border-radius:8px; box-shadow:var(--shadow);}
+  .topbar-title-row{display:flex; flex-direction:row; flex-wrap:wrap; align-items:center; gap:12px;}
   .topbar-title-inner{display:flex; flex-wrap:wrap; align-items:center; gap:12px;}
-  .topbar h1{font-size:17px; font-weight:700; letter-spacing:-.01em; margin:8px 0 0; text-wrap:balance; line-height:1; align-self:flex-start; color:var(--chrome-ink);}
-  .topbar-right{display:flex; align-items:center; gap:14px; flex-wrap:wrap; margin-top:7px;}
-  .topbar .scope-tag{margin-top:6px;}
+  .topbar h1{font-size:17px; font-weight:700; letter-spacing:-.01em; margin:0; text-wrap:balance; line-height:1; align-self:center; color:var(--chrome-ink);}
+  .topbar-right{display:flex; align-items:center; gap:14px; flex-wrap:wrap;}
+  .topbar .scope-tag{margin-top:0;}
   .topbar p{margin:0; color:var(--chrome-ink-muted); font-size:12.5px; max-width:64ch;}
   .scope-tag{font-size:11px; color:var(--ink-muted); background:var(--surface-2); border:1px solid var(--line); border-radius:5px; padding:2px 7px; display:inline-block; margin-top:6px;}
   .topbar .scope-tag{color:var(--chrome-ink-muted); background:rgba(255,255,255,.08); border-color:var(--chrome-border);}
@@ -129,10 +137,6 @@
   .topbar .seg{border-color:var(--chrome-border);}
   .topbar .seg button{background:transparent; color:var(--chrome-ink-muted);}
   .topbar .seg button.active{background:var(--accent); color:var(--accent-ink);}
-  .toolbar-toggle-btn{width:26px; height:26px; border-radius:7px; border:1px solid var(--chrome-border); background:rgba(255,255,255,.08); color:var(--chrome-ink); font-size:12px; cursor:pointer; display:flex; align-items:center; justify-content:center; line-height:1; transition:transform .18s, background .12s;}
-  .toolbar-toggle-btn:hover{background:rgba(255,255,255,.16);}
-  .toolbar-toggle-btn .chev{display:inline-block; transition:transform .18s;}
-  .wrap.toolbar-collapsed .toolbar-toggle-btn .chev{transform:rotate(180deg);}
 
   .btn{font-size:12.5px; font-weight:600; border-radius:7px; border:1px solid var(--line); background:var(--surface); color:var(--ink); padding:7px 12px; cursor:pointer; white-space:nowrap; transition:background .12s, border-color .12s;}
   .btn:hover{border-color:var(--accent);}
@@ -159,8 +163,7 @@
   .zoom-ctrl-floating button{width:28px; height:28px; font-size:17px;}
   .zoom-ctrl-floating span{min-width:40px; font-size:12px;}
 
-  .controls-row{display:flex; align-items:center; gap:10px; flex-wrap:wrap; margin:0 0 12px; padding:10px 12px; background:var(--chrome-bg); border-radius:10px; box-shadow:var(--shadow); transition:max-height .18s ease, opacity .18s ease, margin .18s ease, padding .18s ease;}
-  .wrap.toolbar-collapsed .controls-row{max-height:0; opacity:0; margin:0; padding:0 12px; overflow:hidden; pointer-events:none;}
+  .controls-row{display:flex; align-items:center; gap:10px; flex-wrap:wrap; margin:0 0 8px; padding:7px 12px; background:var(--chrome-bg); border-radius:8px; box-shadow:var(--shadow);}
   .controls-row .ctrl-label{color:var(--chrome-ink-muted);}
   .controls-row .seg{border-color:var(--chrome-border);}
   .controls-row .seg button{background:transparent; color:var(--chrome-ink-muted);}
@@ -183,8 +186,8 @@
   .focus-pill.show{display:inline-flex;}
   .focus-pill button{background:none; border:none; color:inherit; font-weight:800; cursor:pointer; font-size:13px; line-height:1;}
 
-  .view-tabs{margin-bottom:14px;}
-  .view-tabs button{padding:8px 16px;}
+  .view-tabs{margin-bottom:0;}
+  .view-tabs button{padding:6px 14px;}
 
   .edit-window-banner{background:var(--warn-bg); border:1px solid var(--warn-border); color:var(--warn-text); border-radius:9px; padding:8px 12px; font-size:12.5px; margin:0 0 14px;}
 
@@ -197,7 +200,7 @@
      below (max-height:230px) has LOWER specificity than this one, but a stray // comment here once
      broke this whole rule's parsing and let that fallback silently win instead — worth remembering
      if this ever again renders shorter than expected. */
-  .scroll-table.unassigned-scroll{max-height:calc(100vh - 210px); overflow:auto;}
+  .scroll-table.unassigned-scroll{max-height:calc(100vh - 188px); overflow:auto;}
 
   /* ---------- admin panel ---------- */
   .admin-layout{display:grid; grid-template-columns:3fr 2fr; gap:18px; align-items:start;}
@@ -259,8 +262,7 @@
   .legend .btn.primary{background:var(--accent); color:var(--accent-ink); border-color:var(--accent);}
   .legend .btn:hover{border-color:var(--chrome-accent);}
 
-  .tree-scroll{overflow:auto; padding:24px 20px 14px; height:calc(100vh - 186px); min-height:300px; background:var(--canvas-bg); transition:height .18s ease;}
-  .wrap.toolbar-collapsed .tree-scroll{height:calc(100vh - 138px);}
+  .tree-scroll{overflow:auto; padding:24px 20px 14px; height:calc(100vh - 164px); min-height:300px; background:var(--canvas-bg);}
   .tree-wrap{position:relative; display:inline-block; min-width:100%;}
   .tree{display:flex; justify-content:center; min-width:max-content;}
   .tree-connectors{position:absolute; top:0; left:0; width:100%; height:100%; pointer-events:none; overflow:visible;}
