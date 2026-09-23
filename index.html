@@ -35,7 +35,6 @@
   <div class="topbar">
     <div class="topbar-title-row">
       <div class="topbar-title-inner">
-        <h1 data-i18n="pageTitle">组织架构调整工具</h1>
         <div class="seg view-tabs" id="viewTabs">
           <button data-view="chart" class="active" data-i18n="viewChart">组织架构图</button>
           <button data-view="unassigned" id="viewUnassignedBtn"><span id="mergedTabLabel" data-i18n="extraSubChangelog">变更记录</span> (<span id="viewUnassignedCount">0</span>)</button>
@@ -70,16 +69,17 @@
     <button class="btn ghost" id="refreshEditsBtn" data-i18n="refreshEditsBtn">刷新编辑</button>
     <a class="btn" id="requestEditAccessBtn" href="https://digiplus.sg.larksuite.com/share/base/form/shrlgrDjevGKEHsmtbB2gMQ7lte/?prefill_Role=Editor" target="_blank" rel="noopener" data-i18n="requestEditAccessBtn" style="display:none; text-decoration:none; box-sizing:border-box;">申请编辑权限</a>
     <span style="flex:1;"></span>
-    <div class="zoom-ctrl">
-      <button type="button" id="zoomOutBtn" data-i18n-title="zoomOutTitle" title="缩小">−</button>
-      <span class="mono" id="zoomLabel">100%</span>
-      <button type="button" id="zoomInBtn" data-i18n-title="zoomInTitle" title="放大">+</button>
-    </div>
     <span class="ctrl-label" data-i18n="orientLabel">查看方向</span>
     <div class="seg" id="orientSeg">
       <button data-orient="vertical" class="active" data-i18n="orientVertical">纵向</button>
       <button data-orient="horizontal" data-i18n="orientHorizontal">横向</button>
     </div>
+  </div>
+
+  <div class="zoom-ctrl zoom-ctrl-floating" id="zoomCtrlFloating">
+    <button type="button" id="zoomOutBtn" data-i18n-title="zoomOutTitle" title="缩小">−</button>
+    <span class="mono" id="zoomLabel">100%</span>
+    <button type="button" id="zoomInBtn" data-i18n-title="zoomInTitle" title="放大">+</button>
   </div>
 
   <div class="edit-window-banner" id="editWindowBanner" style="display:none;"></div>
@@ -235,6 +235,7 @@
         </div>
       </div>
       <div class="panel-body">
+        <p class="hint" data-i18n="adminScopeHint">限定该用户「下载 CSV」导出的范围（含下级部门），不影响其实际编辑权限；留空表示不限。</p>
         <div class="admin-add-row">
           <input type="text" id="adminNewEmail" data-i18n-placeholder="adminEmailPh" placeholder="邮箱">
           <input type="text" id="adminNewName" data-i18n-placeholder="adminNamePh" placeholder="姓名（可选）">
@@ -251,6 +252,7 @@
               <th data-i18n="colName">姓名</th>
               <th data-i18n="adminColEmail">邮箱</th>
               <th style="width:160px;" data-i18n="adminColRole">角色</th>
+              <th style="width:260px;" data-i18n="adminColScope">编辑范围</th>
               <th style="width:150px;"></th>
               <th style="width:90px;"></th>
             </tr></thead>

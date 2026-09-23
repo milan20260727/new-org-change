@@ -99,6 +99,13 @@
   .zoom-ctrl button{width:22px; height:22px; border:none; background:none; color:var(--ink); font-size:15px; font-weight:700; cursor:pointer; border-radius:5px; display:flex; align-items:center; justify-content:center; line-height:1;}
   .zoom-ctrl button:hover{background:var(--surface-2);}
   .zoom-ctrl span{font-size:11px; min-width:36px; text-align:center; color:var(--ink-muted);}
+  /* Floats over the chart canvas (bottom-right) instead of sitting in the toolbar row — same
+     control, just repositioned so it stays reachable while scrolled deep into a large chart.
+     Toggled via switchView (see applyRoleGating's own controls-row toggle) since it only means
+     anything on the chart view. */
+  .zoom-ctrl-floating{position:fixed; right:20px; bottom:20px; z-index:40; background:var(--surface); box-shadow:var(--shadow); padding:5px 7px; gap:6px;}
+  .zoom-ctrl-floating button{width:28px; height:28px; font-size:17px;}
+  .zoom-ctrl-floating span{min-width:40px; font-size:12px;}
 
   .controls-row{display:flex; align-items:center; gap:10px; flex-wrap:wrap; margin-bottom:12px;}
   .search-box{position:relative; flex:1; min-width:220px; max-width:340px;}
@@ -328,6 +335,15 @@
   .op-options button:last-child{border-bottom:none;}
   .op-options button:hover{background:var(--surface-2);}
   .op-picked{display:flex; align-items:center; justify-content:space-between; gap:8px; padding:7px 9px; border-radius:6px; background:var(--surface-2); border:1px solid var(--line); font-size:12px; font-weight:600;}
+
+  /* ---------- admin panel: per-user "Edit Scope" (department chips) ---------- */
+  .scope-cell{position:relative; min-width:200px;}
+  .scope-chips{display:flex; flex-wrap:wrap; gap:5px; margin-bottom:5px;}
+  .scope-chip{display:inline-flex; align-items:center; gap:5px; padding:3px 6px; border-radius:6px; background:var(--surface-2); border:1px solid var(--line); font-size:11.5px; line-height:1.3;}
+  .scope-chip-x{border:none; background:none; color:var(--ink-muted); cursor:pointer; font-size:13px; line-height:1; padding:0;}
+  .scope-chip-x:hover{color:var(--warn-text);}
+  .scope-empty{font-size:11.5px; color:var(--ink-muted); display:block; margin-bottom:5px;}
+  .scope-picker-slot{position:relative;}
   .op-picked span{overflow:hidden; text-overflow:ellipsis; white-space:nowrap;}
   .op-picked button{flex:none; background:none; border:none; color:var(--accent); cursor:pointer; font-size:11.5px; font-weight:700;}
 

@@ -52,6 +52,30 @@ module.exports = async (req, res) => {
     return;
   }
 
+  // Sets which departments' changes this person's own "下载 CSV" exports include (subtree implied
+  // client-side — see buildScopeClosure in app.js). Purely a personal-export filter, not an edit
+  // permission, so it's allowed on any row including the Owner's own, unlike 'update'/'remove'.
+  if (action === 'update-scope') {
+    const ctx = await requireRole(req, res, 'Senior Admin');
+    if (!ctx) return;
+    const { recordId, editScope } = req.body || {};
+    if (!recordId) { res.status(400).json({ error: 'recordId is required' }); return; }
+    if (!Array.isArray(editScope) || editScope.some((x) => typeof x !== 'string')) {
+      res.status(400).json({ error: 'editScope must be an array of department ids' });
+      return;
+    }
+    try {
+      const records = await listPermissionRecords();
+      const target = records.find((r) => r.recordId === recordId);
+      if (!target) { res.status(404).json({ error: 'User not found' }); return; }
+      await updateSourceRecord('permissions', recordId, { 'Edit Scope': JSON.stringify(editScope) });
+      res.status(200).json({ ok: true });
+    } catch (err) {
+      res.status(502).json({ error: err.message });
+    }
+    return;
+  }
+
   // Revokes a user's access outright (deletes their permissions row). Same Owner guard as update.
   if (action === 'remove') {
     const ctx = await requireRole(req, res, 'Senior Admin');
