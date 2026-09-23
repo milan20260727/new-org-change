@@ -16,6 +16,10 @@
        theme-independent by design intent. */
     --chrome-bg:#1F2D47; --chrome-bg-soft:#28395F; --chrome-border:rgba(255,255,255,.14);
     --chrome-ink:#FFFFFF; --chrome-ink-muted:rgba(255,255,255,.62); --chrome-accent:#8CA0FF;
+    /* Brighter, more saturated blue for solid buttons/active tabs inside the chrome bars — the
+       app-wide --accent (dark indigo in light theme) reads too muted against the dark-navy chrome,
+       so these get their own fixed, theme-independent fill instead of following --accent. */
+    --chrome-btn-bg:#3B82F6; --chrome-btn-ink:#FFFFFF;
     --canvas-bg:#EEF3E9;
     --node-shadow:
       inset 0 1px 0 rgba(255,255,255,.95),
@@ -138,7 +142,7 @@
   .topbar .ctrl-label{color:var(--chrome-ink-muted);}
   .topbar .seg{border-color:var(--chrome-border);}
   .topbar .seg button{background:transparent; color:var(--chrome-ink-muted);}
-  .topbar .seg button.active{background:var(--accent); color:var(--accent-ink);}
+  .topbar .seg button.active{background:var(--chrome-btn-bg); color:var(--chrome-btn-ink);}
 
   .btn{font-size:12.5px; font-weight:600; border-radius:7px; border:1px solid var(--line); background:var(--surface); color:var(--ink); padding:7px 12px; cursor:pointer; white-space:nowrap; transition:background .12s, border-color .12s;}
   .btn:hover{border-color:var(--accent);}
@@ -169,10 +173,10 @@
   .controls-row .ctrl-label{color:var(--chrome-ink-muted);}
   .controls-row .seg{border-color:var(--chrome-border);}
   .controls-row .seg button{background:transparent; color:var(--chrome-ink-muted);}
-  .controls-row .seg button.active{background:var(--accent); color:var(--accent-ink);}
+  .controls-row .seg button.active{background:var(--chrome-btn-bg); color:var(--chrome-btn-ink);}
   .controls-row .btn{background:rgba(255,255,255,.08); color:var(--chrome-ink); border-color:var(--chrome-border);}
   .controls-row .btn:hover{border-color:var(--chrome-accent);}
-  .controls-row .btn.primary{background:var(--accent); color:var(--accent-ink); border-color:var(--accent);}
+  .controls-row .btn.primary{background:var(--chrome-btn-bg); color:var(--chrome-btn-ink); border-color:var(--chrome-btn-bg);}
   .controls-row .btn.ghost{background:transparent;}
   .search-box{position:relative; flex:1; min-width:220px; max-width:340px;}
   .search-box input{width:100%; padding:8px 12px; border-radius:8px; border:1.5px solid var(--line); background:var(--surface); color:var(--ink); font-size:13px;}
@@ -254,14 +258,14 @@
   .panel-head .data-status{color:var(--chrome-ink-muted);}
   .panel-head .seg{border-color:var(--chrome-border);}
   .panel-head .seg button{background:transparent; color:var(--chrome-ink-muted);}
-  .panel-head .seg button.active{background:var(--accent); color:var(--accent-ink);}
+  .panel-head .seg button.active{background:var(--chrome-btn-bg); color:var(--chrome-btn-ink);}
   .panel-body{padding:14px;}
 
   .legend{display:flex; flex-wrap:wrap; gap:12px; padding:10px 14px; background:var(--chrome-bg);}
   .legend-item{display:flex; align-items:center; gap:6px; font-size:11.5px; color:var(--chrome-ink-muted);}
   .swatch{width:10px; height:10px; border-radius:3px; border:1px solid rgba(255,255,255,.3); display:inline-block;}
   .legend .btn{background:rgba(255,255,255,.08); color:var(--chrome-ink); border-color:var(--chrome-border);}
-  .legend .btn.primary{background:var(--accent); color:var(--accent-ink); border-color:var(--accent);}
+  .legend .btn.primary{background:var(--chrome-btn-bg); color:var(--chrome-btn-ink); border-color:var(--chrome-btn-bg);}
   .legend .btn:hover{border-color:var(--chrome-accent);}
 
   .tree-scroll{overflow:auto; padding:24px 20px 14px; height:calc(100vh - 164px); min-height:300px; background:var(--canvas-bg); cursor:grab;}
