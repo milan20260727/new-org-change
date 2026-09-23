@@ -3035,20 +3035,27 @@
     return m ? (m[1] + '-' + nowStamp() + m[2]) : (name + '-' + nowStamp());
   }
 
+  // Senior Admin/Owner get everyone's changes in the two "下载 CSV" exports; everyone else only
+  // gets their own entangled cluster (filterEntriesRelevantToMe), replayed on its own.
+  function csvExportView(s){
+    if(isAdminRole()) return {entries:s.entries, nodes:s.finalNodes, employees:s.finalEmployees};
+    var myEntries = filterEntriesRelevantToMe(s.entries, currentUserName);
+    var myReplay = replayAll(myEntries, pristineNodes, pristineEmployees);
+    return {entries:myEntries, nodes:myReplay.nodes, employees:myReplay.employees};
+  }
+
   // The "archive changes to Base" admin button replaced these as the supported way to get
   // changes into Base — CSV download (still below) remains for anyone who wants a local copy.
   document.getElementById('downloadChangelogBtn').addEventListener('click', function(){
     getCombinedReplayState().then(function(s){
-      var myEntries = filterEntriesRelevantToMe(s.entries, currentUserName);
-      var myReplay = replayAll(myEntries, pristineNodes, pristineEmployees);
-      downloadCsv(dateStampedFilename(ct('csvOrgChangeFilename')), buildCombinedOrgChangeRows(pristineNodes, myReplay.nodes, myEntries));
+      var v = csvExportView(s);
+      downloadCsv(dateStampedFilename(ct('csvOrgChangeFilename')), buildCombinedOrgChangeRows(pristineNodes, v.nodes, v.entries));
     }).catch(function(err){ toast(err.message); });
   });
   document.getElementById('downloadChangelogEmpBtn').addEventListener('click', function(){
     getCombinedReplayState().then(function(s){
-      var myEntries = filterEntriesRelevantToMe(s.entries, currentUserName);
-      var myReplay = replayAll(myEntries, pristineNodes, pristineEmployees);
-      downloadCsv(dateStampedFilename(ct('csvPersonnelFilename')), buildCombinedPersonnelRows(pristineNodes, pristineEmployees, myReplay.nodes, myReplay.employees, myEntries));
+      var v = csvExportView(s);
+      downloadCsv(dateStampedFilename(ct('csvPersonnelFilename')), buildCombinedPersonnelRows(pristineNodes, pristineEmployees, v.nodes, v.employees, v.entries));
     }).catch(function(err){ toast(err.message); });
   });
   document.getElementById('editCloseBtn').addEventListener('click', closePanel);
