@@ -114,7 +114,9 @@
   /* Slim, single-strip nav bar (like the reference breadcrumb bar) rather than the old two-row,
      generously-padded header — tight vertical padding and centered alignment keep it thin even
      though its content can still wrap onto a second line on narrow viewports. */
-  .topbar{display:flex; align-items:center; justify-content:space-between; gap:16px; padding:7px 16px; margin:0 0 8px; flex-wrap:wrap;
+  /* Horizontal padding matches .controls-row and .legend below (all 14px) so the tab/search/legend
+     content lines up along a shared left edge instead of each bar indenting by a different amount. */
+  .topbar{display:flex; align-items:center; justify-content:space-between; gap:16px; padding:7px 14px; margin:0 0 8px; flex-wrap:wrap;
     background:var(--chrome-bg); border-radius:8px; box-shadow:var(--shadow);}
   .topbar-title-row{display:flex; flex-direction:row; flex-wrap:wrap; align-items:center; gap:12px;}
   .topbar-title-inner{display:flex; flex-wrap:wrap; align-items:center; gap:12px;}
@@ -163,7 +165,7 @@
   .zoom-ctrl-floating button{width:28px; height:28px; font-size:17px;}
   .zoom-ctrl-floating span{min-width:40px; font-size:12px;}
 
-  .controls-row{display:flex; align-items:center; gap:10px; flex-wrap:wrap; margin:0 0 8px; padding:7px 12px; background:var(--chrome-bg); border-radius:8px; box-shadow:var(--shadow);}
+  .controls-row{display:flex; align-items:center; gap:10px; flex-wrap:wrap; margin:0 0 8px; padding:7px 14px; background:var(--chrome-bg); border-radius:8px; box-shadow:var(--shadow);}
   .controls-row .ctrl-label{color:var(--chrome-ink-muted);}
   .controls-row .seg{border-color:var(--chrome-border);}
   .controls-row .seg button{background:transparent; color:var(--chrome-ink-muted);}

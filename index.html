@@ -6,7 +6,7 @@
 <title>Org Structure Change Tool</title>
 <!-- No build step here, so nothing else forces browsers to drop a stale cached copy of these
      two files after a deploy — bump the ?v= on both whenever either changes. -->
-<link rel="stylesheet" href="css/style.css?v=20260923-2">
+<link rel="stylesheet" href="css/style.css?v=20260923-4">
 </head>
 <body>
 
@@ -45,7 +45,6 @@
     </div>
     <div class="topbar-right">
       <div class="user-chip"><span data-i18n="loggedInAs">已登录：</span><b id="userName">—</b><span class="logout" id="logoutBtn" data-i18n="logoutBtn">退出</span></div>
-      <span class="ctrl-label" data-i18n="langLabel">语言</span>
       <div class="seg" id="langSeg">
         <button data-lang="zh">中文</button>
         <button data-lang="en" class="active">EN</button>
@@ -69,7 +68,6 @@
     <button class="btn ghost" id="refreshEditsBtn" data-i18n="refreshEditsBtn">刷新编辑</button>
     <a class="btn" id="requestEditAccessBtn" href="https://digiplus.sg.larksuite.com/share/base/form/shrlgrDjevGKEHsmtbB2gMQ7lte/?prefill_Role=Editor" target="_blank" rel="noopener" data-i18n="requestEditAccessBtn" style="display:none; text-decoration:none; box-sizing:border-box;">申请编辑权限</a>
     <span style="flex:1;"></span>
-    <span class="ctrl-label" data-i18n="orientLabel">查看方向</span>
     <div class="seg" id="orientSeg">
       <button data-orient="vertical" class="active" data-i18n="orientVertical">纵向</button>
       <button data-orient="horizontal" data-i18n="orientHorizontal">横向</button>
@@ -359,7 +357,7 @@
 
 <div class="toast" id="toast"></div>
 
-<script src="js/app.js?v=20260923-2"></script>
+<script src="js/app.js?v=20260923-4"></script>
 
 </body>
 </html>
