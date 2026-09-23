@@ -3074,7 +3074,7 @@
   // Same pattern for language — button always shows the OTHER language's own name (never
   // translated through t(), since "中文"/"EN" name themselves regardless of the current UI language).
   function updateLangToggleBtn(){
-    document.getElementById('langToggleBtn').textContent = LANG==='zh' ? 'EN' : '中文';
+    document.getElementById('langToggleBtn').textContent = LANG==='zh' ? 'English' : '中文';
   }
   document.getElementById('langToggleBtn').addEventListener('click', function(){
     LANG = LANG==='zh' ? 'en' : 'zh';
