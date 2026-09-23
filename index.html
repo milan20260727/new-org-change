@@ -6,7 +6,7 @@
 <title>Org Structure Change Tool</title>
 <!-- No build step here, so nothing else forces browsers to drop a stale cached copy of these
      two files after a deploy — bump the ?v= on both whenever either changes. -->
-<link rel="stylesheet" href="css/style.css?v=20260923-6">
+<link rel="stylesheet" href="css/style.css?v=20260923-7">
 </head>
 <body>
 
@@ -95,7 +95,7 @@
         <span style="flex:1;"></span>
         <button class="btn primary" id="downloadPngBtn" data-i18n="downloadPngBtn">下载组织架构图（PNG）</button>
       </div>
-      <div class="tree-scroll">
+      <div class="tree-scroll" id="treeScroll">
         <div class="tree-wrap" id="treeWrap">
           <svg class="tree-connectors" id="treeConnectors"></svg>
           <div class="tree" id="treeRoot" data-orient="vertical"></div>
@@ -358,7 +358,7 @@
 
 <div class="toast" id="toast"></div>
 
-<script src="js/app.js?v=20260923-6"></script>
+<script src="js/app.js?v=20260923-8"></script>
 
 </body>
 </html>

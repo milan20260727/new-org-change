@@ -264,7 +264,8 @@
   .legend .btn.primary{background:var(--accent); color:var(--accent-ink); border-color:var(--accent);}
   .legend .btn:hover{border-color:var(--chrome-accent);}
 
-  .tree-scroll{overflow:auto; padding:24px 20px 14px; height:calc(100vh - 164px); min-height:300px; background:var(--canvas-bg);}
+  .tree-scroll{overflow:auto; padding:24px 20px 14px; height:calc(100vh - 164px); min-height:300px; background:var(--canvas-bg); cursor:grab;}
+  .tree-scroll.panning{cursor:grabbing;}
   .tree-wrap{position:relative; display:inline-block; min-width:100%;}
   .tree{display:flex; justify-content:center; min-width:max-content;}
   .tree-connectors{position:absolute; top:0; left:0; width:100%; height:100%; pointer-events:none; overflow:visible;}

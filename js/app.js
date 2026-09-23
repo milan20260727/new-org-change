@@ -116,6 +116,7 @@
       toastPngFailed:'导出失败，请改用浏览器自带的截图功能', toastPngDone:'已下载 PNG',
       toastPngError:function(msg){ return '导出失败：' + msg; },
       toastPngNeedsChartView:'请先切换到"组织架构图"页面，再下载', toastPngTooLarge:'组织架构图展开范围太大，已自动缩小导出比例；如仍失败，请先折叠部分分支再试',
+      toastCsvNoData:'没有数据可下载',
       deletedPanelNote:'该部门已标记删除。删除时涉及的员工已安置到其他部门；撤销删除会把他们迁回来。',
       undoDeleteBtn:'撤销删除',
 
@@ -251,6 +252,7 @@
       toastPngFailed:'Export failed — please use your browser’s screenshot tool instead', toastPngDone:'PNG downloaded',
       toastPngError:function(msg){ return 'Export failed: ' + msg; },
       toastPngNeedsChartView:'Switch to the "Org Chart" tab before downloading', toastPngTooLarge:'The expanded chart is very large — export scale was reduced automatically; collapse some branches first if it still fails',
+      toastCsvNoData:'No data to download',
       deletedPanelNote:'This department is marked as deleted. Employees affected by this deletion were reassigned; undoing the deletion moves them back.',
       undoDeleteBtn:'Undo delete',
 
@@ -1790,6 +1792,32 @@
   document.getElementById('zoomInBtn').addEventListener('click', function(){ zoomPct = Math.min(200, zoomPct+10); applyZoom(); });
   document.getElementById('zoomOutBtn').addEventListener('click', function(){ zoomPct = Math.max(30, zoomPct-10); applyZoom(); });
 
+  // ---------- drag-to-pan on blank canvas ----------
+  // Grab-cursor + click-drag scrolling on empty canvas space, same UX as the sibling
+  // digiplus-org-chart project's #canvasContainer. Only starts when the mousedown target is the
+  // blank canvas itself — anything inside a department card (which has its own click-to-select and
+  // native HTML5 drag-and-drop for moving departments) or a button/link/input is left alone so
+  // those keep working normally.
+  (function setupCanvasPan(){
+    var container = document.getElementById('treeScroll');
+    var panning = false, startX = 0, startY = 0, startScrollLeft = 0, startScrollTop = 0;
+    container.addEventListener('mousedown', function(ev){
+      if(ev.button !== 0) return;
+      if(ev.target.closest('.node, button, a, input')) return;
+      panning = true;
+      container.classList.add('panning');
+      startX = ev.pageX; startY = ev.pageY;
+      startScrollLeft = container.scrollLeft; startScrollTop = container.scrollTop;
+      ev.preventDefault();
+    });
+    window.addEventListener('mousemove', function(ev){
+      if(!panning) return;
+      container.scrollLeft = startScrollLeft - (ev.pageX - startX);
+      container.scrollTop = startScrollTop - (ev.pageY - startY);
+    });
+    window.addEventListener('mouseup', function(){ panning = false; container.classList.remove('panning'); });
+  })();
+
   // ---------- expand / collapse ----------
   function depthOf(id){
     var d = 0, cur = getNode(id);
@@ -2766,7 +2794,11 @@
   }
 
   // ---------- download ----------
+  // Every caller's `rows` is a header row followed by zero-or-more data rows (see l2DeptsCsvRows,
+  // extraCsvRows, missingCsvRows, deptToSectionCsvRows, etc.) — so length<=1 means no data, and
+  // there's nothing useful to download.
   function downloadCsv(filename, rows){
+    if(rows.length <= 1){ toast(t('toastCsvNoData')); return; }
     var csv = rows.map(function(r){ return r.map(function(v){ v=String(v==null?'':v); return /[",\n]/.test(v) ? '"'+v.replace(/"/g,'""')+'"' : v; }).join(','); }).join('\r\n');
     var blob = new Blob(['﻿'+csv], {type:'text/csv;charset=utf-8;'});
     var a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = filename;
