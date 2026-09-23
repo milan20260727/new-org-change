@@ -200,8 +200,10 @@
   .search-box{position:relative; flex:1; min-width:220px; max-width:340px;}
   .search-box input{width:100%; padding:8px 12px; border-radius:8px; border:1.5px solid var(--line); background:var(--surface); color:var(--ink); font-size:13px;}
   .search-box input:focus-visible{outline:2px solid var(--accent); outline-offset:1px; border-color:var(--accent);}
-  .controls-row .search-box input{background:rgba(255,255,255,.08); border-color:var(--chrome-border); color:var(--chrome-ink);}
-  .controls-row .search-box input::placeholder{color:var(--chrome-ink-muted);}
+  /* Matches the canvas's fixed eye-care tint rather than the dark chrome — text/placeholder are a
+     fixed dark tone to go with it (like --canvas-bg itself, deliberately not theme-dependent). */
+  .controls-row .search-box input{background:var(--canvas-bg); border-color:var(--chrome-border); color:#1B1E27;}
+  .controls-row .search-box input::placeholder{color:rgba(27,30,39,.55);}
   .search-results{position:absolute; top:calc(100% + 4px); left:0; right:0; background:var(--surface); border:1px solid var(--line); border-radius:8px; box-shadow:var(--shadow); z-index:20; max-height:280px; overflow-y:auto; display:none;}
   .search-results.show{display:block;}
   .search-results button{display:block; width:100%; text-align:left; background:none; border:none; padding:8px 11px; font-size:12.5px; color:var(--ink); cursor:pointer; border-bottom:1px solid var(--line);}
