@@ -38,7 +38,7 @@
       pageTitle:'组织架构调整工具',
       scopeTag:'正在加载组织数据…',
       scopeTagLoaded:function(p){ return '共 ' + p.nodeCount + ' 个组织节点 · ' + p.empCount + ' 名在职员工 · 数据来自 Lark Base'; },
-      loggedInAs:'已登录：', logoutBtn:'退出',
+      logoutBtn:'退出',
       snapshotLabel:'数据快照时间：', refreshBtn:'刷新数据', refreshBtnLoading:'刷新中…',
       searchPlaceholder:'搜索组织架构名称…', searchEmpNamePlaceholder:'搜索员工姓名…', focusPrefix:'聚焦于「', focusSuffix:'」',
       globalTransferBtn:'转移员工', requestEditAccessBtn:'申请编辑权限', viewChart:'组织架构图', viewUnassigned:'待安置员工',
@@ -174,7 +174,7 @@
       pageTitle:'Org Structure Change Tool',
       scopeTag:'Loading org data…',
       scopeTagLoaded:function(p){ return p.nodeCount + ' org units · ' + p.empCount + ' active employees · live from Lark Base'; },
-      loggedInAs:'Signed in as: ', logoutBtn:'Sign out',
+      logoutBtn:'Sign out',
       snapshotLabel:'Data snapshot: ', refreshBtn:'Refresh data', refreshBtnLoading:'Refreshing…',
       searchPlaceholder:'Search org unit name…', searchEmpNamePlaceholder:'Search employee name…', focusPrefix:'Focused on "', focusSuffix:'"',
       globalTransferBtn:'Transfer employee', requestEditAccessBtn:'Request edit access', viewChart:'Org Chart', viewUnassigned:'Unassigned',
@@ -288,6 +288,7 @@
     document.querySelectorAll('[data-i18n-title]').forEach(function(el){ el.title = t(el.getAttribute('data-i18n-title')); });
     var loginBtnText = document.getElementById('loginBtnText');
     if(loginBtnText && !document.getElementById('loginCard').classList.contains('loading')) loginBtnText.textContent = t('loginBtnText');
+    updateOrientToggleBtn();
   }
 
   // ---------- role (Owner/Senior Admin/Editor/Viewer, resolved server-side at login) ----------
@@ -465,7 +466,7 @@
         activeTab = 'structure';
         document.getElementById('adminSnapshotTime').textContent = formatSnapshotTime(snapshotAt);
         document.getElementById('searchInput').value = '';
-        document.getElementById('orientSeg').querySelectorAll('button').forEach(function(b){ b.classList.toggle('active', b.getAttribute('data-orient')==='vertical'); });
+        updateOrientToggleBtn();
         switchView('chart');
         closePanel();
         closeGlobalTransfer();
@@ -3059,17 +3060,25 @@
   document.getElementById('tabRosterBtn').addEventListener('click', function(){ activeTab='roster'; renderPanel(); });
   document.getElementById('addChildBtn').addEventListener('click', function(){ if(selectedId) openCreateChild(selectedId); });
 
-  document.getElementById('orientSeg').addEventListener('click', function(ev){
-    var btn = ev.target.closest('button[data-orient]'); if(!btn) return;
-    orientation = btn.getAttribute('data-orient');
-    document.querySelectorAll('#orientSeg button').forEach(function(b){ b.classList.toggle('active', b===btn); });
+  // Single-button toggle: shows the label of the orientation you'd SWITCH TO, not the current one.
+  function updateOrientToggleBtn(){
+    var nextOrient = orientation==='vertical' ? 'horizontal' : 'vertical';
+    document.getElementById('orientToggleBtn').textContent = t(nextOrient==='vertical' ? 'orientVertical' : 'orientHorizontal');
+  }
+  document.getElementById('orientToggleBtn').addEventListener('click', function(){
+    orientation = orientation==='vertical' ? 'horizontal' : 'vertical';
+    updateOrientToggleBtn();
     renderTree();
   });
 
-  document.getElementById('langSeg').addEventListener('click', function(ev){
-    var btn = ev.target.closest('button[data-lang]'); if(!btn) return;
-    LANG = btn.getAttribute('data-lang');
-    document.querySelectorAll('#langSeg button').forEach(function(b){ b.classList.toggle('active', b===btn); });
+  // Same pattern for language — button always shows the OTHER language's own name (never
+  // translated through t(), since "中文"/"EN" name themselves regardless of the current UI language).
+  function updateLangToggleBtn(){
+    document.getElementById('langToggleBtn').textContent = LANG==='zh' ? 'EN' : '中文';
+  }
+  document.getElementById('langToggleBtn').addEventListener('click', function(){
+    LANG = LANG==='zh' ? 'en' : 'zh';
+    updateLangToggleBtn();
     applyStaticI18n();
     if(nodes) render();
   });
