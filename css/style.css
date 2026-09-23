@@ -300,7 +300,22 @@
   .node .name{font-weight:700; font-size:12.5px; line-height:1.3; text-wrap:balance;}
   .node .warn-ico{font-size:11px; color:var(--warn-text); flex:none;}
   .node .meta-line{font-size:10.5px; color:var(--ink-muted); margin-top:3px;}
+  .node .meta-row{display:flex; align-items:center; justify-content:space-between; gap:6px;}
   .node .tags{display:flex; flex-wrap:wrap; gap:4px; margin-top:5px;}
+
+  /* Level badge (Company/Group/Division/…) on the headcount row, bottom-right of the card — same
+     depth→name ladder and per-depth color coding as the sibling digiplus-org-chart project's node
+     cards. Semi-transparent bg/border (rather than a solid pastel fill) so the same rule reads
+     correctly on both the white/dark card surface without needing separate dark-theme colors. */
+  .level-tag{flex:none; font-size:9px; font-weight:700; padding:1px 6px; border-radius:999px; line-height:1.5; border:1px solid; white-space:nowrap;}
+  .level-tag.lvl-0{background:rgba(100,116,139,.16); color:#64748B; border-color:rgba(100,116,139,.4);}
+  .level-tag.lvl-1{background:rgba(217,119,6,.16); color:#D97706; border-color:rgba(217,119,6,.4);}
+  .level-tag.lvl-2{background:rgba(22,163,74,.16); color:#16A34A; border-color:rgba(22,163,74,.4);}
+  .level-tag.lvl-3{background:rgba(37,99,235,.16); color:#2563EB; border-color:rgba(37,99,235,.4);}
+  .level-tag.lvl-4{background:rgba(147,51,234,.16); color:#9333EA; border-color:rgba(147,51,234,.4);}
+  .level-tag.lvl-5{background:rgba(219,39,119,.16); color:#DB2777; border-color:rgba(219,39,119,.4);}
+  .level-tag.lvl-6{background:rgba(234,88,12,.16); color:#EA580C; border-color:rgba(234,88,12,.4);}
+  .level-tag.lvl-7{background:rgba(71,85,105,.16); color:#475569; border-color:rgba(71,85,105,.4);}
   .tag{font-size:9.5px; font-weight:700; padding:1px 5px; border-radius:4px; line-height:1.5;}
   .tag.new{background:var(--new-bg); color:var(--new-text); border:1px solid var(--new-border);}
   .tag.mov{background:var(--mov-bg); color:var(--mov-text); border:1px solid var(--mov-border);}

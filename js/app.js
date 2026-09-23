@@ -1677,6 +1677,10 @@
   }
 
   // ---------- rendering ----------
+  // Same fixed depth→name ladder as the sibling digiplus-org-chart project's node cards (that
+  // project infers the label purely from tree depth too, not a stored per-node field — see its
+  // lib/buildOrgData.js LEVEL_NAMES) so the two tools show matching level terminology.
+  var LEVEL_NAMES = ['Company','Group','Division','Department','Sub-department','Section','Team','Sub-team'];
   function nodeClasses(n){
     var c = ['node'];
     if(n.flags.isDeleted) c.push('st-deleted');
@@ -1705,11 +1709,13 @@
     // time — its current (renamed) name would misleadingly suggest the move landed somewhere
     // it never actually was.
     var movedFromName = movedFromNode ? (movedFromNode.flags.isRenamed ? movedFromNode.origName : movedFromNode.name) : null;
+    var levelIdx = Math.min(depthOf(n.id), LEVEL_NAMES.length-1);
+    var levelTag = '<span class="level-tag lvl-'+levelIdx+'">'+escapeHtml(LEVEL_NAMES[levelIdx])+'</span>';
     return '<div class="'+nodeClasses(n)+'" draggable="'+draggable+'" data-id="'+n.id+'" title="'+escapeHtml(titleAttr)+'">'+
       addBtn+toggleBtn+reorderHandle+
       '<div class="name-row"><span class="name">'+escapeHtml(n.name)+'</span>'+warnIco+'</div>'+
       '<div class="meta-line">'+escapeHtml(t('picPrefix'))+(n.pic?escapeHtml(n.pic):escapeHtml(t('notSet')))+'</div>'+
-      '<div class="meta-line">'+escapeHtml(t('headcountLabel')(rollupHeadcount(n.id)))+'</div>'+
+      '<div class="meta-line meta-row"><span>'+escapeHtml(t('headcountLabel')(rollupHeadcount(n.id)))+'</span>'+levelTag+'</div>'+
       (n.flags.isRenamed ? '<div class="meta-line renamed-from">'+escapeHtml(t('renamedTooltipPrefix')+n.origName)+'</div>' : '')+
       (movedFromNode ? '<div class="meta-line moved-from">'+escapeHtml(t('movedFromLabel')(movedFromName))+'</div>' : '')+
       (tags? '<div class="tags">'+tags+'</div>' : '')+
