@@ -43,6 +43,7 @@
       searchPlaceholder:'搜索组织架构名称…', searchEmpNamePlaceholder:'搜索员工姓名…', focusPrefix:'聚焦于「', focusSuffix:'」',
       globalTransferBtn:'转移员工', requestEditAccessBtn:'申请编辑权限', viewChart:'组织架构图', viewUnassigned:'待安置员工',
       expandAllBtn:'全部展开', collapseAllBtn:'全部折叠', expandTitle:'展开', collapseTitle:'折叠',
+      expandNextLevelBtn:'展开下一层',
       refreshEditsBtn:'刷新编辑', refreshEditsBtnLoading:'刷新中…', toastEditsRefreshed:'已拉取最新的变更记录', toastEditsRefreshFailed:'拉取变更记录失败',
       refreshEditsConfirmDiscard:'你还有尚未同步的本地编辑草稿，刷新会丢弃这些草稿（已同步的变更不受影响）。确定继续吗？',
       zoomInTitle:'放大', zoomOutTitle:'缩小',
@@ -177,6 +178,7 @@
       searchPlaceholder:'Search org unit name…', searchEmpNamePlaceholder:'Search employee name…', focusPrefix:'Focused on "', focusSuffix:'"',
       globalTransferBtn:'Transfer employee', requestEditAccessBtn:'Request edit access', viewChart:'Org Chart', viewUnassigned:'Unassigned',
       expandAllBtn:'Expand All', collapseAllBtn:'Collapse All', expandTitle:'Expand', collapseTitle:'Collapse',
+      expandNextLevelBtn:'Expand Next Level',
       refreshEditsBtn:'Refresh edits', refreshEditsBtnLoading:'Refreshing…', toastEditsRefreshed:'Pulled the latest change log', toastEditsRefreshFailed:'Failed to pull the change log',
       refreshEditsConfirmDiscard:"You have local edits that haven't been synced yet — refreshing will discard them (already-synced changes are unaffected). Continue?",
       zoomInTitle:'Zoom in', zoomOutTitle:'Zoom out',
@@ -1788,6 +1790,16 @@
     while(cur && cur.parentId){ d++; cur = getNode(cur.parentId); }
     return d;
   }
+  // Reveals just the next level down: among currently-collapsed parents, only the shallowest
+  // depth is uncollapsed, so repeated clicks step one level deeper at a time instead of jumping
+  // straight to fully expanded (like expandAllBtn does).
+  document.getElementById('expandNextLevelBtn').addEventListener('click', function(){
+    var collapsedParents = nodes.filter(function(n){ return collapsed.has(n.id) && getChildren(n.id).length>0; });
+    if(!collapsedParents.length) return;
+    var minDepth = Math.min.apply(null, collapsedParents.map(function(n){ return depthOf(n.id); }));
+    collapsedParents.forEach(function(n){ if(depthOf(n.id)===minDepth) collapsed.delete(n.id); });
+    renderTree();
+  });
   document.getElementById('expandAllBtn').addEventListener('click', function(){ collapsed = new Set(); renderTree(); });
   document.getElementById('collapseAllBtn').addEventListener('click', function(){
     collapsed = new Set(nodes.filter(function(n){ return getChildren(n.id).length>0; }).map(function(n){ return n.id; }));

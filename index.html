@@ -6,7 +6,7 @@
 <title>Org Structure Change Tool</title>
 <!-- No build step here, so nothing else forces browsers to drop a stale cached copy of these
      two files after a deploy — bump the ?v= on both whenever either changes. -->
-<link rel="stylesheet" href="css/style.css?v=20260923-4">
+<link rel="stylesheet" href="css/style.css?v=20260923-5">
 </head>
 <body>
 
@@ -62,10 +62,11 @@
       <div class="search-results" id="empSearchResults"></div>
     </div>
     <span class="focus-pill" id="focusPill"><span id="focusPillText"></span><button id="clearFocus">×</button></span>
-    <button class="btn" id="globalTransferBtn" data-i18n="globalTransferBtn">转移员工</button>
-    <button class="btn ghost" id="expandAllBtn" data-i18n="expandAllBtn">全部展开</button>
-    <button class="btn ghost" id="collapseAllBtn" data-i18n="collapseAllBtn">全部折叠</button>
-    <button class="btn ghost" id="refreshEditsBtn" data-i18n="refreshEditsBtn">刷新编辑</button>
+    <button class="btn primary" id="globalTransferBtn" data-i18n="globalTransferBtn">转移员工</button>
+    <button class="btn primary" id="expandNextLevelBtn" data-i18n="expandNextLevelBtn">展开下一层</button>
+    <button class="btn primary" id="expandAllBtn" data-i18n="expandAllBtn">全部展开</button>
+    <button class="btn primary" id="collapseAllBtn" data-i18n="collapseAllBtn">全部折叠</button>
+    <button class="btn primary" id="refreshEditsBtn" data-i18n="refreshEditsBtn">刷新编辑</button>
     <a class="btn" id="requestEditAccessBtn" href="https://digiplus.sg.larksuite.com/share/base/form/shrlgrDjevGKEHsmtbB2gMQ7lte/?prefill_Role=Editor" target="_blank" rel="noopener" data-i18n="requestEditAccessBtn" style="display:none; text-decoration:none; box-sizing:border-box;">申请编辑权限</a>
     <span style="flex:1;"></span>
     <div class="seg" id="orientSeg">
@@ -357,7 +358,7 @@
 
 <div class="toast" id="toast"></div>
 
-<script src="js/app.js?v=20260923-4"></script>
+<script src="js/app.js?v=20260923-5"></script>
 
 </body>
 </html>
