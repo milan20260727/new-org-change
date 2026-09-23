@@ -176,23 +176,19 @@
   /* Single-button state toggles (orientation, language) that show the OPTION YOU'D SWITCH TO
      rather than a 2-option segmented control — same 30px height as .zoom-ctrl so the floating
      bottom-right cluster (zoom + orientation) lines up evenly. */
-  .chrome-toggle-btn{height:30px; box-sizing:border-box; padding:0 12px; display:inline-flex; align-items:center; justify-content:center; background:var(--chrome-bg); color:var(--chrome-ink); border:1px solid var(--chrome-border); border-radius:7px; font-size:12px; font-weight:600; cursor:pointer; box-shadow:var(--shadow);}
+  /* Fixed width (not just padding) so the button doesn't resize/jump when its label swaps between
+     short (中文/EN/纵向/横向) and long (Vertical/Horizontal) text. */
+  .chrome-toggle-btn{width:92px; height:30px; box-sizing:border-box; padding:0 8px; display:inline-flex; align-items:center; justify-content:center; background:var(--chrome-bg); color:var(--chrome-ink); border:1px solid var(--chrome-border); border-radius:7px; font-size:12px; font-weight:600; cursor:pointer; box-shadow:var(--shadow);}
   .chrome-toggle-btn:hover{background:var(--chrome-bg-soft);}
 
-  /* ---------- floating controls over the canvas (replaces the old static toolbar/legend chrome
-     bars — see .canvas-float-* below) ---------- */
+  /* ---------- floating controls over the canvas: only the legend (bare, bottom-left) and the
+     zoom/orientation cluster (bottom-right) float now — the search/action toolbar and PNG export
+     button are back in the static .controls-row bar below, per feedback. ---------- */
   .canvas-float{position:absolute; z-index:40;}
-  /* Sits below .canvas-titlebar (kept as a static bar — see below), not right at the panel's own
-     top edge. */
-  .canvas-float-top{top:60px; left:14px; max-width:calc(100% - 28px);}
   .canvas-float-bl{bottom:14px; left:14px;}
   .canvas-float-br{bottom:14px; right:14px; display:flex; align-items:center; gap:10px;}
 
-  /* Kept as a normal static bar (not floating), unlike the legend below it which floats bare with
-     no background of its own. */
-  .canvas-titlebar{display:flex; justify-content:flex-end; padding:8px 14px; background:var(--chrome-bg); box-shadow:var(--shadow);}
-
-  .controls-row{display:flex; align-items:center; gap:10px; flex-wrap:wrap; padding:7px 14px; background:var(--chrome-bg); border-radius:8px; box-shadow:var(--shadow);}
+  .controls-row{display:flex; align-items:center; gap:10px; flex-wrap:wrap; margin:0 0 8px; padding:7px 14px; background:var(--chrome-bg); box-shadow:var(--shadow);}
   .controls-row .ctrl-label{color:var(--chrome-ink-muted);}
   .controls-row .seg{border-color:var(--chrome-border);}
   .controls-row .seg button{background:transparent; color:var(--chrome-ink-muted);}
@@ -295,7 +291,11 @@
      above/below the canvas would need) so panned-to-edge tree content doesn't render underneath
      the floating toolbar/legend/zoom controls that now overlay the canvas itself (see
      .canvas-float-*) instead of pushing it down. */
-  .tree-scroll{overflow:auto; padding:60px 20px 50px; height:calc(100vh - 124px); min-height:300px; background:var(--canvas-bg); cursor:grab;}
+  /* Bottom padding stays generous to clear the floating legend/zoom-orientation cluster (see
+     .canvas-float-bl / .canvas-float-br) that overlays the bottom of the canvas; top padding is
+     back to a plain gap since nothing floats over the top anymore (search/action toolbar and PNG
+     export are back in the static .controls-row bar above, in normal document flow). */
+  .tree-scroll{overflow:auto; padding:24px 20px 50px; height:calc(100vh - 118px); min-height:300px; background:var(--canvas-bg); cursor:grab;}
   .tree-scroll.panning{cursor:grabbing;}
   .tree-wrap{position:relative; display:inline-block; min-width:100%;}
   .tree{display:flex; justify-content:center; min-width:max-content;}

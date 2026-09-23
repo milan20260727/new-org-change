@@ -7,7 +7,7 @@
 <link rel="icon" type="image/png" href="assets/logo.png?v=20260923-1">
 <!-- No build step here, so nothing else forces browsers to drop a stale cached copy of these
      two files after a deploy — bump the ?v= on both whenever either changes. -->
-<link rel="stylesheet" href="css/style.css?v=20260923-12">
+<link rel="stylesheet" href="css/style.css?v=20260923-14">
 </head>
 <body>
 
@@ -57,17 +57,10 @@
   <div class="layout" id="chartView">
 
     <div class="panel">
-      <!-- Static title bar, kept as a normal in-flow chrome bar (not floating) — just holds the
-           PNG export action now that the legend (below) floats bare over the canvas instead of
-           sharing this bar with it. -->
-      <div class="canvas-titlebar">
-        <button class="btn primary" id="downloadPngBtn" data-i18n="downloadPngBtn">下载组织架构图（PNG）</button>
-      </div>
-
-      <!-- Everything below floats over the canvas itself (position:absolute against this
-           .panel) instead of sitting in static chrome bars above it, so the tree-scroll canvas
-           gets almost the full panel height. -->
-      <div class="controls-row canvas-float canvas-float-top">
+      <!-- Static title bar, kept as a normal in-flow chrome bar (not floating) — search + action
+           toolbar and the PNG export button both live here now; only the legend (below) and the
+           zoom/orientation cluster float bare over the canvas. -->
+      <div class="controls-row">
         <div class="search-box">
           <input type="text" id="searchInput" data-i18n-placeholder="searchPlaceholder" placeholder="搜索组织架构名称…" autocomplete="off">
           <div class="search-results" id="searchResults"></div>
@@ -83,6 +76,8 @@
         <button class="btn primary" id="collapseAllBtn" data-i18n="collapseAllBtn">全部折叠</button>
         <button class="btn primary" id="refreshEditsBtn" data-i18n="refreshEditsBtn">刷新编辑</button>
         <a class="btn" id="requestEditAccessBtn" href="https://digiplus.sg.larksuite.com/share/base/form/shrlgrDjevGKEHsmtbB2gMQ7lte/?prefill_Role=Editor" target="_blank" rel="noopener" data-i18n="requestEditAccessBtn" style="display:none; text-decoration:none; box-sizing:border-box;">申请编辑权限</a>
+        <span style="flex:1;"></span>
+        <button class="btn primary" id="downloadPngBtn" data-i18n="downloadPngBtn">下载组织架构图（PNG）</button>
       </div>
 
       <!-- Bare floating legend — no background/box behind it, just the labels over the canvas. -->
