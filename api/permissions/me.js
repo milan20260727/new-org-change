@@ -17,7 +17,7 @@ module.exports = async (req, res) => {
       // email-based bootstrap seed row with nothing to match against.
       console.log(`[permissions] no role resolved for name="${session.name}" openId="${session.openId}" email="${session.email}"`);
     }
-    res.status(200).json({ role: resolved ? resolved.role : null, name: session.name, editScope: resolved ? resolved.editScope : [] });
+    res.status(200).json({ role: resolved ? resolved.role : null, name: session.name });
   } catch (err) {
     res.status(502).json({ error: err.message });
   }

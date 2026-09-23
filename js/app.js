@@ -9,14 +9,12 @@
       noAccessTitle:'暂无访问权限', noAccessSubtitle:'你的飞书账号还没有被授权使用这个工具，请联系管理员开通访问权限。', noAccessRequestBtn:'申请权限',
       viewAdmin:'权限设置', adminTitle:'权限设置',
       adminEmailPh:'邮箱', adminNamePh:'姓名（可选）', adminAddBtn:'添加',
-      adminColEmail:'邮箱', adminColRole:'角色', adminColScope:'编辑范围',
+      adminColEmail:'邮箱', adminColRole:'角色',
       roleOwner:'最高管理员', roleSeniorAdmin:'高级管理员', roleEditor:'编辑用户', roleViewer:'访问用户',
       adminLoading:'加载中…', adminNoUsers:'还没有添加任何用户',
       adminTransferOwnerBtn:'转为最高管理员', adminRemoveBtn:'移除',
       adminRemoveConfirm:'确定要移除该用户的访问权限吗？', adminTransferOwnerConfirm:'确定要把最高管理员身份转移给该用户吗？转移后你会变成高级管理员。',
       adminSaved:'已保存', adminNeedEmail:'请填写邮箱', adminOnlyOwnerGrantsSenior:'只有最高管理员能设置高级管理员',
-      adminScopeUnrestricted:'不限（可下载全部变更）', adminScopeAddBtn:'+ 添加部门', adminScopeSearchPh:'搜索部门名称…',
-      adminScopeHint:'限定该用户「下载 CSV」导出的范围（含下级部门），不影响其实际编辑权限；留空表示不限。',
       editWindowTitle:'编辑时间窗口',
       editWindowHint:'只有在此时间范围内才能编辑组织架构（重命名、移动、删除、角色变更、员工调动等）。开始/结束都留空则不限制编辑时间。',
       editWindowStartLabel:'开始时间', editWindowEndLabel:'结束时间', editWindowClearBtn:'清除限制',
@@ -145,14 +143,12 @@
       noAccessTitle:'No access yet', noAccessSubtitle:"Your Lark account hasn't been granted access to this tool yet — ask an admin to add you.", noAccessRequestBtn:'Request access',
       viewAdmin:'Permission Setting', adminTitle:'Permission Setting',
       adminEmailPh:'Email', adminNamePh:'Name (optional)', adminAddBtn:'Add',
-      adminColEmail:'Email', adminColRole:'Role', adminColScope:'Edit Scope',
+      adminColEmail:'Email', adminColRole:'Role',
       roleOwner:'Owner', roleSeniorAdmin:'Senior Admin', roleEditor:'Editor', roleViewer:'Viewer',
       adminLoading:'Loading…', adminNoUsers:'No users added yet',
       adminTransferOwnerBtn:'Make Owner', adminRemoveBtn:'Remove',
       adminRemoveConfirm:"Revoke this user's access?", adminTransferOwnerConfirm:'Transfer Owner to this user? You will become a Senior Admin.',
       adminSaved:'Saved', adminNeedEmail:'Please enter an email', adminOnlyOwnerGrantsSenior:'Only the Owner can grant Senior Admin',
-      adminScopeUnrestricted:'Unrestricted (all changes)', adminScopeAddBtn:'+ Add department', adminScopeSearchPh:'Search department name…',
-      adminScopeHint:"Limits what this user's own \"Download CSV\" export includes (subtree included) — doesn't affect their actual edit permissions; leave empty for unrestricted.",
       editWindowTitle:'Edit window',
       editWindowHint:'Editing the org structure (rename, move, delete, role changes, employee transfers, etc.) is only allowed within this time range. Leave both blank to remove the restriction.',
       editWindowStartLabel:'Start time', editWindowEndLabel:'End time', editWindowClearBtn:'Clear restriction',
@@ -293,10 +289,6 @@
   // ---------- role (Owner/Senior Admin/Editor/Viewer, resolved server-side at login) ----------
   var currentUserRole = null;
   var currentUserName = '';
-  // This person's own "编辑范围" (department ids, see permissions.js) — used only to filter their
-  // personal "下载 CSV" org-change/personnel exports (buildScopeClosure below); empty means
-  // unrestricted, same as before this existed.
-  var currentUserScope = [];
   // Tool-wide edit window (start/end are datetime-local strings, e.g. "2026-08-20T09:00", or
   // null for "no restriction"), fetched from /api/settings/edit-window. No role is exempt —
   // Senior Admin/Owner are locked out of editing the org data too, same as Editor; only access
@@ -2492,27 +2484,15 @@
     var key = role==='Owner' ? 'roleOwner' : role==='Senior Admin' ? 'roleSeniorAdmin' : role==='Editor' ? 'roleEditor' : 'roleViewer';
     return t(key);
   }
-  function scopeChipsHtml(u){
-    if(!u.editScope || !u.editScope.length) return '<span class="scope-empty">'+escapeHtml(t('adminScopeUnrestricted'))+'</span>';
-    return '<div class="scope-chips">'+u.editScope.map(function(id){
-      var n = getNode(id);
-      var label = n ? pathLabel(n.id) : id;
-      return '<span class="scope-chip">'+escapeHtml(label)+'<button type="button" class="scope-chip-x" data-record-id="'+u.recordId+'" data-id="'+escapeHtml(id)+'">&times;</button></span>';
-    }).join('')+'</div>';
-  }
-  function saveScope(recordId, editScope){
-    return fetch('/api/permissions/manage', {method:'POST', credentials:'same-origin', headers:{'Content-Type':'application/json'}, body:JSON.stringify({action:'update-scope', recordId:recordId, editScope:editScope})})
-      .then(function(res){ return res.json().then(function(j){ if(!res.ok) throw new Error(j.error||'error'); return j; }); });
-  }
   function renderAdmin(){
     if(!isAdminRole()) return;
     var body = document.getElementById('adminBody');
-    body.innerHTML = '<tr><td colspan="6" class="empty-note">'+escapeHtml(t('adminLoading'))+'</td></tr>';
+    body.innerHTML = '<tr><td colspan="5" class="empty-note">'+escapeHtml(t('adminLoading'))+'</td></tr>';
     fetch('/api/permissions/list', {credentials:'same-origin'})
       .then(function(res){ return res.json().then(function(j){ if(!res.ok) throw new Error(j.error||'error'); return j; }); })
       .then(function(data){
         var viewerRole = data.viewerRole;
-        if(!data.users.length){ body.innerHTML = '<tr><td colspan="6" class="empty-note">'+escapeHtml(t('adminNoUsers'))+'</td></tr>'; return; }
+        if(!data.users.length){ body.innerHTML = '<tr><td colspan="5" class="empty-note">'+escapeHtml(t('adminNoUsers'))+'</td></tr>'; return; }
         body.innerHTML = data.users.map(function(u){
           var roleCell;
           if(u.role==='Owner'){
@@ -2523,54 +2503,10 @@
           } else {
             roleCell = '<span class="role-badge '+roleBadgeClass(u.role)+'">'+escapeHtml(roleDisplayName(u.role))+'</span>';
           }
-          var scopeCell = '<div class="scope-cell" data-record-id="'+u.recordId+'">'+scopeChipsHtml(u)+'<button type="button" class="btn ghost scope-add-btn" data-record-id="'+u.recordId+'">'+escapeHtml(t('adminScopeAddBtn'))+'</button><div class="scope-picker-slot"></div></div>';
           var transferCell = (u.role!=='Owner' && viewerRole==='Owner') ? '<button class="btn ghost" type="button" data-transfer-owner="'+u.recordId+'">'+escapeHtml(t('adminTransferOwnerBtn'))+'</button>' : '';
           var removeCell = u.role!=='Owner' ? '<button class="btn ghost" type="button" data-remove-user="'+u.recordId+'">'+escapeHtml(t('adminRemoveBtn'))+'</button>' : '';
-          return '<tr><td>'+escapeHtml(u.name||'—')+'</td><td>'+escapeHtml(u.email||'—')+'</td><td>'+roleCell+'</td><td>'+scopeCell+'</td><td>'+transferCell+'</td><td>'+removeCell+'</td></tr>';
+          return '<tr><td>'+escapeHtml(u.name||'—')+'</td><td>'+escapeHtml(u.email||'—')+'</td><td>'+roleCell+'</td><td>'+transferCell+'</td><td>'+removeCell+'</td></tr>';
         }).join('');
-        body.querySelectorAll('.scope-chip-x').forEach(function(btn){
-          btn.addEventListener('click', function(){
-            var u = data.users.find(function(x){ return x.recordId===btn.getAttribute('data-record-id'); });
-            if(!u) return;
-            var removeId = btn.getAttribute('data-id');
-            var newScope = (u.editScope||[]).filter(function(id){ return id!==removeId; });
-            saveScope(u.recordId, newScope).then(function(){ toast(t('adminSaved')); renderAdmin(); }).catch(function(err){ toast(err.message); });
-          });
-        });
-        body.querySelectorAll('.scope-add-btn').forEach(function(btn){
-          btn.addEventListener('click', function(){
-            var u = data.users.find(function(x){ return x.recordId===btn.getAttribute('data-record-id'); });
-            if(!u) return;
-            var slot = btn.closest('.scope-cell').querySelector('.scope-picker-slot');
-            if(slot.querySelector('.op-wrap')) return; // already open
-            var candidates = nodes.filter(function(n){ return !n.flags.isDeleted; });
-            slot.innerHTML = '<div class="op-wrap"><input type="text" class="op-input" placeholder="'+escapeHtml(t('adminScopeSearchPh'))+'" autocomplete="off"><div class="op-options"></div></div>';
-            var wrap = slot.querySelector('.op-wrap');
-            var input = wrap.querySelector('.op-input');
-            var opts = wrap.querySelector('.op-options');
-            function paint(q){
-              var already = {}; (u.editScope||[]).forEach(function(id){ already[id] = true; });
-              var list = candidates.filter(function(x){ return !already[x.id] && x.name.toLowerCase().indexOf((q||'').toLowerCase())>=0; });
-              sortByRelevance(list, q, function(x){ return x.name; });
-              list = list.slice(0, SEARCH_RESULT_CAP);
-              opts.innerHTML = list.length ? list.map(function(x){ return '<button type="button" data-id="'+x.id+'">'+escapeHtml(pathLabel(x.id))+'</button>'; }).join('')
-                : '<button type="button" disabled style="color:var(--ink-muted);">'+escapeHtml(t('noMatchDept'))+'</button>';
-              opts.classList.add('show');
-            }
-            input.addEventListener('focus', function(){ paint(input.value); });
-            input.addEventListener('input', function(){ paint(input.value); });
-            opts.addEventListener('click', function(ev){
-              var pick = ev.target.closest('button[data-id]'); if(!pick) return;
-              var newScope = (u.editScope||[]).concat([pick.getAttribute('data-id')]);
-              saveScope(u.recordId, newScope).then(function(){ toast(t('adminSaved')); renderAdmin(); }).catch(function(err){ toast(err.message); });
-            });
-            paint('');
-            input.focus();
-            document.addEventListener('click', function onDoc(ev){
-              if(!slot.contains(ev.target) && ev.target!==btn){ slot.innerHTML = ''; document.removeEventListener('click', onDoc); }
-            });
-          });
-        });
         body.querySelectorAll('.admin-role-select').forEach(function(sel){
           sel.addEventListener('change', function(){
             fetch('/api/permissions/manage', {method:'POST', credentials:'same-origin', headers:{'Content-Type':'application/json'}, body:JSON.stringify({action:'update', recordId:sel.getAttribute('data-record-id'), role:sel.value})})
@@ -2841,41 +2777,7 @@
   // rawEditTime (optional) returns the Edit Time cell as a raw epoch number instead of a
   // formatted string — also for that button, since the Base column it writes to is a real
   // datetime field there (unlike the CSV, which always shows the human-formatted string).
-  // ---------- personal export scope filter ("编辑范围") ----------
-  // Walks parentId links to build id -> [child ids] over one node array, then BFS from each of
-  // rootIds down through it — used to expand a person's assigned department(s) to their full
-  // subtree, since being responsible for a department implies its sub-units too (same assumption
-  // the existing HRBP-cascade feature already makes).
-  function collectDescendantIds(nodeArr, rootIds){
-    var childrenByParent = {};
-    nodeArr.forEach(function(n){ if(n.parentId){ (childrenByParent[n.parentId] = childrenByParent[n.parentId]||[]).push(n.id); } });
-    var result = new Set(), queue = rootIds.slice();
-    while(queue.length){
-      var id = queue.shift();
-      if(result.has(id)) continue;
-      result.add(id);
-      (childrenByParent[id]||[]).forEach(function(cid){ queue.push(cid); });
-    }
-    return result;
-  }
-  // null return means "unrestricted" (no scope assigned, or the export isn't being filtered at
-  // all) — every row-building function below treats a null closure as "include everything", so
-  // nobody's export behavior changes until an admin actually assigns someone a scope.
-  // Expanded against BOTH pristineNodes and finalNodes (a scoped department may have gained/lost
-  // sub-units within this very export window), not just the current live tree.
-  function buildScopeClosure(scopeIds, pristineNodes, finalNodes){
-    if(!scopeIds || !scopeIds.length) return null;
-    var closure = new Set();
-    collectDescendantIds(pristineNodes, scopeIds).forEach(function(id){ closure.add(id); });
-    collectDescendantIds(finalNodes, scopeIds).forEach(function(id){ closure.add(id); });
-    return closure;
-  }
-  function inScope(scopeClosure, touchedIds){
-    if(!scopeClosure) return true;
-    return touchedIds.some(function(id){ return id && scopeClosure.has(id); });
-  }
-
-  function buildCombinedOrgChangeRows(pristineNodes, finalNodes, entries, sinceTime, rawEditTime, scopeClosure){
+  function buildCombinedOrgChangeRows(pristineNodes, finalNodes, entries, sinceTime, rawEditTime){
     var pristineById = {}; pristineNodes.forEach(function(n){ pristineById[n.id] = n; });
     var nodeTime = computeLastTouched(entries).nodeTime;
     var rows = [];
@@ -2887,10 +2789,6 @@
       var wasDeletedBefore = pn ? !!pn.flags.isDeleted : false;
       if(wasDeletedBefore) return; // already gone before this combined window — nothing changed here
       if(wasNew && isDeletedNow) return; // added then deleted — nets to nothing, like the single-session case
-      // Touched departments: the unit itself, plus whichever parent(s) it sat under before/after —
-      // a move affects the old parent (lost a child) and the new one (gained one) just as much as
-      // the moved unit itself, so a scope holder over either parent sees it too.
-      if(!inScope(scopeClosure, [fn.id, pn && pn.parentId, !isDeletedNow && fn.parentId])) return;
 
       var typeLabels = [], roleChangeLabel = '', beforeName, afterName, beforeRoles, afterRoles;
       if(wasNew){
@@ -2948,8 +2846,7 @@
   }
 
   // sinceTime/rawEditTime (both optional) mirror buildCombinedOrgChangeRows' own — see its comment.
-  // scopeClosure (optional) mirrors buildCombinedOrgChangeRows' own too.
-  function buildCombinedPersonnelRows(pristineNodes, pristineEmployees, finalNodes, finalEmployees, entries, sinceTime, rawEditTime, scopeClosure){
+  function buildCombinedPersonnelRows(pristineNodes, pristineEmployees, finalNodes, finalEmployees, entries, sinceTime, rawEditTime){
     var pristineNodeById = {}; pristineNodes.forEach(function(n){ pristineNodeById[n.id] = n; });
     var finalNodeById = {}; finalNodes.forEach(function(n){ finalNodeById[n.id] = n; });
     var pristineEmpById = {}; pristineEmployees.forEach(function(e){ pristineEmpById[e.eid] = e; });
@@ -2974,12 +2871,6 @@
       var newPath = pathLabelIn(finalNodes, fe.nodeId);
       var pathChanged = oldPath !== newPath;
       var reportsChanged = fe.reportsTo !== pe.reportsTo;
-      // Touched departments: every department along this employee's before AND after path — not
-      // just their immediate department — so a scope holder over an ANCESTOR that renamed/moved
-      // (without the employee's own immediate department changing) still sees this row, and so a
-      // scope holder over the destination of a transfer sees it even if someone else made it.
-      var oldChain = ancestorChainIds(pristineNodeById, pe.nodeId);
-      if(!inScope(scopeClosure, oldChain.concat(chain))) return null;
       var before = pristineNodeById[pe.nodeId] ? nodeRolesAfter(pristineNodeById[pe.nodeId]) : {};
       var after = finalNodeById[fe.nodeId] ? nodeRolesAfter(finalNodeById[fe.nodeId]) : {};
       var roleChangeLabel = roleChangeSummary(
@@ -2997,6 +2888,7 @@
         if(fe.nodeId !== pe.nodeId){
           orgChangeTypeLabels.push(ct('logType').emp_transfer);
         } else {
+          var oldChain = ancestorChainIds(pristineNodeById, pe.nodeId);
           if(oldChain.join('>') !== chain.join('>')) orgChangeTypeLabels.push(ct('logType').move);
           var renamedInChain = oldChain.some(function(id){
             return chain.indexOf(id)!==-1 && pristineNodeById[id].name !== finalNodeById[id].name;
@@ -3035,6 +2927,51 @@
     });
   }
 
+  // ---------- personal export filter: "my own edits, plus anything chained to them" ----------
+  // What department/employee/extra-person a single log entry actually touches — same typeKey
+  // cases as computeLastTouched/replayAll above, just returning identifiers instead of bumping a
+  // timestamp or mutating a working copy. Prefixed so a department id and an EID can never
+  // collide with each other.
+  function entryTouchedIds(l){
+    var p = l.params || {};
+    switch(l.typeKey){
+      case 'rename': case 'move': case 'add': case 'delete': case 'undo_delete':
+        return ['node:' + l.key];
+      case 'role_change':
+        return ['node:' + (l.key||'').split('#')[0]];
+      case 'role_cascade':
+        return (p.beforeValues||[]).map(function(bv){ return 'node:' + bv.id; });
+      case 'emp_transfer':
+        return ['emp:' + p.eid].concat(p.toId ? ['node:' + p.toId] : []);
+      case 'report_change':
+        return ['emp:' + l.key];
+      case 'extra_transfer':
+        return ['extra:' + p.id].concat(p.toId ? ['node:' + p.toId] : []);
+      default:
+        return [];
+    }
+  }
+  // Keeps everything the current user personally authored, PLUS any entry that shares a touched
+  // department/employee/extra-person with one of those — transitively, via union-find over
+  // "which entries share a touched id". E.g. if I moved an employee into department X and someone
+  // else renamed X, that rename shows up in my export too, since the two changes are entangled at
+  // X — this is deliberately NOT "only entries I authored", it's "the whole entangled cluster my
+  // own edits are part of".
+  function filterEntriesRelevantToMe(entries, myName){
+    var parent = entries.map(function(_, i){ return i; });
+    function find(x){ while(parent[x]!==x){ parent[x]=parent[parent[x]]; x=parent[x]; } return x; }
+    function union(a, b){ var ra=find(a), rb=find(b); if(ra!==rb) parent[ra]=rb; }
+    var firstSeenAt = {};
+    entries.forEach(function(l, i){
+      entryTouchedIds(l).forEach(function(tid){
+        if(firstSeenAt[tid]===undefined) firstSeenAt[tid] = i; else union(firstSeenAt[tid], i);
+      });
+    });
+    var myRoots = {};
+    entries.forEach(function(l, i){ if(l.by===myName) myRoots[find(i)] = true; });
+    return entries.filter(function(l, i){ return myRoots[find(i)]; });
+  }
+
   // ---------- wiring ----------
   // Inserted before the file extension so repeated downloads within the same day (or even the
   // same minute) don't overwrite each other, and it's obvious at a glance when an export was made.
@@ -3052,14 +2989,16 @@
   // changes into Base — CSV download (still below) remains for anyone who wants a local copy.
   document.getElementById('downloadChangelogBtn').addEventListener('click', function(){
     getCombinedReplayState().then(function(s){
-      var scopeClosure = buildScopeClosure(currentUserScope, pristineNodes, s.finalNodes);
-      downloadCsv(dateStampedFilename(ct('csvOrgChangeFilename')), buildCombinedOrgChangeRows(pristineNodes, s.finalNodes, s.entries, null, false, scopeClosure));
+      var myEntries = filterEntriesRelevantToMe(s.entries, currentUserName);
+      var myReplay = replayAll(myEntries, pristineNodes, pristineEmployees);
+      downloadCsv(dateStampedFilename(ct('csvOrgChangeFilename')), buildCombinedOrgChangeRows(pristineNodes, myReplay.nodes, myEntries));
     }).catch(function(err){ toast(err.message); });
   });
   document.getElementById('downloadChangelogEmpBtn').addEventListener('click', function(){
     getCombinedReplayState().then(function(s){
-      var scopeClosure = buildScopeClosure(currentUserScope, pristineNodes, s.finalNodes);
-      downloadCsv(dateStampedFilename(ct('csvPersonnelFilename')), buildCombinedPersonnelRows(pristineNodes, pristineEmployees, s.finalNodes, s.finalEmployees, s.entries, null, false, scopeClosure));
+      var myEntries = filterEntriesRelevantToMe(s.entries, currentUserName);
+      var myReplay = replayAll(myEntries, pristineNodes, pristineEmployees);
+      downloadCsv(dateStampedFilename(ct('csvPersonnelFilename')), buildCombinedPersonnelRows(pristineNodes, pristineEmployees, myReplay.nodes, myReplay.employees, myEntries));
     }).catch(function(err){ toast(err.message); });
   });
   document.getElementById('editCloseBtn').addEventListener('click', closePanel);
@@ -3385,7 +3324,6 @@
         .then(function(res){ return res.ok ? res.json() : {role:null}; })
         .then(function(perm){
           currentUserRole = perm.role;
-          currentUserScope = perm.editScope || [];
           document.getElementById('loginOverlay').style.display = 'none';
           if(!currentUserRole){
             document.getElementById('noAccessOverlay').style.display = 'flex';
