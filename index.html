@@ -4,15 +4,16 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Org Structure Change Tool</title>
+<link rel="icon" type="image/png" href="assets/logo.png?v=20260923-1">
 <!-- No build step here, so nothing else forces browsers to drop a stale cached copy of these
      two files after a deploy — bump the ?v= on both whenever either changes. -->
-<link rel="stylesheet" href="css/style.css?v=20260923-8">
+<link rel="stylesheet" href="css/style.css?v=20260923-10">
 </head>
 <body>
 
 <div class="login-overlay" id="loginOverlay" style="display:none;">
   <div class="login-card" id="loginCard">
-    <div class="mark">组</div>
+    <img class="mark" src="assets/logo.png?v=20260923-1" alt="">
     <h1 data-i18n="loginTitle">Org Structure Change Tool</h1>
     <p data-i18n="loginSubtitle">Sign in to view the org structure and employee data</p>
     <button class="login-btn" id="loginBtn"><span class="dot"></span><span id="loginBtnText" data-i18n="loginBtnText">Sign in with Lark</span></button>
@@ -52,49 +53,54 @@
     </div>
   </div>
 
-  <div class="controls-row">
-    <div class="search-box">
-      <input type="text" id="searchInput" data-i18n-placeholder="searchPlaceholder" placeholder="搜索组织架构名称…" autocomplete="off">
-      <div class="search-results" id="searchResults"></div>
-    </div>
-    <div class="search-box">
-      <input type="text" id="empSearchInput" data-i18n-placeholder="searchEmpNamePlaceholder" placeholder="搜索员工姓名…" autocomplete="off">
-      <div class="search-results" id="empSearchResults"></div>
-    </div>
-    <span class="focus-pill" id="focusPill"><span id="focusPillText"></span><button id="clearFocus">×</button></span>
-    <button class="btn primary" id="globalTransferBtn" data-i18n="globalTransferBtn">转移员工</button>
-    <button class="btn primary" id="expandNextLevelBtn" data-i18n="expandNextLevelBtn">展开下一层</button>
-    <button class="btn primary" id="expandAllBtn" data-i18n="expandAllBtn">全部展开</button>
-    <button class="btn primary" id="collapseAllBtn" data-i18n="collapseAllBtn">全部折叠</button>
-    <button class="btn primary" id="refreshEditsBtn" data-i18n="refreshEditsBtn">刷新编辑</button>
-    <a class="btn" id="requestEditAccessBtn" href="https://digiplus.sg.larksuite.com/share/base/form/shrlgrDjevGKEHsmtbB2gMQ7lte/?prefill_Role=Editor" target="_blank" rel="noopener" data-i18n="requestEditAccessBtn" style="display:none; text-decoration:none; box-sizing:border-box;">申请编辑权限</a>
-    <span style="flex:1;"></span>
-    <div class="seg" id="orientSeg">
-      <button data-orient="vertical" class="active" data-i18n="orientVertical">纵向</button>
-      <button data-orient="horizontal" data-i18n="orientHorizontal">横向</button>
-    </div>
-  </div>
-
-  <div class="zoom-ctrl zoom-ctrl-floating" id="zoomCtrlFloating">
-    <button type="button" id="zoomOutBtn" data-i18n-title="zoomOutTitle" title="缩小">−</button>
-    <span class="mono" id="zoomLabel">100%</span>
-    <button type="button" id="zoomInBtn" data-i18n-title="zoomInTitle" title="放大">+</button>
-  </div>
-
   <div class="edit-window-banner" id="editWindowBanner" style="display:none;"></div>
 
   <div class="layout" id="chartView">
 
     <div class="panel">
-      <div class="legend">
+      <!-- Everything below floats over the canvas itself (position:absolute against this
+           .panel) instead of sitting in static chrome bars above it, so the tree-scroll canvas
+           gets the full panel height. -->
+      <div class="controls-row canvas-float canvas-float-top">
+        <div class="search-box">
+          <input type="text" id="searchInput" data-i18n-placeholder="searchPlaceholder" placeholder="搜索组织架构名称…" autocomplete="off">
+          <div class="search-results" id="searchResults"></div>
+        </div>
+        <div class="search-box">
+          <input type="text" id="empSearchInput" data-i18n-placeholder="searchEmpNamePlaceholder" placeholder="搜索员工姓名…" autocomplete="off">
+          <div class="search-results" id="empSearchResults"></div>
+        </div>
+        <span class="focus-pill" id="focusPill"><span id="focusPillText"></span><button id="clearFocus">×</button></span>
+        <button class="btn primary" id="globalTransferBtn" data-i18n="globalTransferBtn">转移员工</button>
+        <button class="btn primary" id="expandNextLevelBtn" data-i18n="expandNextLevelBtn">展开下一层</button>
+        <button class="btn primary" id="expandAllBtn" data-i18n="expandAllBtn">全部展开</button>
+        <button class="btn primary" id="collapseAllBtn" data-i18n="collapseAllBtn">全部折叠</button>
+        <button class="btn primary" id="refreshEditsBtn" data-i18n="refreshEditsBtn">刷新编辑</button>
+        <a class="btn" id="requestEditAccessBtn" href="https://digiplus.sg.larksuite.com/share/base/form/shrlgrDjevGKEHsmtbB2gMQ7lte/?prefill_Role=Editor" target="_blank" rel="noopener" data-i18n="requestEditAccessBtn" style="display:none; text-decoration:none; box-sizing:border-box;">申请编辑权限</a>
+      </div>
+
+      <button class="btn primary canvas-float canvas-float-tr" id="downloadPngBtn" data-i18n="downloadPngBtn">下载组织架构图（PNG）</button>
+
+      <div class="legend canvas-float canvas-float-bl">
         <div class="legend-item"><span class="swatch" style="background:var(--new-bg); border-color:var(--new-border);"></span><span data-i18n="legendNew">新增</span></div>
         <div class="legend-item"><span class="swatch" style="background:var(--warn-bg); border-color:var(--warn-border);"></span><span data-i18n="legendDelete">删除</span></div>
         <div class="legend-item"><span class="swatch" style="background:var(--mov-bg); border-color:var(--mov-border);"></span><span data-i18n="legendMoved">移动</span></div>
         <div class="legend-item"><span class="swatch" style="background:var(--accent-soft); border-color:var(--accent);"></span><span data-i18n="legendRenamed">已改名</span></div>
         <div class="legend-item" style="color:var(--warn-text);" data-i18n="legendRoleWarn">⚠ 角色不一致</div>
-        <span style="flex:1;"></span>
-        <button class="btn primary" id="downloadPngBtn" data-i18n="downloadPngBtn">下载组织架构图（PNG）</button>
       </div>
+
+      <div class="canvas-float canvas-float-br">
+        <div class="zoom-ctrl" id="zoomCtrlFloating">
+          <button type="button" id="zoomOutBtn" data-i18n-title="zoomOutTitle" title="缩小">−</button>
+          <span class="mono" id="zoomLabel">100%</span>
+          <button type="button" id="zoomInBtn" data-i18n-title="zoomInTitle" title="放大">+</button>
+        </div>
+        <div class="seg" id="orientSeg">
+          <button data-orient="vertical" class="active" data-i18n="orientVertical">纵向</button>
+          <button data-orient="horizontal" data-i18n="orientHorizontal">横向</button>
+        </div>
+      </div>
+
       <div class="tree-scroll" id="treeScroll">
         <div class="tree-wrap" id="treeWrap">
           <svg class="tree-connectors" id="treeConnectors"></svg>
@@ -358,7 +364,7 @@
 
 <div class="toast" id="toast"></div>
 
-<script src="js/app.js?v=20260923-8"></script>
+<script src="js/app.js?v=20260923-9"></script>
 
 </body>
 </html>

@@ -2486,10 +2486,9 @@
     document.getElementById('chartView').style.display = view==='chart' ? '' : 'none';
     document.getElementById('unassignedView').style.display = view==='unassigned' ? '' : 'none';
     document.getElementById('adminView').style.display = view==='admin' ? '' : 'none';
-    // The search/transfer/expand/zoom/orientation toolbar only means anything against the org
-    // chart itself — hide it everywhere else instead of leaving it sitting above an unrelated tab.
-    document.querySelector('.controls-row').style.display = view==='chart' ? '' : 'none';
-    document.getElementById('zoomCtrlFloating').style.display = view==='chart' ? '' : 'none';
+    // The search/transfer/expand/zoom/orientation toolbar now lives inside #chartView itself
+    // (floating over the canvas — see .canvas-float-* in style.css), so hiding chartView above
+    // already hides all of it; no separate toggle needed here anymore.
     if(view==='admin'){ renderAdmin(); renderEditWindowSettings(); fetchExportWatermark().then(renderExportWatermark); }
     // The real cause of the "connectors go blank" report: any render (e.g. clicking Undo, which
     // lives on the Change log tab) that happens while chartView is display:none computes every
