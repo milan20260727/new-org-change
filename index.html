@@ -7,7 +7,7 @@
 <link rel="icon" type="image/png" href="assets/logo.png?v=20260923-1">
 <!-- No build step here, so nothing else forces browsers to drop a stale cached copy of these
      two files after a deploy — bump the ?v= on both whenever either changes. -->
-<link rel="stylesheet" href="css/style.css?v=20261005-1">
+<link rel="stylesheet" href="css/style.css?v=20261005-2">
 </head>
 <body>
 
@@ -36,7 +36,6 @@
   <div class="topbar">
     <div class="topbar-title-row">
       <div class="topbar-title-inner">
-        <a class="btn chrome-toggle-btn org-chart-link-btn" href="https://digiplus-topaz.vercel.app/" target="_blank" rel="noopener" data-i18n="orgChartLinkBtn">当前组织架构</a>
         <div class="seg view-tabs" id="viewTabs">
           <button data-view="chart" class="active" data-i18n="viewChart">组织架构图</button>
           <button data-view="unassigned" id="viewUnassignedBtn"><span id="mergedTabLabel" data-i18n="extraSubChangelog">变更记录</span> (<span id="viewUnassignedCount">0</span>)</button>
@@ -50,6 +49,7 @@
         <svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>
       </button></div>
       <button type="button" class="btn chrome-toggle-btn" id="langToggleBtn">中文</button>
+      <a class="btn chrome-toggle-btn org-chart-link-btn" href="https://digiplus-topaz.vercel.app/" target="_blank" rel="noopener" data-i18n="orgChartLinkBtn">当前组织架构</a>
     </div>
   </div>
 
@@ -362,7 +362,7 @@
 
 <div class="toast" id="toast"></div>
 
-<script src="js/app.js?v=20261005-1"></script>
+<script src="js/app.js?v=20261005-2"></script>
 
 </body>
 </html>
