@@ -2455,7 +2455,6 @@
     var counts = {changelog:mergedLogForDisplay().length, l2depts:l2Depts.length, affectedemp:computeImpacted().length, unassigned:unassignedList.length, consultant:consultants.length, shared:shared.length, pending:pending.length, undefined:undef.length};
     var activeCount = counts[activeExtraSubview] || 0;
     document.getElementById('unassignedCount').textContent = activeCount;
-    document.getElementById('viewUnassignedCount').textContent = activeCount;
     document.getElementById('mergedTabLabel').textContent = t(EXTRA_SUBVIEW_LABEL_KEY[activeExtraSubview]);
     applyExtraSubviewVisibility();
   }
